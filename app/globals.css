@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand: #3b82f6;
+  --color-brand-hover: #2563eb;
+  --color-high: #ef4444;       
+  --color-high-bg: #fee2e2;    
+  --color-medium: #f59e0b;     
+  --color-medium-bg: #fef3c7;  
+  --color-low: #10b981;        
+  --color-low-bg: #d1fae5;
+  --font-sans: var(--font-assistant), system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, helvetica, arial, sans-serif;
+}
+
+@layer utilities {
+  .rtl-glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .dark .rtl-glass {
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  min-height: 100vh;
+}
+
+.dark body, .dark {
+  background-color: #030712;
+  color: #f8fafc;
+}
+
+/* Dark mode form elements */
+.dark select,
+.dark option {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark select option {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark table {
+  color: #e5e7eb;
+}
+
+.dark tbody tr {
+  background-color: #111827;
+}
+
+.dark tbody tr:hover {
+  background-color: #1e1b4b20;
+}
+
+.dark input,
+.dark textarea {
+  color: #e5e7eb;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #4b5563;
+}

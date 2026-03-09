@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+
+# environment variables (secrets!)
+.env
+.env.local
+.env.production
+.env*.local
+
+# next.js
+.next/
+out/
+
+# debug & logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+webhook.log
+
+# sensitive scripts with credentials
+get_creds.js
+get_twilio_creds.bat
+hello.js
+test-*.js
+diag-models.js
+list-*.js
+scripts/
+
+# local data
+leads.json
+
+# misc
+.DS_Store
+*.pem
