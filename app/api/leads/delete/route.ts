@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLeads } from '@/utils/storage';
-import fs from 'fs/promises';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'leads.json');
+import { deleteLead } from '@/utils/storage';
 
 export async function POST(req: Request) {
   try {
@@ -13,15 +9,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Missing lead ID' }, { status: 400 });
     }
 
-    const leads = await getLeads();
-    const filtered = leads.filter(l => l.id !== id);
+    const deleted = await deleteLead(id);
     
-    if (filtered.length === leads.length) {
+    if (!deleted) {
       return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
     }
 
-    await fs.writeFile(dbPath, JSON.stringify(filtered, null, 2), 'utf8');
-    
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting lead:', error);

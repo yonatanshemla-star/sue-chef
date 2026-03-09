@@ -1,5 +1,4 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { sql } from '@vercel/postgres';
 
 export interface Lead {
   id: string;
@@ -15,36 +14,50 @@ export interface Lead {
   recordingUrl?: string;
   transcription?: string;
   urgency: 'נמוכה' | 'בינונית' | 'גבוהה';
-  isSigned?: boolean; // explicit flag
-  signedAt?: string;  // date when signed
+  isSigned?: boolean;
+  signedAt?: string;
 }
 
-const dbPath = path.join(process.cwd(), 'leads.json');
+// Initialize the leads table if it doesn't exist
+export async function initDB() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS leads (
+      id TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+}
 
 export async function getLeads(): Promise<Lead[]> {
   try {
-    const data = await fs.readFile(dbPath, 'utf8');
-    return JSON.parse(data);
+    await initDB();
+    const { rows } = await sql`SELECT data FROM leads ORDER BY created_at DESC`;
+    return rows.map(r => r.data as Lead);
   } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      // Return empty array if file doesn't exist yet
-      return [];
-    }
-    throw error;
+    console.error('DB getLeads error:', error);
+    return [];
   }
 }
 
 export async function saveLead(lead: Lead): Promise<void> {
-  const currentLeads = await getLeads();
-  currentLeads.push(lead);
-  await fs.writeFile(dbPath, JSON.stringify(currentLeads, null, 2), 'utf8');
+  await initDB();
+  await sql`
+    INSERT INTO leads (id, data, created_at) 
+    VALUES (${lead.id}, ${JSON.stringify(lead)}, ${lead.createdAt})
+    ON CONFLICT (id) DO UPDATE SET data = ${JSON.stringify(lead)}
+  `;
 }
 
 export async function updateLead(updatedLead: Lead): Promise<void> {
-  const leads = await getLeads();
-  const index = leads.findIndex(l => l.id === updatedLead.id);
-  if (index !== -1) {
-    leads[index] = updatedLead;
-    await fs.writeFile(dbPath, JSON.stringify(leads, null, 2), 'utf8');
-  }
+  await initDB();
+  await sql`
+    UPDATE leads SET data = ${JSON.stringify(updatedLead)} WHERE id = ${updatedLead.id}
+  `;
+}
+
+export async function deleteLead(id: string): Promise<boolean> {
+  await initDB();
+  const result = await sql`DELETE FROM leads WHERE id = ${id}`;
+  return (result.rowCount ?? 0) > 0;
 }
