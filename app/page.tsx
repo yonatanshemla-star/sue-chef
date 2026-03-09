@@ -85,6 +85,7 @@ export default function Home() {
   
   // Live notes modal
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showScript, setShowScript] = useState(true);
   
   // Filtering & Sorting
@@ -407,31 +408,37 @@ export default function Home() {
                                             />
                                           );
                                         })()}
-                                        <details className="relative group/menu">
-                                          <summary className="list-none p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded-lg transition-all cursor-pointer [&::-webkit-details-marker]:hidden">
+                                        <div className="relative">
+                                          <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id); }} className="list-none p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded-lg transition-all cursor-pointer">
                                             <MoreVertical className="w-5 h-5" />
-                                          </summary>
-                                          <div className="absolute top-full left-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-xl shadow-black/10 border border-gray-100 dark:border-gray-700 overflow-hidden z-50 flex flex-col">
-                                            {lead.phone && lead.phone.length >= 9 && (
-                                              <button 
-                                                onClick={() => {
-                                                  const message = encodeURIComponent(`היי ${lead.clientName || ''}, קוראים לי יונתן אני ממשרד עו"ד HBA. השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך, אשמח אם נוכל לשוחח כשיהיה זמן`);
-                                                  const waPhone = normalizePhone(lead.phone!).replace(/^0/, '972');
-                                                  window.open(`https://wa.me/${waPhone}?text=${message}`, '_blank');
-                                                }}
-                                                className="flex justify-between items-center w-full px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-right transition-colors"
-                                              >
-                                                <MessageSquare className="w-4 h-4 ml-2" /> הודעה
-                                              </button>
-                                            )}
-                                            <button 
-                                              onClick={() => deleteLead(lead.id, lead.clientName)} 
-                                              className="flex justify-between items-center w-full px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-gray-50 dark:border-gray-700/50 text-right"
-                                            >
-                                              <Trash2 className="w-4 h-4 ml-2" /> מחק
-                                            </button>
-                                          </div>
-                                        </details>
+                                          </button>
+                                          {openMenuId === lead.id && (
+                                            <>
+                                              <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
+                                              <div className="absolute bottom-full left-0 mb-2 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-xl shadow-black/10 border border-gray-100 dark:border-gray-700 overflow-hidden z-50 flex flex-col">
+                                                {lead.phone && lead.phone.length >= 9 && (
+                                                  <button 
+                                                    onClick={() => {
+                                                      const message = encodeURIComponent(`היי ${lead.clientName || ''}, קוראים לי יונתן אני ממשרד עו"ד HBA. השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך, אשמח אם נוכל לשוחח כשיהיה זמן`);
+                                                      const waPhone = normalizePhone(lead.phone!).replace(/^0/, '972');
+                                                      window.open(`https://wa.me/${waPhone}?text=${message}`, '_blank');
+                                                      setOpenMenuId(null);
+                                                    }}
+                                                    className="flex justify-between items-center w-full px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-right transition-colors"
+                                                  >
+                                                    <MessageSquare className="w-4 h-4 ml-2" /> הודעה
+                                                  </button>
+                                                )}
+                                                <button 
+                                                  onClick={() => { deleteLead(lead.id, lead.clientName); setOpenMenuId(null); }} 
+                                                  className="flex justify-between items-center w-full px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-gray-50 dark:border-gray-700/50 text-right"
+                                                >
+                                                  <Trash2 className="w-4 h-4 ml-2" /> מחק
+                                                </button>
+                                              </div>
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
 
                                       {/* Phone - stacked below */}
@@ -700,12 +707,12 @@ export default function Home() {
 
         {/* =================== LIVE NOTES MODAL =================== */}
         {liveNotesLead && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300" style={{ overscrollBehavior: 'contain' }}>
             {/* Backdrop */}
             <div className="absolute inset-0 bg-gray-900/60 dark:bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setLiveNotesLead(null)}></div>
             
             {/* Modal Content */}
-            <div className={`relative w-full max-w-5xl h-[85vh] flex flex-col rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 dark:border-white/10 ${darkMode ? 'bg-[#0f111a]' : 'bg-[#f8fafc]'}`}>
+            <div className={`relative w-full max-w-5xl h-[85vh] flex flex-col rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-white/10 ${darkMode ? 'bg-[#0f111a]' : 'bg-[#f8fafc]'}`} style={{ overflow: 'hidden' }}>
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-800 shadow-sm bg-white/50 dark:bg-black/20 backdrop-blur-xl z-10">
                 <div className="flex items-center gap-5">
@@ -729,7 +736,7 @@ export default function Home() {
               {/* Body */}
               <div className="flex-1 flex overflow-hidden min-h-0 relative">
                 {/* Left / Notes Panel */}
-                <div className="flex-1 p-8 flex flex-col min-w-0 bg-white/40 dark:bg-black/10">
+                <div className="flex-1 p-8 pb-28 flex flex-col min-w-0 bg-white/40 dark:bg-black/10 overflow-y-auto custom-scrollbar">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
                     <h4 className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">סיכום שיחה</h4>
