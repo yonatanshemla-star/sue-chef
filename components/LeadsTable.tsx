@@ -174,7 +174,7 @@ export default function LeadsTable({ leads, onLeadUpdate }: LeadsTableProps) {
                   <input 
                      type="datetime-local" 
                      value={lead.followUpDate ? new Date(lead.followUpDate).toISOString().slice(0, 16) : ''}
-                     onChange={(e) => onLeadUpdate(lead.id, { followUpDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                     onChange={(e) => onLeadUpdate(lead.id, { followUpDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
                      className="mt-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 text-xs w-full text-gray-600 outline-none focus:border-indigo-400"
                   />
               </td>
