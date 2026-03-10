@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const modelsToTry = ["gemini-1.5-flash", "gemini-pro", "gemini-1.5-flash-8b"];
+    const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
     let lastError = null;
     let text = "";
 
