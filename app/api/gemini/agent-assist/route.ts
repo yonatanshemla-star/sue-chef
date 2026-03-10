@@ -32,27 +32,45 @@ export async function POST(req: Request) {
       });
     }
 
-    const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
-    let lastError = null;
-    let text = "";
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
-    for (const modelName of modelsToTry) {
+    const modelsToTry = [
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-2.0-flash-exp",
+      "gemini-1.5-pro",
+    ];
+
+    let text = "";
+    let lastError = null;
+
+    for (const model of modelsToTry) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const prompt = `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}`;
-        const result = await model.generateContent(prompt);
-        text = result.response.text();
-        if (text) break;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}` }] }]
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (text) break;
+        } else {
+          lastError = new Error(data.error?.message || `Status ${response.status} for ${model}`);
+          console.error(`Model ${model} failed:`, data.error?.message);
+        }
       } catch (e: any) {
         lastError = e;
-        console.error(`Model ${modelName} failed:`, e.message);
-        continue;
+        console.error(`Fetch to ${model} failed:`, e.message);
       }
     }
 
-    if (!text && lastError) {
-      throw lastError;
-    }
+    if (!text && lastError) throw lastError;
 
     // Parse the response lines and filter for lines with our expected emojis
     const lines = text.split('\n').filter(l => l.includes('🔴') || l.includes('🟠'));
