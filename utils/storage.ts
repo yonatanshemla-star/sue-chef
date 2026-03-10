@@ -36,7 +36,7 @@ export async function getLeads(): Promise<Lead[]> {
   try {
     await initDB();
     const { rows } = await sql`SELECT data FROM leads ORDER BY created_at DESC`;
-    return rows.map((r: { data: any }) => r.data as Lead);
+    return rows.map((r: any) => r.data as Lead);
   } catch (error) {
     console.error('DB getLeads error:', error);
     return [];
