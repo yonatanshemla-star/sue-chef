@@ -198,6 +198,26 @@ export default function Home() {
 
   useEffect(() => { fetchTwilioData(); fetchLeads(); const i1 = setInterval(fetchTwilioData, 60000); const i2 = setInterval(fetchLeads, 30000); return () => { clearInterval(i1); clearInterval(i2); }; }, []);
 
+  const handleTreeComplete = (answers: any) => {
+    if (!liveNotesLead) return;
+    
+    const summaryParts = [];
+    if (answers.name) summaryParts.push(`שם: ${answers.name}`);
+    if (answers.age) summaryParts.push(`גיל: ${answers.age}`);
+    if (answers.income) summaryParts.push(`הכנסה: ${answers.income}`);
+    if (answers.medicalCondition) {
+      const conditionLabel = legalQuestions.find(q => q.id === 'medicalCondition')?.options?.find(o => o.value === answers.medicalCondition)?.label || answers.medicalCondition;
+      summaryParts.push(`מצב רפואי: ${conditionLabel}`);
+    }
+    if (answers.taxPaid) summaryParts.push(`מס ששולם: ${answers.taxPaid}`);
+    
+    const treeSummary = `\n--- סיכום עץ החלטות ---\n${summaryParts.join('\n')}\n------------------------\n`;
+    const newNotes = (liveNotesLead.liveCallNotes || '') + treeSummary;
+    
+    handleLeadUpdate(liveNotesLead.id, { liveCallNotes: newNotes });
+    setShowDecisionTree(false);
+  };
+
   // === Dark Mode & Body Scroll Lock ===
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
@@ -512,7 +532,7 @@ export default function Home() {
                <div className="flex-1 flex overflow-hidden min-h-0">
                  {showDecisionTree ? (
                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50 dark:bg-black/40">
-                     <LegalDecisionTree compact={true} />
+                     <LegalDecisionTree compact={true} onComplete={handleTreeComplete} />
                    </div>
                  ) : (
                    <>

@@ -5,10 +5,11 @@ import { ChevronLeft, ChevronRight, CheckCircle2, RotateCcw, ClipboardList } fro
 
 interface LegalDecisionTreeProps {
   onFinish?: (results: LegalResult[]) => void;
+  onComplete?: (answers: any) => void;
   compact?: boolean;
 }
 
-export default function LegalDecisionTree({ onFinish, compact = false }: LegalDecisionTreeProps) {
+export default function LegalDecisionTree({ onFinish, onComplete, compact = false }: LegalDecisionTreeProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<any>({});
   const [history, setHistory] = useState<number[]>([0]);
@@ -42,6 +43,9 @@ export default function LegalDecisionTree({ onFinish, compact = false }: LegalDe
       if (onFinish) {
         const results = evaluateResults(updatedAnswers);
         onFinish(results);
+      }
+      if (onComplete) {
+        onComplete(updatedAnswers);
       }
       return;
     }
