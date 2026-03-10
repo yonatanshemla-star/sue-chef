@@ -32,13 +32,29 @@ export async function POST(req: Request) {
       });
     }
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: SYSTEM_INSTRUCTION
-    });
+    const modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+    let lastError = null;
+    let text = "";
 
-    const result = await model.generateContent(notes);
-    const text = result.response.text();
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          systemInstruction: SYSTEM_INSTRUCTION
+        });
+        const result = await model.generateContent(notes);
+        text = result.response.text();
+        if (text) break;
+      } catch (e: any) {
+        lastError = e;
+        console.error(`Model ${modelName} failed:`, e.message);
+        continue;
+      }
+    }
+
+    if (!text && lastError) {
+      throw lastError;
+    }
 
     // Parse the response lines and filter for lines with our expected emojis
     const lines = text.split('\n').filter(l => l.includes('🔴') || l.includes('🟠'));
