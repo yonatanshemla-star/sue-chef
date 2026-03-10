@@ -19,10 +19,13 @@ export async function POST(req: Request) {
          // If no answer, action URL is triggered to handle the missed call.
          twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
          twiml += `    <Number>${destinationNumber}</Number>\n`;
+         twiml += `    <Client>dashboard_user</Client>\n`;
          twiml += `  </Dial>\n`;
      } else {
          // Fallback directly to voicemail if no number configured
-         twiml += `  <Redirect>/api/twilio/voicemail</Redirect>\n`;
+         twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
+         twiml += `    <Client>dashboard_user</Client>\n`;
+         twiml += `  </Dial>\n`;
      }
 
      twiml += `</Response>`;

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus } from "lucide-react";
 import type { Lead } from "@/utils/storage";
+import WebPhone from '@/components/WebPhone';
 
 // === Status Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number }> = {
@@ -93,6 +94,10 @@ export default function Home() {
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showScript, setShowScript] = useState(true);
+  
+  // WebPhone state
+  const [isPhoneOpen, setIsPhoneOpen] = useState(false);
+  const [phoneTarget, setPhoneTarget] = useState({ name: '', phone: '' });
   
   // Filtering & Sorting
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -869,29 +874,119 @@ export default function Home() {
               </div>
             </div>
 
-            <div className={`p-8 ${cardClass}`}>
-              <h3 className="text-lg font-bold mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">התפלגות סטטוסים</h3>
-              <div className="flex flex-col gap-4">
-                {Object.entries(STATUS_CONFIG).map(([statusKey, config]) => {
-                  const count = leads.filter(l => l.status === statusKey).length;
-                  if (count === 0 && statusKey !== 'חתם') return null; // hide empty except signed
-                  const percentage = leads.length > 0 ? (count / leads.length) * 100 : 0;
-                  return (
-                    <div key={statusKey} className="flex items-center gap-4">
-                      <div className="w-48 text-sm font-bold text-gray-600 dark:text-gray-300">{config.label}</div>
-                      <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-4 rounded-full overflow-hidden">
-                        <div className={`h-full ${config.bg} ${config.color} border-r-2 ${config.border} opacity-80`} style={{ width: `${Math.max(percentage, 1)}%` }}></div>
-                      </div>
-                      <div className="w-16 text-left text-sm font-bold text-gray-800 dark:text-gray-100">{count}</div>
+            <div className={`p-8 mb-8 ${cardClass}`}>
+              <h3 className="text-xl font-black mb-6 border-b border-gray-100 dark:border-gray-800 pb-4 flex items-center gap-2">
+                <ArrowUpDown className="w-5 h-5 text-indigo-500" />
+                יחס סגירה (Conversion Rate)
+              </h3>
+              
+              {(() => {
+                const won = leads.filter(l => l.status === 'חתם').length;
+                const lost = leads.filter(l => l.status === 'נגמר' || l.status === 'לא רלוונטי').length;
+                const totalFinished = won + lost;
+                const wonPercent = totalFinished > 0 ? (won / totalFinished) * 100 : 0;
+                const lostPercent = totalFinished > 0 ? (lost / totalFinished) * 100 : 0;
+                
+                return (
+                  <div>
+                    <div className="flex justify-between text-sm font-bold mb-2">
+                      <span className="text-emerald-600 dark:text-emerald-400">הצלחות (חתם): {won}</span>
+                      <span className="text-red-500 dark:text-red-400">הפסדים (נגמר/לא רלוונטי): {lost}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+                    <div className="h-6 w-full flex rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-inner">
+                      {totalFinished === 0 ? (
+                        <div className="w-full text-center text-[10px] text-gray-400 font-bold self-center">אין מספיק נתונים לסגירות</div>
+                      ) : (
+                        <>
+                          <div title={`חתם: ${wonPercent.toFixed(1)}%`} className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${wonPercent}%` }}></div>
+                          <div title={`הפסדים: ${lostPercent.toFixed(1)}%`} className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${lostPercent}%` }}></div>
+                        </>
+                      )}
+                    </div>
+                    {totalFinished > 0 && (
+                       <p className="text-center mt-3 text-xs font-bold text-gray-500">אחוז המרה מתוך תיקים סגורים: {wonPercent.toFixed(1)}%</p>
+                    )}
+                  </div>
+                );
+              })()}
+             </div>
 
-        {/* =================== LIVE NOTES MODAL =================== */}
+             <div className={`p-8 mb-8 flex flex-col md:flex-row gap-8`}>
+               {/* Left Side: General Status Distribution */}
+               <div className={`flex-1 p-6 border border-gray-100 dark:border-gray-800 rounded-3xl ${cardClassSoft}`}>
+                 <h3 className="text-lg font-bold mb-6 border-b border-gray-100 dark:border-gray-800 pb-4 flex items-center gap-2">
+                   <BarChart className="w-5 h-5 text-blue-500" />
+                   התפלגות סטטוסים
+                 </h3>
+                 <div className="flex flex-col gap-4">
+                   {Object.entries(STATUS_CONFIG).map(([statusKey, config]) => {
+                     const count = leads.filter(l => l.status === statusKey).length;
+                     if (count === 0 && statusKey !== 'חתם') return null; // hide empty except signed
+                     const percentage = leads.length > 0 ? (count / leads.length) * 100 : 0;
+                     return (
+                       <div key={statusKey} className="flex items-center gap-4">
+                         <div className="w-48 text-sm font-bold text-gray-600 dark:text-gray-300">{config.label}</div>
+                         <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-4 rounded-full overflow-hidden">
+                           <div className={`h-full ${config.bg} ${config.color} border-r-2 ${config.border} opacity-80`} style={{ width: `${Math.max(percentage, 1)}%` }}></div>
+                         </div>
+                         <div className="w-16 text-left text-sm font-bold text-gray-800 dark:text-gray-100">{count}</div>
+                       </div>
+                     );
+                   })}
+                 </div>
+               </div>
+
+               {/* Right Side: AI Sentiment Breakdown */}
+               <div className={`flex-1 p-6 border border-gray-100 dark:border-gray-800 rounded-3xl ${cardClassSoft}`}>
+                 <h3 className="text-lg font-bold mb-6 border-b border-gray-100 dark:border-gray-800 pb-4 flex items-center gap-2">
+                   <MessageSquare className="w-5 h-5 text-pink-500" />
+                   סנטימנט שיחות (ניתוח AI)
+                 </h3>
+                 
+                 {(() => {
+                   const positiveCount = leads.filter(l => l.sentiment === 'חיובי').length;
+                   const negativeCount = leads.filter(l => l.sentiment === 'שלילי').length;
+                   const neutralCount = leads.filter(l => l.sentiment === 'ניטרלי').length;
+                   const totalSentiment = positiveCount + negativeCount + neutralCount;
+
+                   if (totalSentiment === 0) {
+                     return <div className="text-center text-sm font-bold text-gray-400 mt-10">אין מספיק נתוני סנטימנט משיחות מתומללות</div>;
+                   }
+
+                   return (
+                     <div className="flex flex-col gap-6">
+                       <div className="flex items-center gap-4">
+                         <div className="w-32 text-sm font-bold text-emerald-600 dark:text-emerald-400">😊 חיובי</div>
+                         <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-4 rounded-full overflow-hidden">
+                           <div className="h-full bg-emerald-400" style={{ width: `${(positiveCount / totalSentiment) * 100}%` }}></div>
+                         </div>
+                         <div className="w-12 text-left text-sm font-bold text-gray-800 dark:text-gray-100">{positiveCount}</div>
+                       </div>
+                       
+                       <div className="flex items-center gap-4">
+                         <div className="w-32 text-sm font-bold text-gray-500 dark:text-gray-400">😐 ניטרלי</div>
+                         <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-4 rounded-full overflow-hidden">
+                           <div className="h-full bg-gray-400" style={{ width: `${(neutralCount / totalSentiment) * 100}%` }}></div>
+                         </div>
+                         <div className="w-12 text-left text-sm font-bold text-gray-800 dark:text-gray-100">{neutralCount}</div>
+                       </div>
+                       
+                       <div className="flex items-center gap-4">
+                         <div className="w-32 text-sm font-bold text-red-500 dark:text-red-400">😠 שלילי</div>
+                         <div className="flex-1 bg-gray-100 dark:bg-gray-800 h-4 rounded-full overflow-hidden">
+                           <div className="h-full bg-red-400" style={{ width: `${(negativeCount / totalSentiment) * 100}%` }}></div>
+                         </div>
+                         <div className="w-12 text-left text-sm font-bold text-gray-800 dark:text-gray-100">{negativeCount}</div>
+                       </div>
+                     </div>
+                   );
+                 })()}
+               </div>
+             </div>
+           </div>
+         )}
+
+         {/* =================== LIVE NOTES MODAL =================== */}
         {liveNotesLead && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300" style={{ overscrollBehavior: 'contain' }}>
             {/* Backdrop */}
@@ -1011,6 +1106,15 @@ export default function Home() {
         )}
 
       </main>
+
+      {/* --- WEBPHONE COMPONENT --- */}
+      <WebPhone 
+        isOpen={isPhoneOpen} 
+        onClose={() => setIsPhoneOpen(false)} 
+        targetName={phoneTarget.name}
+        targetPhone={phoneTarget.phone}
+        leads={leads}
+      />
     </div>
   );
 }

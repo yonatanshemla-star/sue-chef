@@ -4,20 +4,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Phone, Mic, MicOff, Volume2, VolumeX, Plus, User, Info, X, LayoutGrid, Video, UserPlus, Grid3X3, PhoneOff } from 'lucide-react';
 
 interface WebPhoneProps {
-  isOpen: boolean;
+  isOpen: boolean; // Tells it to pop open for an outbound dial request
   onClose: () => void;
-  targetName: string;
-  targetPhone: string;
+  targetName: string; // The outbound name
+  targetPhone: string; // The outbound phone
+  leads: any[]; // Used for Smart Caller ID
 }
 
-export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: WebPhoneProps) {
-  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle');
+export default function WebPhone({ isOpen, onClose, targetName, targetPhone, leads }: WebPhoneProps) {
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended' | 'incoming'>('idle');
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [twilioLoaded, setTwilioLoaded] = useState(false);
   const [isKeypad, setIsKeypad] = useState(false);
   
+  const [incomingCallerId, setIncomingCallerId] = useState<{name: string, phone: string} | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const deviceRef = useRef<any>(null);
   const connectionRef = useRef<any>(null);
@@ -64,34 +67,32 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Automatically start call when opened AND SDK is ready
+  // Initialize Twilio Device for INCOMING calls as soon as SDK is loaded
+  useEffect(() => {
+    if (twilioLoaded && !deviceRef.current) {
+      initTwilioDevice();
+    }
+  }, [twilioLoaded]);
+
+  // Outbound Trigger
   useEffect(() => {
     if (isOpen && callStatus === 'idle' && targetPhone && twilioLoaded) {
-      handleStartCall();
+      handleOutboundCall();
     } else if (isOpen && callStatus === 'idle' && targetPhone && !twilioLoaded) {
        setErrorMessage('טוען מערכת חיוג...'); 
     }
   }, [isOpen, targetPhone, twilioLoaded]);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const handleStartCall = async () => {
-    setCallStatus('calling');
-    setErrorMessage(null);
-    
+
+  const initTwilioDevice = async () => {
     try {
-      // 1. Get Token
       const resp = await fetch('/api/twilio/token');
-      if (!resp.ok) {
-        const errData = await resp.json();
-        throw new Error(errData.error || 'Failed to fetch token');
-      }
+      if (!resp.ok) throw new Error('Failed to fetch token');
       const { token } = await resp.json();
 
-      // 2. Setup Device
       // @ts-ignore
       const Twilio = window.Twilio;
-      if (!Twilio) throw new Error('Twilio SDK not loaded (CDN issue)');
-
       const device = new Twilio.Device(token, {
         codecPreferences: ['pcmu', 'opus'],
         edge: ['frankfurt', 'dublin', 'roaming'],
@@ -102,59 +103,105 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
 
       deviceRef.current = device;
 
-      device.on('registered', () => {
-        console.log('Device registered');
-        // 3. Initiate Call
-        const call = device.connect({ params: { To: targetPhone } });
-        connectionRef.current = call;
+      device.on('registered', () => console.log('WebPhone ready for incoming calls'));
 
-        call.on('accept', () => {
-          console.log('Call accepted');
-          setCallStatus('connected');
+      device.on('incoming', (connection: any) => {
+        console.log('Incoming call!', connection);
+        connectionRef.current = connection;
+        
+        const rawPhone = connection.parameters.From;
+        
+        // Smart Caller ID: find lead by phone
+        const normalizedIn = rawPhone.replace(/\D/g, '');
+        const currentLeads = leads || [];
+        const match = currentLeads.find(l => {
+          const lPhone = (l.phone || '').replace(/\D/g, '');
+          // match last 9 digits in case of country code diffs
+          if (lPhone.length >= 9 && normalizedIn.length >= 9) {
+             return normalizedIn.slice(-9) === lPhone.slice(-9);
+          }
+          return false;
         });
 
-        call.on('disconnect', () => {
-          console.log('Call disconnected');
-          handleEndCall();
+        setIncomingCallerId({
+           phone: rawPhone,
+           name: match ? match.clientName : 'מספר לא מזוהה'
         });
+        setCallStatus('incoming');
 
-        call.on('error', (error: any) => {
-          console.error('Call Error:', error);
-          setErrorMessage(`שגיאת שיחה: ${error.message || 'לא ידוע'}`);
-          setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 3000);
-        });
-      });
-
-      device.on('error', (error: any) => {
-        console.error('Device Error:', error);
-        setErrorMessage(`שגיאת מכשיר: ${error.message || 'לא ידוע'}`);
+        connection.on('accept', () => setCallStatus('connected'));
+        connection.on('disconnect', () => handleEndCall());
+        connection.on('cancel', () => handleEndCall());
+        connection.on('reject', () => handleEndCall());
       });
 
       await device.register();
+    } catch (err) {
+      console.error('Twilio init failed', err);
+    }
+  };
+
+  const handleOutboundCall = async () => {
+    setCallStatus('calling');
+    setErrorMessage(null);
+    
+    try {
+      if (!deviceRef.current) {
+        await initTwilioDevice();
+      }
+      const device = deviceRef.current;
+      if (!device) throw new Error("Device not initialized");
+
+      const call = device.connect({ params: { To: targetPhone } });
+      connectionRef.current = call;
+
+      call.on('accept', () => {
+        console.log('Call accepted');
+        setCallStatus('connected');
+      });
+
+      call.on('disconnect', () => {
+        console.log('Call disconnected');
+        handleEndCall();
+      });
+
+      call.on('error', (error: any) => {
+        console.error('Call Error:', error);
+        setErrorMessage(`שגיאת שיחה: ${error.message || 'לא ידוע'}`);
+        setCallStatus('ended');
+        setTimeout(() => setCallStatus('idle'), 3000);
+      });
 
     } catch (err: any) {
-      console.error('Failed to start call:', err);
-      setErrorMessage(err.message || 'נכשל להתחיל שיחה');
+      console.error('Failed to start outbound call:', err);
+      setErrorMessage(err.message || 'נכשל להתחיל שיחה יוצאת');
       setCallStatus('ended');
       setTimeout(() => setCallStatus('idle'), 3000);
     }
   };
 
+  const handleAcceptIncoming = () => {
+    if (connectionRef.current && callStatus === 'incoming') {
+      connectionRef.current.accept();
+      setCallStatus('connected');
+    }
+  };
+
   const handleEndCall = () => {
     if (connectionRef.current) {
-      connectionRef.current.disconnect();
-    }
-    if (deviceRef.current) {
-      deviceRef.current.destroy();
+      if (callStatus === 'incoming') {
+        connectionRef.current.reject();
+      } else {
+        connectionRef.current.disconnect();
+      }
     }
     setCallStatus('ended');
+    setIncomingCallerId(null);
     setTimeout(() => {
       setCallStatus('idle');
       onClose();
     }, 1500);
   };
-
   const toggleMute = () => {
     if (connectionRef.current) {
       const muted = !isMuted;
@@ -205,14 +252,23 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
              <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-2 uppercase tracking-wider border 
                ${callStatus === 'connected' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
                  callStatus === 'calling' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 
+                 callStatus === 'incoming' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 animate-pulse' : 
                  callStatus === 'ended' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
                  'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
                {callStatus === 'connected' ? 'שיחה פעילה' : 
                 callStatus === 'calling' ? 'מתקשר...' : 
+                callStatus === 'incoming' ? 'שיחה נכנסת!' : 
                 callStatus === 'ended' ? 'שיחה נותקה' : 'ממתין'}
              </div>
-             <h2 className="text-2xl font-bold text-white leading-tight">{targetName || 'בנטוסף'}</h2>
-             <p className="text-sm text-white/40 font-normal mt-1 tracking-wide" dir="ltr">{targetPhone}</p>
+             
+             {/* Name and Phone logic for Incoming vs Outgoing */}
+             <h2 className="text-2xl font-bold text-white leading-tight">
+               {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.name : (targetName || 'חיוג')}
+             </h2>
+             <p className="text-sm text-white/40 font-normal mt-1 tracking-wide" dir="ltr">
+               {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.phone : targetPhone}
+             </p>
+             
              {errorMessage && (
                <div className="mt-2 text-xs font-medium text-red-500 bg-red-500/10 px-3 py-1 rounded-md border border-red-500/20">
                  {errorMessage}
@@ -267,6 +323,18 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
 
         {/* Primary Bottom Actions */}
         <div className="flex items-center justify-center gap-12">
+            {callStatus === 'incoming' && (
+              <button 
+                onClick={handleAcceptIncoming}
+                className="group flex flex-col items-center gap-3"
+              >
+                <div className="w-20 h-20 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.4)] animate-bounce transition-all active:scale-90 group-hover:scale-110">
+                  <Phone className="w-10 h-10 fill-current" />
+                </div>
+                <span className="text-xs font-bold text-green-500/60 group-hover:text-green-500 transition-colors uppercase tracking-widest">מענה</span>
+              </button>
+            )}
+
             <button 
               onClick={handleEndCall}
               className="group flex flex-col items-center gap-3"
@@ -274,7 +342,9 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
               <div className="w-20 h-20 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-red-500/20 transition-all active:scale-90 group-hover:scale-110">
                 <PhoneOff className="w-10 h-10 fill-current" />
               </div>
-              <span className="text-xs font-bold text-red-500/60 group-hover:text-red-500 transition-colors uppercase tracking-widest">ניתוק</span>
+              <span className="text-xs font-bold text-red-500/60 group-hover:text-red-500 transition-colors uppercase tracking-widest">
+                {callStatus === 'incoming' ? 'דחה' : 'ניתוק'}
+              </span>
             </button>
         </div>
       </div>
