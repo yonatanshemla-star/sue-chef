@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import WebPhone from '@/components/WebPhone';
+import LegalDecisionTree from '@/components/LegalDecisionTree';
+import { legalQuestions } from '@/utils/legalQuestions';
+import { evaluateResults } from '@/utils/legalLogic';
 
 // === Status Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number }> = {
@@ -77,7 +80,7 @@ const CALL_SCRIPT = `פתיחה
 
 export default function Home() {
   // === State ===
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree'>('crm');
   const [darkMode, setDarkMode] = useState(false);
   const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
@@ -95,6 +98,9 @@ export default function Home() {
   // WebPhone state
   const [isPhoneOpen, setIsPhoneOpen] = useState(false);
   const [phoneTarget, setPhoneTarget] = useState({ name: '', phone: '' });
+  
+  // Decision Tree state in modal
+  const [showDecisionTree, setShowDecisionTree] = useState(false);
   
   // Filtering & Sorting
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -354,6 +360,9 @@ export default function Home() {
           <button onClick={() => setActiveTab('analytics')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'analytics' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
             <BarChart className="w-4 h-4" /> אנליטיקה
           </button>
+          <button onClick={() => setActiveTab('tree')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'tree' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
+            <ClipboardList className="w-4 h-4" /> עץ החלטות
+          </button>
         </div>
 
         {/* CRM Content */}
@@ -471,6 +480,13 @@ export default function Home() {
            </div>
         )}
 
+        {/* Decision Tree Tab */}
+        {activeTab === 'tree' && (
+          <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <LegalDecisionTree />
+          </div>
+        )}
+
         {/* =================== LIVE NOTES MODAL =================== */}
         {liveNotesLead && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
@@ -486,77 +502,85 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-xs transition-all ${showDecisionTree ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-white dark:bg-gray-800'}`}><ClipboardList className="w-4 h-4" /> {showDecisionTree ? 'חזרה לשיחה' : 'עץ החלטות'}</button>
                   <button onClick={() => setShowScript(!showScript)} className="flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-xs bg-white dark:bg-gray-800"><FileText className="w-4 h-4" /> {showScript ? 'הסתר תסריט' : 'הצג תסריט'}</button>
                   <button onClick={() => setLiveNotesLead(null)} className="p-2.5 rounded-xl border bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
                 </div>
               </div>
 
-              {/* Modal Body: 3-Panel Layout */}
-              <div className="flex-1 flex overflow-hidden min-h-0">
-                
-                {/* 1. Agent Assist (Right Panel) */}
-                <div className="w-80 border-l p-6 flex flex-col gap-4 overflow-y-auto bg-white/50 dark:bg-black/20 custom-scrollbar">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                      <RefreshCw className={isAssistLoading ? 'animate-spin' : ''} size={14} /> המלצות AI בזמן אמת
-                    </h4>
-                    <button 
-                      onClick={() => fetchAgentAssist(liveNotesLead.liveCallNotes || '')}
-                      disabled={isAssistLoading}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
-                      title="רענן המלצות באופן ידני"
-                    >
-                      <RefreshCw size={12} className={isAssistLoading ? 'animate-spin' : ''} />
-                    </button>
-                  </div>
-                  {assistError && (
-                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 text-amber-700 dark:text-amber-400 text-xs font-bold text-center">
-                       ⚠️ {assistError}
-                    </div>
-                  )}
+               {/* Modal Body: 3-Panel Layout */}
+               <div className="flex-1 flex overflow-hidden min-h-0">
+                 {showDecisionTree ? (
+                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50 dark:bg-black/40">
+                     <LegalDecisionTree compact={true} />
+                   </div>
+                 ) : (
+                   <>
+                     {/* 1. Agent Assist (Right Panel) */}
+                     <div className="w-80 border-l p-6 flex flex-col gap-4 overflow-y-auto bg-white/50 dark:bg-black/20 custom-scrollbar">
+                       <div className="flex items-center justify-between mb-2">
+                         <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                           <RefreshCw className={isAssistLoading ? 'animate-spin' : ''} size={14} /> המלצות AI בזמן אמת
+                         </h4>
+                         <button 
+                           onClick={() => fetchAgentAssist(liveNotesLead.liveCallNotes || '')}
+                           disabled={isAssistLoading}
+                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                           title="רענן המלצות באופן ידני"
+                         >
+                           <RefreshCw size={12} className={isAssistLoading ? 'animate-spin' : ''} />
+                         </button>
+                       </div>
+                       {assistError && (
+                         <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 text-amber-700 dark:text-amber-400 text-xs font-bold text-center">
+                            ⚠️ {assistError}
+                         </div>
+                       )}
 
-                  {assistCards.length === 0 && !isAssistLoading && !assistError && (
-                    <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2" /><p className="text-xs font-bold">הקלד הערות לקבלת סיוע</p></div>
-                  )}
-                  {assistCards.map((card, idx) => (
-                    <div key={idx} className={`p-4 rounded-2xl border animate-in slide-in-from-right-4 duration-500 ${card.emoji === '🔴' ? 'bg-red-50 dark:bg-red-900/20 border-red-200' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200'}`}>
-                      <p className="text-sm font-bold leading-snug">{card.emoji} {card.text}</p>
-                    </div>
-                  ))}
-                </div>
+                       {assistCards.length === 0 && !isAssistLoading && !assistError && (
+                         <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2" /><p className="text-xs font-bold">הקלד הערות לקבלת סיוע</p></div>
+                       )}
+                       {assistCards.map((card, idx) => (
+                         <div key={idx} className={`p-4 rounded-2xl border animate-in slide-in-from-right-4 duration-500 ${card.emoji === '🔴' ? 'bg-red-50 dark:bg-red-900/20 border-red-200' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200'}`}>
+                           <p className="text-sm font-bold leading-snug">{card.emoji} {card.text}</p>
+                         </div>
+                       ))}
+                     </div>
 
-                {/* 2. Main Notes Area (Center) */}
-                <div className="flex-1 p-8 flex flex-col bg-white/30 overflow-y-auto custom-scrollbar">
-                  <div className="flex items-center gap-2 mb-4"><div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /><h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">תיעוד שיחה לייב</h4></div>
-                  <textarea
-                    autoFocus
-                    value={liveNotesLead.liveCallNotes || ''}
-                    onChange={e => {
-                      const v = e.target.value;
-                      handleLeadUpdate(liveNotesLead.id, { liveCallNotes: v });
-                      debouncedAgentAssist(v);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        if (assistTimeoutRef.current) clearTimeout(assistTimeoutRef.current);
-                        fetchAgentAssist(liveNotesLead.liveCallNotes || '');
-                      }
-                    }}
-                    placeholder="הקלד כאן בנקודות את עיקרי השיחה..."
-                    className="w-full flex-1 text-xl leading-relaxed bg-transparent outline-none resize-none font-medium text-gray-800 dark:text-white"
-                  />
-                </div>
+                     {/* 2. Main Notes Area (Center) */}
+                     <div className="flex-1 p-8 flex flex-col bg-white/30 overflow-y-auto custom-scrollbar">
+                       <div className="flex items-center gap-2 mb-4"><div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /><h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">תיעוד שיחה לייב</h4></div>
+                       <textarea
+                         autoFocus
+                         value={liveNotesLead.liveCallNotes || ''}
+                         onChange={e => {
+                           const v = e.target.value;
+                           handleLeadUpdate(liveNotesLead.id, { liveCallNotes: v });
+                           debouncedAgentAssist(v);
+                         }}
+                         onKeyDown={e => {
+                           if (e.key === 'Enter') {
+                             if (assistTimeoutRef.current) clearTimeout(assistTimeoutRef.current);
+                             fetchAgentAssist(liveNotesLead.liveCallNotes || '');
+                           }
+                         }}
+                         placeholder="הקלד כאן בנקודות את עיקרי השיחה..."
+                         className="w-full flex-1 text-xl leading-relaxed bg-transparent outline-none resize-none font-medium text-gray-800 dark:text-white"
+                       />
+                     </div>
+                   </>
+                 )}
 
-                {/* 3. Script / Help (Left Panel - Collapsible) */}
-                <div className={`transition-all duration-500 border-r bg-indigo-50/30 dark:bg-[#12141f] overflow-y-auto custom-scrollbar ${showScript ? 'w-[450px] opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
-                  {showScript && (
-                    <div className="p-8">
-                      <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-6 flex items-center gap-2"><FileText size={16} /> תסריט שיחה מנצח</h4>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium opacity-80">{CALL_SCRIPT}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+                 {/* 3. Script / Help (Left Panel - Collapsible) */}
+                 <div className={`transition-all duration-500 border-r bg-indigo-50/30 dark:bg-[#12141f] overflow-y-auto custom-scrollbar ${showScript ? 'w-[450px] opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
+                   {showScript && (
+                     <div className="p-8">
+                       <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-6 flex items-center gap-2"><FileText size={16} /> תסריט שיחה מנצח</h4>
+                       <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium opacity-80">{CALL_SCRIPT}</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
 
               {/* Modal Footer */}
               <div className="p-6 border-t bg-white/80 dark:bg-black/60 backdrop-blur-xl flex justify-between items-center z-10">

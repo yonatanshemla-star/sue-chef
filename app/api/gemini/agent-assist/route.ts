@@ -35,40 +35,32 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
-    const endpoints = ["v1beta"];
-    const models = ["gemini-2.0-flash", "gemini-2.5-flash"];
+    const model = "gemini-2.0-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     let text = "";
-    let lastError = null;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}` }] }]
+        })
+      });
 
-    for (const v of endpoints) {
-      for (const m of models) {
-        try {
-          const url = `https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`;
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}` }] }]
-            })
-          });
-
-          const data = await response.json();
-          
-          if (response.ok) {
-            text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            if (text) break;
-          } else {
-            lastError = new Error(data.error?.message || `Status ${response.status} for ${v}/${m}`);
-          }
-        } catch (e: any) {
-          lastError = e;
-        }
+      const data = await response.json();
+      
+      if (response.ok) {
+        text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      } else {
+        throw new Error(data.error?.message || `Status ${response.status}`);
       }
-      if (text) break;
+    } catch (e: any) {
+      console.error(`AI Fetch Error:`, e.message);
+      throw e;
     }
 
-    if (!text && lastError) throw lastError;
+    if (!text) return NextResponse.json({ success: true, alerts: [] });
 
     // Parse the response lines and filter for lines with our expected emojis
     const lines = text.split('\n').filter(l => l.includes('🔴') || l.includes('🟠'));
