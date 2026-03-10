@@ -9,13 +9,16 @@ export async function POST(req: Request) {
      //    Since we don't have the explicit destination number hardcoded, 
      //    we will demonstrate ringing a predefined Client name, or a destination passed in ENV.
      //    If no destination is set, it goes straight to voicemail.
-     
-     const to = formData.get('To');
-     const isOutbound = to && to !== process.env.TWILIO_PHONE_NUMBER;
+      const destinationNumber = process.env.MY_PHONE_NUMBER;
+      const from = formData.get('From') || '';
+      const to = formData.get('To') || '';
+      
+      // Outbound calls from the dashboard follow a specific pattern
+      const isOutbound = from.toString().startsWith('client:');
 
-     let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
+      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
-     if (isOutbound) {
+      if (isOutbound && to) {
          // Outbound call from dashboard
          twiml += `  <Dial record="record-from-answer-dual">\n`;
          twiml += `    <Number>${to}</Number>\n`;
