@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   
   if (to) {
     twiml += `<Response>
-      <Dial callerId="${process.env.MY_PHONE_NUMBER}">
+      <Dial callerId="${process.env.MY_PHONE_NUMBER}" record="record-from-answer-dual">
         <Number>${to.toString()}</Number>
       </Dial>
     </Response>`;

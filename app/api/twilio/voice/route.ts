@@ -17,7 +17,7 @@ export async function POST(req: Request) {
      if (destinationNumber) {
          // Ring the destination for 20 seconds. 
          // If no answer, action URL is triggered to handle the missed call.
-         twiml += `  <Dial timeout="20" action="/api/twilio/voicemail">\n`;
+         twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
          twiml += `    <Number>${destinationNumber}</Number>\n`;
          twiml += `  </Dial>\n`;
      } else {

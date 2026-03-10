@@ -23,20 +23,42 @@ export async function GET() {
     const data = await res.json();
     
     // Filter out SIP URI calls - only show real phone number calls
-    const filteredCalls = data.calls
+    const filteredCalls = await Promise.all(data.calls
       .filter((call: any) => {
         const from = call.from || '';
         const to = call.to || '';
         return !from.startsWith('sip:') && !to.startsWith('sip:');
       })
-      .map((call: any) => ({
-          sid: call.sid,
-          from: call.from,
-          to: call.to,
-          status: call.status,
-          startTime: call.start_time,
-          duration: call.duration,
-          direction: call.direction
+      .map(async (call: any) => {
+          let recordingUrl = null;
+          // Check for recordings if the call status is completed or in-progress
+          if (call.status === 'completed' || call.status === 'in-progress') {
+              try {
+                  const recRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${call.sid}/Recordings.json`, {
+                      headers: { 'Authorization': `Basic ${auth}` }
+                  });
+                  if (recRes.ok) {
+                      const recData = await recRes.json();
+                      if (recData.recordings && recData.recordings.length > 0) {
+                          // Get the first recording
+                          recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recData.recordings[0].sid}.mp3`;
+                      }
+                  }
+              } catch (e) { console.error("Error fetching recording for", call.sid, e); }
+          }
+
+          return {
+              sid: call.sid,
+              from: call.from,
+              to: call.to,
+              status: call.status,
+              startTime: call.start_time,
+              duration: call.duration,
+              direction: call.direction,
+              price: call.price,
+              priceUnit: call.price_unit,
+              recordingUrl: recordingUrl
+          };
       }));
 
     return NextResponse.json({ 

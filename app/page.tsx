@@ -15,6 +15,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'חדש': { label: '🆕 חדש', color: 'text-indigo-700', bg: 'bg-indigo-50', darkBg: 'dark:bg-indigo-950 dark:text-indigo-300', border: 'border-indigo-300 dark:border-indigo-700', importance: 0 },
   'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-800', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/60 dark:text-orange-300', border: 'border-orange-400 dark:border-orange-600', importance: 1 },
   'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 0 },
+  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-gray-500', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-400', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
   'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 3 },
 };
 
@@ -96,7 +97,10 @@ export default function Home() {
   // Filtering & Sorting
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterImportance, setFilterImportance] = useState<number | null>(null);
+  const [globalSearch, setGlobalSearch] = useState('');
   const [archiveSearch, setArchiveSearch] = useState('');
+  const [expandedCallSid, setExpandedCallSid] = useState<string | null>(null);
+  const [callTranscriptions, setCallTranscriptions] = useState<Record<string, string>>({});
 
   // === Data Fetching ===
   const fetchLeads = async () => {
@@ -137,6 +141,46 @@ export default function Home() {
     };
     setLeads(prev => [newLead, ...prev]);
     try { await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) }); } catch(e) { console.error(e); }
+  };
+
+  const handleAISummarize = async (recordingUrl: string, leadId?: string, leadName?: string) => {
+    if (!confirm(`לסכם את השיחה עם ${leadName || 'הלקוח'} באמצעות AI?`)) return;
+    
+    try {
+      const res = await fetch('/api/twilio/calls/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordingUrl, leadId })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        const { summary, sentiment, nextSteps, keyDetails, fullTranscription } = data.result;
+        
+        if (leadId) {
+          handleLeadUpdate(leadId, { 
+            aiSummary: summary,
+            sentiment: sentiment,
+            fullTranscription: fullTranscription
+          });
+        }
+        
+        if (fullTranscription) {
+          setCallTranscriptions(prev => ({ ...prev, [recordingUrl]: fullTranscription }));
+          setExpandedCallSid(recordingUrl);
+        }
+        
+        if (!leadId) {
+          const fullSummary = `🤖 סיכום AI:\n${summary}\n\nסנטימנט: ${sentiment}\nפרטים: ${keyDetails}\nצעדים הבאים: ${nextSteps}`;
+          alert(fullSummary);
+        }
+      } else {
+        alert("שגיאה בסיכום השיחה: " + data.error);
+      }
+    } catch (e) {
+      console.error("AI Summary failed", e);
+      alert("נכשלנו בסיכום השיחה");
+    }
   };
 
   const fetchTwilioData = async () => {
@@ -226,20 +270,26 @@ export default function Home() {
 
   // === Sorting & Filtering ===
   const crmLeads = useMemo(() => leads
-    .filter(l => l.status !== 'חתם' && l.status !== 'לא רלוונטי' && l.status !== 'לא רוצה')
+    .filter(l => l.status !== 'חתם' && l.status !== 'לא רוצה')
+    .filter(l => {
+      if (!globalSearch) return true;
+      const q = globalSearch.toLowerCase();
+      return (l.clientName && l.clientName.toLowerCase().includes(q)) || (l.phone && l.phone.includes(q)) || (l.generalNotes && l.generalNotes.toLowerCase().includes(q));
+    })
     .filter(l => filterImportance === null || getStatusStyle(l.status).importance === filterImportance)
     .sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    }), [leads, filterImportance, sortOrder]);
+    }), [leads, filterImportance, sortOrder, globalSearch]);
 
   const archiveLeads = useMemo(() => leads
     .filter(l => l.status === 'חתם' || l.status === 'לא רלוונטי' || l.status === 'לא רוצה')
     .filter(l => {
-      if (!archiveSearch) return true;
-      const q = archiveSearch.toLowerCase();
-      return (l.clientName && l.clientName.toLowerCase().includes(q)) || (l.phone && l.phone.includes(q));
+      const search = globalSearch || archiveSearch;
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (l.clientName && l.clientName.toLowerCase().includes(q)) || (l.phone && l.phone.includes(q)) || (l.generalNotes && l.generalNotes.toLowerCase().includes(q));
     })
     .sort((a, b) => {
       if (a.status === 'חתם' && b.status !== 'חתם') return -1;
@@ -358,6 +408,21 @@ export default function Home() {
                   <option value="5">⚫ ארכיון / לא רלוונטי</option>
                   <option value="0">🆕 לידים שטרם טופלו</option>
                 </select>
+              </div>
+              
+              {/* Global Search */}
+              <div className={`flex items-center gap-3 px-4 py-2 w-full md:w-80 ${cardClass}`}>
+                <div className="text-gray-400"><RefreshCw className="w-4 h-4" /></div>
+                <input 
+                  type="text" 
+                  placeholder="חיפוש גלובלי (שם, טלפון, הערות)..." 
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  className="bg-transparent outline-none text-sm w-full font-bold placeholder:font-normal"
+                />
+                {globalSearch && (
+                  <button onClick={() => setGlobalSearch('')} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                )}
               </div>
             </div>
 
@@ -687,9 +752,34 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="flex justify-between items-end mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-500">{call.startTime ? formatDate(call.startTime) : '-'}</span>
-                      <span className={`text-xs font-mono font-bold px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50`}>{formatDuration(call.duration)}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-500">{call.startTime ? formatDate(call.startTime) : '-'}</span>
+                        {call.price && <span className="text-xs font-bold text-gray-400" dir="ltr">{Math.abs(parseFloat(call.price)).toFixed(2)}{call.priceUnit === 'USD' ? '$' : call.priceUnit}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {call.recordingUrl && (
+                          <button 
+                            onClick={() => handleAISummarize(call.recordingUrl, leads.find(l => normalizePhone(l.phone || '') === normalizePhone(callPhone || ''))?.id, matchedName || callPhone)}
+                            className="text-[10px] font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-300 px-2 py-1 rounded-md border border-indigo-200 dark:border-indigo-700 transition-colors flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-3 h-3" /> סכם ב-AI
+                          </button>
+                        )}
+                        <span className={`text-xs font-mono font-bold px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50`}>{formatDuration(call.duration)}</span>
+                      </div>
                     </div>
+                    {/* Full Transcription Reveal */}
+                    {(expandedCallSid === call.recordingUrl || callTranscriptions[call.recordingUrl]) && (
+                      <div className="mt-4 p-4 bg-white/60 dark:bg-black/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">תמלול מלא</span>
+                          <button onClick={() => setExpandedCallSid(null)} className="text-[10px] font-bold text-gray-400 hover:text-gray-600">סגור</button>
+                        </div>
+                        <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+                          "{callTranscriptions[call.recordingUrl] || leads.find(l => normalizePhone(l.phone || '') === normalizePhone(callPhone || ''))?.fullTranscription || 'טוען תמלול...'}"
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -738,15 +828,17 @@ export default function Home() {
                 <p className="text-xs text-gray-400 font-medium">מתוך {leads.length} לידים כוללים ({leads.length > 0 ? (leads.filter(l => l.status === 'חתם').length / leads.length * 100).toFixed(1) : '0'}%)</p>
               </div>
 
-              {/* Stat Card 4: Deleted Leads */}
+              {/* Stat Card 4: Average Cost */}
               <div className={`p-6 flex flex-col gap-2 relative overflow-hidden ${cardClass}`}>
-                <div className="absolute top-0 left-0 w-2 h-full bg-gray-500/50"></div>
-                <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2 shadow-inner">
-                  <Trash2 className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+                <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2 shadow-inner">
+                  <DollarSign className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">לידים שנמחקו</p>
-                <h3 className="text-4xl font-black text-gray-900 dark:text-white">{typeof window !== 'undefined' ? localStorage.getItem('analytics_deleted_leads') || '0' : '0'}</h3>
-                <p className="text-xs text-gray-400 font-medium">מאז תחילת תיעוד מחיקות</p>
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">עלות ממוצעת לשיחה</p>
+                <h3 className="text-4xl font-black text-gray-900 dark:text-white" dir="ltr">
+                  {(recentCalls.reduce((acc, c) => acc + Math.abs(parseFloat(c.price || '0')), 0) / (recentCalls.length || 1)).toFixed(2)}$
+                </h3>
+                <p className="text-xs text-gray-400 font-medium">מבוסס על {recentCalls.length} שיחות אחרונות</p>
               </div>
             </div>
 
@@ -815,6 +907,46 @@ export default function Home() {
                     placeholder="הקלד כאן את תקציר השיחה באופן חופשי..."
                     className="w-full flex-1 text-lg leading-relaxed resize-none bg-transparent outline-none placeholder:text-gray-300 dark:placeholder:text-gray-700 font-medium text-gray-800 dark:text-gray-100 custom-scrollbar"
                   />
+                  
+                  {/* AI Insights Section */}
+                  {(liveNotesLead.aiSummary || liveNotesLead.fullTranscription) && (
+                    <div className="mt-8 pt-8 border-t border-gray-200/50 dark:border-gray-800 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                          <RefreshCw className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <h4 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">תובנות AI (לבדיקה ואימות)</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {liveNotesLead.aiSummary && (
+                          <div className={`p-4 rounded-2xl ${cardClassSoft}`}>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">סיכום אוטומטי</p>
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-relaxed">{liveNotesLead.aiSummary}</p>
+                            {liveNotesLead.sentiment && (
+                              <div className="mt-3 flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase">סנטימנט:</span>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                  liveNotesLead.sentiment === 'חיובי' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                                  liveNotesLead.sentiment === 'שלילי' ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
+                                  'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                                }`}>{liveNotesLead.sentiment}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {liveNotesLead.fullTranscription && (
+                          <div className={`p-4 rounded-2xl ${cardClassSoft}`}>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">תמלול השיחה</p>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic max-h-[150px] overflow-y-auto custom-scrollbar">
+                              "{liveNotesLead.fullTranscription}"
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Right / Script Panel (collapsible) */}

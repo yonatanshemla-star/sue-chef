@@ -13,6 +13,9 @@ export interface Lead {
   liveCallNotes: string;
   recordingUrl?: string;
   transcription?: string;
+  aiSummary?: string;
+  sentiment?: 'חיובי' | 'ניטרלי' | 'שלילי';
+  fullTranscription?: string;
   urgency: 'נמוכה' | 'בינונית' | 'גבוהה';
   isSigned?: boolean;
   signedAt?: string;
