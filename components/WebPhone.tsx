@@ -152,12 +152,18 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone, lea
       const device = deviceRef.current;
       if (!device) throw new Error("Device not initialized");
 
+      const leadForCall = (leads || []).find(l => {
+        const lp = (l.phone || '').replace(/\D/g, '');
+        const tp = (targetPhone || '').replace(/\D/g, '');
+        return lp.length >= 9 && tp.length >= 9 && lp.slice(-9) === tp.slice(-9);
+      });
+
       const call = device.connect({ 
         params: { 
           To: targetPhone,
           Record: 'true',
           RecordingChannels: 'dual',
-          leadId: currentLeadId || ''
+          leadId: leadForCall?.id || ''
         } 
       });
       connectionRef.current = call;
