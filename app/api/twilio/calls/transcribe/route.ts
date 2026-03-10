@@ -26,9 +26,19 @@ export async function POST(req: Request) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const auth = Buffer.from(`${accountSid}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
     
-    const audioRes = await fetch(recordingUrl, {
-      headers: { 'Authorization': `Basic ${auth}` }
+    // Fetch with manual redirect to avoid sending Authorization header to AWS S3
+    let audioRes = await fetch(recordingUrl, {
+      headers: { 'Authorization': `Basic ${auth}` },
+      redirect: 'manual'
     });
+    
+    // Follow redirect manually without the auth header if Twilio redirects to S3
+    if (audioRes.status >= 300 && audioRes.status < 400) {
+      const location = audioRes.headers.get('location');
+      if (location) {
+        audioRes = await fetch(location); 
+      }
+    }
     
     if (!audioRes.ok) {
        console.error("Twilio audio fetch failed:", audioRes.status, audioRes.statusText);

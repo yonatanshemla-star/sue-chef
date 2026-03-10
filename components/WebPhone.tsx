@@ -93,7 +93,8 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
       if (!Twilio) throw new Error('Twilio SDK not loaded (CDN issue)');
 
       const device = new Twilio.Device(token, {
-        codecPreferences: ['opus', 'pcmu'],
+        codecPreferences: ['pcmu', 'opus'],
+        edge: ['frankfurt', 'dublin', 'roaming'],
         fakeLocalAudio: false,
         debug: true
       });
