@@ -17,8 +17,10 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 }
 
 export async function POST(req: Request) {
+  const logPrefix = `[AI-Transcribe]`;
   try {
     const { recordingUrl, leadId } = await req.json();
+    console.log(`${logPrefix} Started for lead: ${leadId}, URL: ${recordingUrl}`);
     
     if (!recordingUrl) {
       return NextResponse.json({ success: false, error: "No recording URL provided" }, { status: 400 });
@@ -26,53 +28,68 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      console.error(`${logPrefix} Missing GEMINI_API_KEY`);
       return NextResponse.json({ success: false, error: "GEMINI_API_KEY not found" }, { status: 500 });
     }
 
-    // Gemini 2.0 Flash is great for audio/multimodal
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    
+    if (!accountSid || !authToken) {
+       console.error(`${logPrefix} Missing Twilio credentials`);
+       return NextResponse.json({ success: false, error: "Twilio credentials missing" }, { status: 500 });
+    }
+
+    // Modern Gemini 2.0 Flash URL
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
-    // We can pass the recording URL to Gemini if it's publicly accessible, 
-    // but Twilio recordings usually require auth or are private.
-    // To make it work easily, we fetch the audio ourselves and send it as inlineData.
-    
-    // Twilio recordings require HTTP Basic Auth
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authString = `${accountSid}:${process.env.TWILIO_AUTH_TOKEN}`;
+    // Auth for Twilio
+    const authString = `${accountSid}:${authToken}`;
     const auth = btoa(authString);
     
-    // Fetch with manual redirect to avoid sending Authorization header to AWS S3
+    console.log(`${logPrefix} Fetching audio from Twilio...`);
     let audioRes = await fetch(recordingUrl, {
       headers: { 'Authorization': `Basic ${auth}` },
       redirect: 'manual'
     });
     
-    // Follow redirect manually without the auth header if Twilio redirects to S3
+    // Manual redirect handling for Twilio -> AWS S3
     if (audioRes.status >= 300 && audioRes.status < 400) {
       const location = audioRes.headers.get('location');
       if (location) {
-        audioRes = await fetch(location); 
+        console.log(`${logPrefix} Following redirect to S3...`);
+        audioRes = await fetch(location); // No auth header for S3
       }
     }
     
     if (!audioRes.ok) {
-       console.error("Twilio audio fetch failed:", audioRes.status, audioRes.statusText);
-       throw new Error("Failed to fetch audio from Twilio (Unauthorized or Not Found)");
+       const errText = await audioRes.text();
+       console.error(`${logPrefix} Audio fetch failed:`, audioRes.status, errText.substring(0, 100));
+       throw new Error(`נכשל בהורדת ההקלטה מ-Twilio: ${audioRes.status}`);
     }
     
     const audioBuffer = await audioRes.arrayBuffer();
+    console.log(`${logPrefix} Audio downloaded, size: ${audioBuffer.byteLength} bytes`);
+
+    if (audioBuffer.byteLength < 1000) {
+       throw new Error("הקלטה קצרה מדי או ריקה");
+    }
+
     const base64Audio = arrayBufferToBase64(audioBuffer);
 
     const prompt = `אתה עוזר אישי של עורך דין. הקשב להקלטת השיחה הזאת עם לקוח פוטנציאלי.
-חלץ את הפרטים הבאים בפורמט JSON:
-- summary: סיכום קצר של השיחה (2-3 משפטים).
-- sentiment: האם הלקוח נראה מעוניין? (חיובי/ניטרלי/שלילי).
-- nextSteps: מה הצעדים הבאים שצריך לעשות?
-- keyDetails: פרטים חשובים שעלו (גיל, מצב רפואי, האם יש קצבה).
-- fullTranscription: תמלול מלא של המילים שנאמרו בשיחה, מילה במילה.
+חלץ את הפרטים הבאים בפורמט JSON בלבד:
+{
+  "summary": "סיכום קצר של השיחה (2-3 משפטים)",
+  "sentiment": "חיובי/ניטרלי/שלילי",
+  "nextSteps": "מה הצעדים הבאים",
+  "keyDetails": "פרטים חשובים שעלו",
+  "fullTranscription": "תמלול מלא של המילים שנאמרו בשיחה, מילה במילה"
+}
 
-השתמש בשפה המדוברת בהקלטה (עברית). החזר רק JSON תקין.`;
+השתמש בשפה המדוברת בהקלטה (עברית). החזר אך ורק JSON תקין ללא הסברים נוספים.`;
 
+    console.log(`${logPrefix} Calling Gemini API...`);
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,27 +114,28 @@ export async function POST(req: Request) {
 
     const geminiData: any = await geminiResponse.json();
     if (!geminiResponse.ok) {
-       console.error("Gemini Error:", geminiData);
-       throw new Error("Gemini API failed: " + (geminiData.error?.message || "Unknown error"));
+       console.error(`${logPrefix} Gemini error:`, JSON.stringify(geminiData));
+       throw new Error(`שגיאת AI מול גוגל: ${geminiData.error?.message || "Unknown"}`);
     }
 
     const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!responseText) throw new Error("No response from Gemini");
+    if (!responseText) throw new Error("לא התקבלה תשובה מ-AI");
 
+    console.log(`${logPrefix} Parsing AI response...`);
     let result;
     try {
-      // Handle potential JSON markdown or extra characters
       const cleanJson = responseText.replace(/```json|```/gi, "").trim();
       result = JSON.parse(cleanJson);
     } catch (e) {
-      console.error("JSON Parse Error. Data:", responseText);
-      throw new Error("Failed to parse AI response as JSON");
+      console.error(`${logPrefix} JSON parse error:`, responseText);
+      throw new Error("נכשל בפענוח נתוני ה-AI");
     }
 
+    console.log(`${logPrefix} Success! Returning result.`);
     return NextResponse.json({ success: true, result });
 
   } catch (error: any) {
-    console.error("Transcription error:", error);
+    console.error(`${logPrefix} CRITICAL ERROR:`, error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

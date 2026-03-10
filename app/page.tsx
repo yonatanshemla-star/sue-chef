@@ -184,7 +184,6 @@ export default function Home() {
 
         if (leadId) {
           handleLeadUpdate(leadId, updates);
-          // Also update the current open modal if it's the same lead
           if (liveNotesLead?.id === leadId) {
             setLiveNotesLead(prev => prev ? { ...prev, ...updates } : null);
           }
@@ -196,15 +195,17 @@ export default function Home() {
         }
         
         if (!leadId) {
-          const fullText = `🤖 סיכום AI:\n${summary}\n\nסנטימנט: ${sentiment}\nפרטים: ${keyDetails}\nצעדים הבאים: ${nextSteps}`;
-          alert(fullText);
+          alert(`🤖 סיכום AI הושלם:\n\n${summary}\n\nסנטימנט: ${sentiment}`);
         }
       } else {
-        alert("שגיאה בסיכום השיחה: " + (data.error || "שגיאה לא ידועה"));
+        // Here we show the specific error from our new backend logging
+        const errorMsg = data.error || "שגיאה לא ידועה";
+        console.error("AI Transcription Server Error:", errorMsg);
+        alert(`❌ שגיאה בסיכום (AI):\n${errorMsg}\n\nטיפ: בדוק שההקלטה בטוויליו באמת קיימת ושיש לה תוכן (מעל 2-3 שניות).`);
       }
     } catch (e: any) {
-      console.error("AI Summary failed", e);
-      alert("נכשלנו בסיכום השיחה: " + (e.message || "בדוק חיבור אינטרנט או יומני שרת."));
+      console.error("AI Summary connection failed", e);
+      alert("⚠️ נכשלנו בחיבור לשרת הסיכומים. ייתכן שיש עומס או בעיית רשת. נסה שוב בעוד רגע.");
     } finally {
       setIsSummarizing(null);
     }
