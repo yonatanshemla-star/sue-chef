@@ -802,7 +802,7 @@ export default function Home() {
                       </div>
                     </div>
                     {/* Full Transcription Reveal */}
-                    {(expandedCallSid === call.recordingUrl || callTranscriptions[call.recordingUrl]) && (
+                    {call.recordingUrl && (expandedCallSid === call.recordingUrl || callTranscriptions[call.recordingUrl]) && (
                       <div className="mt-4 p-4 bg-white/60 dark:bg-black/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 animate-in slide-in-from-top-2 duration-300">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">תמלול מלא</span>

@@ -10,19 +10,24 @@ export async function POST(req: Request) {
      //    we will demonstrate ringing a predefined Client name, or a destination passed in ENV.
      //    If no destination is set, it goes straight to voicemail.
      
-     const destinationNumber = process.env.MY_PHONE_NUMBER; // e.g., +972501234567
+     const to = formData.get('To');
+     const isOutbound = to && to !== process.env.TWILIO_PHONE_NUMBER;
 
      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
-     if (destinationNumber) {
-         // Ring the destination for 20 seconds. 
-         // If no answer, action URL is triggered to handle the missed call.
+     if (isOutbound) {
+         // Outbound call from dashboard
+         twiml += `  <Dial record="record-from-answer-dual">\n`;
+         twiml += `    <Number>${to}</Number>\n`;
+         twiml += `  </Dial>\n`;
+     } else if (destinationNumber) {
+         // Inbound call
          twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
          twiml += `    <Number>${destinationNumber}</Number>\n`;
          twiml += `    <Client>dashboard_user</Client>\n`;
          twiml += `  </Dial>\n`;
      } else {
-         // Fallback directly to voicemail if no number configured
+         // Fallback directly to voicemail
          twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
          twiml += `    <Client>dashboard_user</Client>\n`;
          twiml += `  </Dial>\n`;
