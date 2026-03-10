@@ -35,39 +35,39 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
-    const modelsToTry = [
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-latest",
-      "gemini-2.0-flash-exp",
-      "gemini-1.5-pro",
-    ];
+    const endpoints = ["v1beta", "v1"];
+    const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
 
     let text = "";
     let lastError = null;
 
-    for (const model of modelsToTry) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}` }] }]
-          })
-        });
+    for (const v of endpoints) {
+      for (const m of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${apiKey}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}` }] }]
+            })
+          });
 
-        const data = await response.json();
-        
-        if (response.ok) {
-          text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          if (text) break;
-        } else {
-          lastError = new Error(data.error?.message || `Status ${response.status} for ${model}`);
-          console.error(`Model ${model} failed:`, data.error?.message);
+          const data = await response.json();
+          
+          if (response.ok) {
+            text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (text) break;
+          } else {
+            lastError = new Error(data.error?.message || `Status ${response.status} for ${v}/${m}`);
+            console.error(`Attempt ${v}/${m} failed:`, data.error?.message);
+          }
+        } catch (e: any) {
+          lastError = e;
+          console.error(`Fetch to ${v}/${m} failed:`, e.message);
         }
-      } catch (e: any) {
-        lastError = e;
-        console.error(`Fetch to ${model} failed:`, e.message);
       }
+      if (text) break;
     }
 
     if (!text && lastError) throw lastError;
