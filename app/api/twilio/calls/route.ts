@@ -32,17 +32,26 @@ export async function GET() {
       .map(async (call: any) => {
           let recordingUrl = null;
           // Check for recordings if the call status is completed or in-progress
-          if (call.status === 'completed' || call.status === 'in-progress') {
+          // We also check if recording_sid exists directly on the call object
+          if (call.status === 'completed' || call.status === 'in-progress' || call.recording_sid) {
               try {
-                  const recRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${call.sid}/Recordings.json`, {
-                      headers: { 'Authorization': `Basic ${auth}` }
-                  });
-                  if (recRes.ok) {
-                      const recData = await recRes.json();
-                      if (recData.recordings && recData.recordings.length > 0) {
-                          // Get the first recording
-                          recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recData.recordings[0].sid}.mp3`;
-                      }
+                  // Try to get recording SID from call object first
+                  let recSid = call.recording_sid;
+                  
+                  if (!recSid) {
+                    const recRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${call.sid}/Recordings.json`, {
+                        headers: { 'Authorization': `Basic ${auth}` }
+                    });
+                    if (recRes.ok) {
+                        const recData = await recRes.json();
+                        if (recData.recordings && recData.recordings.length > 0) {
+                            recSid = recData.recordings[0].sid;
+                        }
+                    }
+                  }
+                  
+                  if (recSid) {
+                    recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recSid}.mp3`;
                   }
               } catch (e) { console.error("Error fetching recording for", call.sid, e); }
           }

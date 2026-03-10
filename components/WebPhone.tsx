@@ -152,7 +152,14 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone, lea
       const device = deviceRef.current;
       if (!device) throw new Error("Device not initialized");
 
-      const call = device.connect({ params: { To: targetPhone } });
+      const call = device.connect({ 
+        params: { 
+          To: targetPhone,
+          Record: 'true',
+          RecordingChannels: 'dual',
+          leadId: currentLeadId || ''
+        } 
+      });
       connectionRef.current = call;
 
       call.on('accept', () => {
