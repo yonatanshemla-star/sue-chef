@@ -35,8 +35,8 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
-    const endpoints = ["v1beta", "v1"];
-    const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.0-flash-lite"];
+    const endpoints = ["v1beta"];
+    const models = ["gemini-2.0-flash", "gemini-2.5-flash"];
 
     let text = "";
     let lastError = null;
@@ -60,11 +60,9 @@ export async function POST(req: Request) {
             if (text) break;
           } else {
             lastError = new Error(data.error?.message || `Status ${response.status} for ${v}/${m}`);
-            console.error(`Attempt ${v}/${m} failed:`, data.error?.message);
           }
         } catch (e: any) {
           lastError = e;
-          console.error(`Fetch to ${v}/${m} failed:`, e.message);
         }
       }
       if (text) break;

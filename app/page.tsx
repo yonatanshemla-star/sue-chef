@@ -187,7 +187,7 @@ export default function Home() {
     if (assistTimeoutRef.current) clearTimeout(assistTimeoutRef.current);
     assistTimeoutRef.current = setTimeout(() => {
       fetchAgentAssist(notes);
-    }, 2000);
+    }, 1000);
   }, []);
 
   useEffect(() => { fetchTwilioData(); fetchLeads(); const i1 = setInterval(fetchTwilioData, 60000); const i2 = setInterval(fetchLeads, 30000); return () => { clearInterval(i1); clearInterval(i2); }; }, []);
