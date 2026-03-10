@@ -11,11 +11,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950 dark:text-green-300', border: 'border-green-300 dark:border-green-700', importance: 3 },
   'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950 dark:text-blue-300', border: 'border-blue-300 dark:border-blue-700', importance: 4 },
   'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-900 dark:text-gray-400', border: 'border-gray-600', importance: 5 },
-  'לא רוצה': { label: '❌ לא רוצה', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 3 },
+  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 3 },
   'חדש': { label: '🆕 חדש', color: 'text-indigo-700', bg: 'bg-indigo-50', darkBg: 'dark:bg-indigo-950 dark:text-indigo-300', border: 'border-indigo-300 dark:border-indigo-700', importance: 0 },
   'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-800', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/60 dark:text-orange-300', border: 'border-orange-400 dark:border-orange-600', importance: 1 },
   'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 0 },
-  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-gray-500', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-400', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
+  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 5 },
   'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 3 },
 };
 
@@ -143,9 +143,12 @@ export default function Home() {
     try { await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) }); } catch(e) { console.error(e); }
   };
 
+  const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
+
   const handleAISummarize = async (recordingUrl: string, leadId?: string, leadName?: string) => {
     if (!confirm(`לסכם את השיחה עם ${leadName || 'הלקוח'} באמצעות AI?`)) return;
     
+    setIsSummarizing(recordingUrl);
     try {
       const res = await fetch('/api/twilio/calls/transcribe', {
         method: 'POST',
@@ -157,12 +160,18 @@ export default function Home() {
       if (data.success) {
         const { summary, sentiment, nextSteps, keyDetails, fullTranscription } = data.result;
         
+        const updates = { 
+          aiSummary: summary,
+          sentiment: sentiment,
+          fullTranscription: fullTranscription
+        };
+
         if (leadId) {
-          handleLeadUpdate(leadId, { 
-            aiSummary: summary,
-            sentiment: sentiment,
-            fullTranscription: fullTranscription
-          });
+          handleLeadUpdate(leadId, updates);
+          // Also update the current open modal if it's the same lead
+          if (liveNotesLead?.id === leadId) {
+            setLiveNotesLead(prev => prev ? { ...prev, ...updates } : null);
+          }
         }
         
         if (fullTranscription) {
@@ -171,15 +180,17 @@ export default function Home() {
         }
         
         if (!leadId) {
-          const fullSummary = `🤖 סיכום AI:\n${summary}\n\nסנטימנט: ${sentiment}\nפרטים: ${keyDetails}\nצעדים הבאים: ${nextSteps}`;
-          alert(fullSummary);
+          const fullText = `🤖 סיכום AI:\n${summary}\n\nסנטימנט: ${sentiment}\nפרטים: ${keyDetails}\nצעדים הבאים: ${nextSteps}`;
+          alert(fullText);
         }
       } else {
-        alert("שגיאה בסיכום השיחה: " + data.error);
+        alert("שגיאה בסיכום השיחה: " + (data.error || "שגיאה לא ידועה"));
       }
     } catch (e) {
       console.error("AI Summary failed", e);
-      alert("נכשלנו בסיכום השיחה");
+      alert("נכשלנו בסיכום השיחה. בדוק חיבור אינטרנט או יומני שרת.");
+    } finally {
+      setIsSummarizing(null);
     }
   };
 
@@ -196,11 +207,17 @@ export default function Home() {
 
   useEffect(() => { fetchTwilioData(); fetchLeads(); const i1 = setInterval(fetchTwilioData, 60000); const i2 = setInterval(fetchLeads, 30000); return () => { clearInterval(i1); clearInterval(i2); }; }, []);
 
-  // === Dark Mode ===
+  // === Dark Mode & Body Scroll Lock ===
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
+
+  useEffect(() => {
+    if (liveNotesLead) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [liveNotesLead]);
 
   // === Image Paste Handler (Tesseract.js client-side OCR) ===
   const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>, leadId: string) => {
@@ -270,7 +287,7 @@ export default function Home() {
 
   // === Sorting & Filtering ===
   const crmLeads = useMemo(() => leads
-    .filter(l => l.status !== 'חתם' && l.status !== 'לא רוצה')
+    .filter(l => l.status !== 'חתם' && l.status !== 'נגמר')
     .filter(l => {
       if (!globalSearch) return true;
       const q = globalSearch.toLowerCase();
@@ -284,7 +301,7 @@ export default function Home() {
     }), [leads, filterImportance, sortOrder, globalSearch]);
 
   const archiveLeads = useMemo(() => leads
-    .filter(l => l.status === 'חתם' || l.status === 'לא רלוונטי' || l.status === 'לא רוצה')
+    .filter(l => l.status === 'חתם' || l.status === 'לא רלוונטי' || l.status === 'נגמר')
     .filter(l => {
       const search = globalSearch || archiveSearch;
       if (!search) return true;
@@ -510,9 +527,11 @@ export default function Home() {
                                                 {lead.phone && lead.phone.length >= 9 && (
                                                   <button 
                                                     onClick={() => {
-                                                      const message = encodeURIComponent(`היי ${lead.clientName || ''}, קוראים לי יונתן אני ממשרד עו"ד HBA. השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך, אשמח אם נוכל לשוחח כשיהיה זמן`);
+                                                      const firstName = lead.clientName.split(' ')[0] || '';
+                                                      const message = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עו"ד HBA. השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך, אשמח אם נוכל לשוחח כשיהיה זמן`);
                                                       const waPhone = normalizePhone(lead.phone!).replace(/^0/, '972');
-                                                      window.open(`https://wa.me/${waPhone}?text=${message}`, '_blank');
+                                                      // Using web.whatsapp.com to ensure it opens in the browser as requested
+                                                      window.open(`https://web.whatsapp.com/send?phone=${waPhone}&text=${message}`, '_blank');
                                                       setOpenMenuId(null);
                                                     }}
                                                     className="flex justify-between items-center w-full px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-right transition-colors"
@@ -905,7 +924,7 @@ export default function Home() {
                     value={liveNotesLead.liveCallNotes || ''}
                     onChange={e => { handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value }); setLiveNotesLead(prev => prev ? { ...prev, liveCallNotes: e.target.value } : null); }}
                     placeholder="הקלד כאן את תקציר השיחה באופן חופשי..."
-                    className="w-full flex-1 text-lg leading-relaxed resize-none bg-transparent outline-none placeholder:text-gray-300 dark:placeholder:text-gray-700 font-medium text-gray-800 dark:text-gray-100 custom-scrollbar"
+                    className="w-full min-h-[300px] text-lg leading-relaxed resize-none bg-transparent outline-none placeholder:text-gray-300 dark:placeholder:text-gray-700 font-medium text-gray-800 dark:text-gray-100 custom-scrollbar"
                   />
                   
                   {/* AI Insights Section */}

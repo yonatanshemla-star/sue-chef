@@ -22,8 +22,19 @@ export async function POST(req: Request) {
     // but Twilio recordings usually require auth or are private.
     // To make it work easily, we fetch the audio ourselves and send it as inlineData.
     
-    const audioRes = await fetch(recordingUrl);
-    if (!audioRes.ok) throw new Error("Failed to fetch audio from Twilio");
+    // Twilio recordings require HTTP Basic Auth
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const auth = Buffer.from(`${accountSid}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+    
+    const audioRes = await fetch(recordingUrl, {
+      headers: { 'Authorization': `Basic ${auth}` }
+    });
+    
+    if (!audioRes.ok) {
+       console.error("Twilio audio fetch failed:", audioRes.status, audioRes.statusText);
+       throw new Error("Failed to fetch audio from Twilio (Unauthorized or Not Found)");
+    }
+    
     const audioBuffer = await audioRes.arrayBuffer();
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
 
@@ -35,7 +46,7 @@ export async function POST(req: Request) {
 - keyDetails: פרטים חשובים שעלו (גיל, מצב רפואי, האם יש קצבה).
 - fullTranscription: תמלול מלא של המילים שנאמרו בשיחה, מילה במילה.
 
-החזר רק JSON.`;
+השתמש בשפה המדוברת בהקלטה (עברית). החזר רק JSON תקין.`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
@@ -53,7 +64,7 @@ export async function POST(req: Request) {
           ]
         }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0.1,
           responseMimeType: "application/json"
         }
       })
@@ -62,11 +73,21 @@ export async function POST(req: Request) {
     const geminiData: any = await geminiResponse.json();
     if (!geminiResponse.ok) {
        console.error("Gemini Error:", geminiData);
-       throw new Error("Gemini API failed");
+       throw new Error("Gemini API failed: " + (geminiData.error?.message || "Unknown error"));
     }
 
     const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    const result = JSON.parse(responseText.replace(/```json|```/gi, "").trim());
+    if (!responseText) throw new Error("No response from Gemini");
+
+    let result;
+    try {
+      // Handle potential JSON markdown or extra characters
+      const cleanJson = responseText.replace(/```json|```/gi, "").trim();
+      result = JSON.parse(cleanJson);
+    } catch (e) {
+      console.error("JSON Parse Error. Data:", responseText);
+      throw new Error("Failed to parse AI response as JSON");
+    }
 
     return NextResponse.json({ success: true, result });
 
