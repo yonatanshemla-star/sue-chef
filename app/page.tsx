@@ -242,12 +242,9 @@ export default function Home() {
           });
 
           // Run OCR with Hebrew + English
-          const result = await Tesseract.recognize(blob, 'heb+eng', {
-            logger: (m: any) => console.log('OCR:', m.status, Math.round((m.progress || 0) * 100) + '%')
-          });
+          const result = await Tesseract.recognize(blob, 'heb+eng');
 
           const text = result.data.text.trim();
-          console.log('OCR Full Text:', text);
 
           if (!text) {
             alert('לא זיהינו טקסט בתמונה. נסה תמונה ברורה יותר.');
