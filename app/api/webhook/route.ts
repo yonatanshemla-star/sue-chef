@@ -10,7 +10,7 @@ function logInfo(msg: string) {
   fs.appendFileSync(logFile, `[${timestamp}] ${msg}\n`, 'utf8');
 }
 
-const GEMINI_API_KEY = 'AIzaSyCHMH9hlEtkhXE2_hgTgP2iRwDcqp3g3Ac';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function POST(req: Request) {

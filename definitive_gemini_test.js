@@ -1,4 +1,5 @@
-const apiKey = "AIzaSyCxvvnZkf9_fJLDRp0XtFZk_xu0ISM4L04";
+require('dotenv').config({ path: '.env.local' });
+const apiKey = process.env.GEMINI_API_KEY;
 
 async function runDiagnostics() {
   const tests = [
