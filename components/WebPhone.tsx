@@ -161,8 +161,6 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone, lea
       const call = device.connect({ 
         params: { 
           To: targetPhone,
-          Record: 'true',
-          RecordingChannels: 'dual',
           leadId: leadForCall?.id || ''
         } 
       });
