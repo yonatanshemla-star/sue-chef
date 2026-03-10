@@ -1,5 +1,6 @@
 async function testGeminiDirect() {
-  const apiKey = "AIzaSyAu2lKbVdaAwszHBVHFVa8fzlf6sU-OBLk";
+  require('dotenv').config({ path: '.env.local' });
+  const apiKey = process.env.GEMINI_API_KEY;
   const model = "gemini-1.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   
