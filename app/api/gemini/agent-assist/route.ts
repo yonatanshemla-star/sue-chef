@@ -40,13 +40,19 @@ export async function POST(req: Request) {
     const result = await model.generateContent(notes);
     const text = result.response.text();
 
-    // Parse the response lines
-    const lines = text.split('\n').filter(l => l.trim().length > 0);
-    const alerts = lines.map(line => {
+    // Parse the response lines and filter for lines with our expected emojis
+    const lines = text.split('\n').filter(l => l.includes('🔴') || l.includes('🟠'));
+    
+    let alerts = lines.map(line => {
       const emoji = line.includes('🔴') ? '🔴' : '🟠';
       const cleanText = line.replace(/[🔴🟠]/g, '').trim();
       return { emoji, text: cleanText };
     });
+
+    // Fallback if no emojis found but text exists
+    if (alerts.length === 0 && text.trim().length > 10) {
+      alerts = [{ emoji: "🟠", text: text.trim().substring(0, 100) }];
+    }
 
     return NextResponse.json({ success: true, alerts });
   } catch (error: any) {

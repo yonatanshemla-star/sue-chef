@@ -106,6 +106,7 @@ export default function Home() {
   // Agent Assist State
   const [assistCards, setAssistCards] = useState<{emoji: string, text: string}[]>([]);
   const [isAssistLoading, setIsAssistLoading] = useState(false);
+  const [assistError, setAssistError] = useState<string | null>(null);
   const assistTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // === Data Fetching ===
@@ -159,8 +160,9 @@ export default function Home() {
   };
 
   const fetchAgentAssist = async (notes: string) => {
-    if (!notes || notes.trim().length < 10) return;
+    if (!notes || notes.trim().length < 5) return;
     setIsAssistLoading(true);
+    setAssistError(null);
     try {
       const res = await fetch('/api/gemini/agent-assist', {
         method: 'POST',
@@ -170,9 +172,12 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setAssistCards(data.alerts);
+      } else {
+        setAssistError(data.error || "שגיאה ב-AI");
       }
     } catch (err) {
       console.error("Agent Assist Fetch Error:", err);
+      setAssistError("נכשל בחיבור לשרת");
     } finally {
       setIsAssistLoading(false);
     }
@@ -491,10 +496,26 @@ export default function Home() {
                 
                 {/* 1. Agent Assist (Right Panel) */}
                 <div className="w-80 border-l p-6 flex flex-col gap-4 overflow-y-auto bg-white/50 dark:bg-black/20 custom-scrollbar">
-                  <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                    <RefreshCw className={isAssistLoading ? 'animate-spin' : ''} size={14} /> המלצות AI בזמן אמת
-                  </h4>
-                  {assistCards.length === 0 && !isAssistLoading && (
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                      <RefreshCw className={isAssistLoading ? 'animate-spin' : ''} size={14} /> המלצות AI בזמן אמת
+                    </h4>
+                    <button 
+                      onClick={() => fetchAgentAssist(liveNotesLead.liveCallNotes || '')}
+                      disabled={isAssistLoading}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                      title="רענן המלצות באופן ידני"
+                    >
+                      <RefreshCw size={12} className={isAssistLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                  {assistError && (
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 text-amber-700 dark:text-amber-400 text-xs font-bold text-center">
+                       ⚠️ {assistError}
+                    </div>
+                  )}
+
+                  {assistCards.length === 0 && !isAssistLoading && !assistError && (
                     <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2" /><p className="text-xs font-bold">הקלד הערות לקבלת סיוע</p></div>
                   )}
                   {assistCards.map((card, idx) => (
