@@ -155,7 +155,18 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordingUrl, leadId })
       });
-      const data = await res.json();
+      
+      let data;
+      const textResponse = await res.text();
+      
+      try {
+        data = JSON.parse(textResponse);
+      } catch (err) {
+        if (res.status === 504) {
+          throw new Error("התהליך לוקח יותר מדי זמן. בשרת חינמי (Vercel) יש מגבלת זמן של 10 שניות לבקשה. לקבצים ארוכים נדרש לשדרג או לעבור ל-Edge Runtime.");
+        }
+        throw new Error(`שגיאת רשת מול השרת (Ststus ${res.status}): ${textResponse.substring(0, 50)}...`);
+      }
       
       if (data.success) {
         const { summary, sentiment, nextSteps, keyDetails, fullTranscription } = data.result;
@@ -186,9 +197,9 @@ export default function Home() {
       } else {
         alert("שגיאה בסיכום השיחה: " + (data.error || "שגיאה לא ידועה"));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("AI Summary failed", e);
-      alert("נכשלנו בסיכום השיחה. בדוק חיבור אינטרנט או יומני שרת.");
+      alert("נכשלנו בסיכום השיחה: " + (e.message || "בדוק חיבור אינטרנט או יומני שרת."));
     } finally {
       setIsSummarizing(null);
     }

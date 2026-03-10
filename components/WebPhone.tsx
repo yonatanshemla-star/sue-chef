@@ -95,6 +95,7 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone }: W
       const device = new Twilio.Device(token, {
         codecPreferences: ['pcmu', 'opus'],
         edge: ['frankfurt', 'dublin', 'roaming'],
+        dscp: true,
         fakeLocalAudio: false,
         debug: true
       });

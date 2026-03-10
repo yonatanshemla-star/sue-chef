@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 60; // AI transcription can take time
+export const runtime = 'edge';
+export const maxDuration = 30; // Max allowed for hobby on Edge
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  
+  // For very large buffers, this loop might be slow, but it's safe for edge
+  // A chunked approach is better for huge files to avoid call stack limits, but manual looping avoids the apply() size limit
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +38,8 @@ export async function POST(req: Request) {
     
     // Twilio recordings require HTTP Basic Auth
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const auth = Buffer.from(`${accountSid}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+    const authString = `${accountSid}:${process.env.TWILIO_AUTH_TOKEN}`;
+    const auth = btoa(authString);
     
     // Fetch with manual redirect to avoid sending Authorization header to AWS S3
     let audioRes = await fetch(recordingUrl, {
@@ -46,7 +61,7 @@ export async function POST(req: Request) {
     }
     
     const audioBuffer = await audioRes.arrayBuffer();
-    const base64Audio = Buffer.from(audioBuffer).toString('base64');
+    const base64Audio = arrayBufferToBase64(audioBuffer);
 
     const prompt = `אתה עוזר אישי של עורך דין. הקשב להקלטת השיחה הזאת עם לקוח פוטנציאלי.
 חלץ את הפרטים הבאים בפורמט JSON:
