@@ -32,17 +32,15 @@ export async function POST(req: Request) {
       });
     }
 
-    const modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+    const modelsToTry = ["gemini-1.5-flash", "gemini-pro", "gemini-1.5-flash-8b"];
     let lastError = null;
     let text = "";
 
     for (const modelName of modelsToTry) {
       try {
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          systemInstruction: SYSTEM_INSTRUCTION
-        });
-        const result = await model.generateContent(notes);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const prompt = `${SYSTEM_INSTRUCTION}\n\nהנה הערות השיחה:\n${notes}`;
+        const result = await model.generateContent(prompt);
         text = result.response.text();
         if (text) break;
       } catch (e: any) {
@@ -61,7 +59,7 @@ export async function POST(req: Request) {
     
     let alerts = lines.map(line => {
       const emoji = line.includes('🔴') ? '🔴' : '🟠';
-      const cleanText = line.replace(/[🔴🟠]/g, '').trim();
+      const cleanText = line.trim().replace(/^[🔴🟠]\s*/, '').replace(/[🔴🟠]/g, '').trim();
       return { emoji, text: cleanText };
     });
 
