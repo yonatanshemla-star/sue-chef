@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 
 // === Status Configuration ===
@@ -13,9 +13,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-900 dark:text-gray-400', border: 'border-gray-600', importance: 5 },
   'לא רוצה': { label: '❌ לא רוצה', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 3 },
   'חדש': { label: '🆕 חדש', color: 'text-indigo-700', bg: 'bg-indigo-50', darkBg: 'dark:bg-indigo-950 dark:text-indigo-300', border: 'border-indigo-300 dark:border-indigo-700', importance: 0 },
+  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-800', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/60 dark:text-orange-300', border: 'border-orange-400 dark:border-orange-600', importance: 1 },
   'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 0 },
   'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 3 },
 };
+
+// Statuses that should NOT appear in the manual dropdown
+const AUTO_ONLY_STATUSES = new Set(['ממתין לעדכון']);
 
 function getStatusStyle(status: string) {
   return STATUS_CONFIG[status] || STATUS_CONFIG['אחר'];
@@ -82,6 +86,7 @@ export default function Home() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [processingImageId, setProcessingImageId] = useState<string | null>(null);
+  const [lawyerPhoneCopied, setLawyerPhoneCopied] = useState(false);
   
   // Live notes modal
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
@@ -269,6 +274,23 @@ export default function Home() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">{crmLeads.length} לידים פעילים בטיפול שוטף</p>
           </div>
           <div className="flex items-center gap-4">
+            {/* Copy Lawyer Phone Button */}
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText('+9725983303');
+                setLawyerPhoneCopied(true);
+                setTimeout(() => setLawyerPhoneCopied(false), 2000);
+              }}
+              className={`flex items-center gap-3 px-5 py-3.5 transition-all duration-300 active:scale-95 ${cardClass} ${lawyerPhoneCopied ? 'ring-2 ring-emerald-400 dark:ring-emerald-500' : 'hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-600'}`}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 ${lawyerPhoneCopied ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-indigo-100 dark:bg-indigo-900/40'}`}>
+                {lawyerPhoneCopied ? <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <UserPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">הוסף עו״ד לשיחה</p>
+                <p className={`text-sm font-black leading-none transition-colors ${lawyerPhoneCopied ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`} dir="ltr">{lawyerPhoneCopied ? '✓ הועתק!' : '+972-598-3303'}</p>
+              </div>
+            </button>
             {/* Balance */}
             <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
               <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
@@ -385,6 +407,10 @@ export default function Home() {
                                         onClick={() => {
                                           window.location.href = `tel:${lead.phone || ''}`;
                                           setTimeout(() => { window.location.href = `callto:${lead.phone || ''}`; }, 500);
+                                          // Auto-change status from 'חדש' to 'ממתין לעדכון'
+                                          if (lead.status === 'חדש') {
+                                            handleLeadUpdate(lead.id, { status: 'ממתין לעדכון', lastContacted: new Date().toISOString() });
+                                          }
                                         }}
                                         className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white rounded-[20px] shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:scale-[1.05] active:scale-95 shrink-0 hover:rotate-3" 
                                         title="חיוג מיידי (MicroSIP)"
@@ -471,7 +497,48 @@ export default function Home() {
                             {/* Status */}
                               <td className="px-4 py-4">
                                 {isCustomStatus ? (
-                                  <input type="text" value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`text-xs font-black tracking-wide rounded-xl px-3 py-2 w-full outline-none border focus:ring-2 focus:ring-indigo-500/50 transition-all ${statusStyle.bg} ${statusStyle.darkBg} ${statusStyle.color} ${statusStyle.border}`} />
+                                  <div className="flex flex-col gap-1.5">
+                                    <input type="text" value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`text-xs font-black tracking-wide rounded-xl px-3 py-2 w-full outline-none border focus:ring-2 focus:ring-indigo-500/50 transition-all ${statusStyle.bg} ${statusStyle.darkBg} ${statusStyle.color} ${statusStyle.border}`} />
+                                    <select 
+                                      value="" 
+                                      onChange={e => { 
+                                        if (!e.target.value) return;
+                                        const newStatus = e.target.value;
+                                        const updates: Partial<Lead> = { status: newStatus };
+                                        if (newStatus === 'חתם' && !lead.signedAt) updates.signedAt = new Date().toISOString();
+                                        handleLeadUpdate(lead.id, updates); 
+                                      }} 
+                                      className="text-[10px] font-bold tracking-wide rounded-lg px-2 py-1.5 outline-none border border-gray-300 dark:border-gray-700 cursor-pointer w-full bg-white/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 appearance-none transition-all"
+                                    >
+                                      <option value="">← החלף סטטוס</option>
+                                      {Object.entries(STATUS_CONFIG).filter(([key]) => !AUTO_ONLY_STATUSES.has(key)).map(([key, cfg]) => (
+                                        <option key={key} value={key}>{cfg.label}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                ) : lead.status === 'ממתין לעדכון' ? (
+                                  /* Special prominent display for auto-assigned 'ממתין לעדכון' status */
+                                  <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2 bg-orange-200 dark:bg-orange-900/60 text-orange-800 dark:text-orange-300 border-2 border-orange-400 dark:border-orange-600 rounded-xl px-3 py-2 animate-pulse shadow-md shadow-orange-500/20">
+                                      <span className="text-xs font-black tracking-wide">⏳ ממתין לעדכון</span>
+                                    </div>
+                                    <select 
+                                      value="" 
+                                      onChange={e => { 
+                                        if (!e.target.value) return;
+                                        const newStatus = e.target.value === 'אחר' ? '' : e.target.value;
+                                        const updates: Partial<Lead> = { status: newStatus };
+                                        if (newStatus === 'חתם' && !lead.signedAt) updates.signedAt = new Date().toISOString();
+                                        handleLeadUpdate(lead.id, updates); 
+                                      }} 
+                                      className="text-[10px] font-bold tracking-wide rounded-lg px-2 py-1.5 outline-none border border-orange-300 dark:border-orange-700 cursor-pointer w-full bg-white/80 dark:bg-gray-800/80 text-orange-700 dark:text-orange-400 appearance-none transition-all"
+                                    >
+                                      <option value="">← בחר סטטוס חדש</option>
+                                      {Object.entries(STATUS_CONFIG).filter(([key]) => !AUTO_ONLY_STATUSES.has(key)).map(([key, cfg]) => (
+                                        <option key={key} value={key}>{cfg.label}</option>
+                                      ))}
+                                    </select>
+                                  </div>
                                 ) : (
                                   <select value={lead.status} onChange={e => { 
                                       const newStatus = e.target.value === 'אחר' ? '' : e.target.value;
@@ -481,7 +548,7 @@ export default function Home() {
                                     }} 
                                     className={`text-xs font-black tracking-wide rounded-xl px-3 py-2 outline-none border cursor-pointer w-full focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none ${statusStyle.bg} ${statusStyle.darkBg} ${statusStyle.color} ${statusStyle.border}`}
                                   >
-                                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                                    {Object.entries(STATUS_CONFIG).filter(([key]) => !AUTO_ONLY_STATUSES.has(key)).map(([key, cfg]) => (
                                       <option key={key} value={key}>{cfg.label}</option>
                                     ))}
                                   </select>
