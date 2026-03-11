@@ -117,6 +117,7 @@ export default function Home() {
   const [assistError, setAssistError] = useState<string | null>(null);
   const assistTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const leadsRef = useRef<Lead[]>(leads);
+  const lastFetchedNotesRef = useRef<string>('');
 
   useEffect(() => {
     leadsRef.current = leads;
@@ -142,9 +143,10 @@ export default function Home() {
 
   const initiateCall = (lead: any) => {
     if (!lead.phone) return;
-    // 1. Update status to "ממתין לעדכון" (Orange - Importance 1)
-    // Absolute precision: using the exact key from STATUS_CONFIG
-    handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
+    // 1. Update status to "ממתין לעדכון" ONLY if current status is "חדש"
+    if (lead.status === 'חדש') {
+      handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
+    }
     
     // 2. Open the "Live Notes" modal for documentation
     setLiveNotesLead(lead);
@@ -205,11 +207,11 @@ export default function Home() {
       return leadNorm === normalized;
     });
 
-    if (lead) {
-      console.log("Found lead, updating status:", lead.clientName);
+    if (lead && lead.status === 'חדש') {
+      console.log("Found new lead, updating status to awaiting update:", lead.clientName);
       handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
     } else {
-      console.log("No matching lead found for:", normalized);
+      console.log("Lead not new or not found, skipping status update.");
     }
   }, [handleLeadUpdate]); // leads is no longer a dependency
 
@@ -239,9 +241,16 @@ export default function Home() {
 
   const debouncedAgentAssist = useCallback((notes: string) => {
     if (assistTimeoutRef.current) clearTimeout(assistTimeoutRef.current);
+    
+    // Only fetch if notes have changed significantly (more than 15 chars)
+    // and if the length is at least 5
+    const diff = Math.abs(notes.length - lastFetchedNotesRef.current.length);
+    if (diff < 15 && notes.length > 5) return;
+
     assistTimeoutRef.current = setTimeout(() => {
       fetchAgentAssist(notes);
-    }, 1000);
+      lastFetchedNotesRef.current = notes;
+    }, 3000); // 3 seconds debounce for free tier
   }, []);
 
   useEffect(() => { fetchTwilioData(); fetchLeads(); const i1 = setInterval(fetchTwilioData, 60000); const i2 = setInterval(fetchLeads, 30000); return () => { clearInterval(i1); clearInterval(i2); }; }, []);

@@ -57,7 +57,7 @@ export async function POST(req: Request) {
           return NextResponse.json({ 
             success: true, 
             alerts: [
-              { emoji: "⚠️", text: "המערכת עמוסה כרגע, מנסה שוב..." }
+              { emoji: "⏳", text: "המערכת נחה רגע... מיד תקבל המלצות חדשות" }
             ] 
           });
         }
