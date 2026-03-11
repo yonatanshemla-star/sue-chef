@@ -307,6 +307,20 @@ export default function Home() {
       const dateB = new Date(b.signedAt || b.createdAt).getTime();
       return dateB - dateA;
     }), [leads, archiveSearch]);
+  
+  const stats = useMemo(() => {
+    const total = leads.length;
+    const signed = leads.filter(l => l.status === 'חתם').length;
+    const active = leads.filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי').length;
+    const successRate = total > 0 ? (signed / total * 100).toFixed(1) : "0";
+    
+    const byStatus = leads.reduce((acc, l) => {
+      acc[l.status] = (acc[l.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return { total, signed, active, successRate, byStatus };
+  }, [leads]);
 
   // === Helpers ===
   const formatDuration = (seconds: string) => { if (!seconds) return "00:00"; const s = parseInt(seconds); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
@@ -418,7 +432,7 @@ export default function Home() {
                   <table className="w-full text-sm text-right">
                     <thead className="bg-gray-50/50 dark:bg-[#151822]/80 border-b border-gray-100 dark:border-gray-800/50">
                       <tr>
-                        <th className="px-6 py-4 font-bold min-w-[280px]">שם וטלפון لحיוג</th>
+                        <th className="px-6 py-4 font-bold min-w-[280px]">שם וטלפון לחיוג</th>
                         <th className="px-4 py-4 font-bold min-w-[170px]">סטטוס</th>
                         <th className="px-4 py-4 font-bold min-w-[200px]">הערות</th>
                         <th className="px-4 py-4 font-bold text-center">מסך שיחה</th>
@@ -485,19 +499,135 @@ export default function Home() {
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <div className="p-16 flex flex-col items-center justify-center gap-4 text-center">
-             <div className="w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-4"><BarChart className="w-10 h-10 text-indigo-500" /></div>
-             <h2 className="text-2xl font-black">מערכת ה-AI בשיפוץ</h2>
-             <p className="text-gray-500 max-w-sm">אנחנו בונים מחדש את גרפי הסנטימנט והסטטיסטיקות כדי שיהיו מדויקים יותר.</p>
+          <div className="animate-in fade-in duration-500 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className={`p-6 ${cardClassSoft}`}>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">סה"כ לידים במערכת</p>
+                <p className="text-3xl font-black">{stats.total}</p>
+                <div className="flex items-center gap-1 mt-2 text-indigo-500">
+                  <Plus className="w-3 h-3" /> <span className="text-[10px] font-bold">צמיחה מתמדת</span>
+                </div>
+              </div>
+              <div className={`p-6 ${cardClassSoft}`}>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">לידים חתומים (הצלחה)</p>
+                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{stats.signed}</p>
+                <div className="flex items-center gap-1 mt-2 text-emerald-500">
+                  <CheckCircle className="w-3 h-3" /> <span className="text-[10px] font-bold">חוזים חתומים</span>
+                </div>
+              </div>
+              <div className={`p-6 ${cardClassSoft}`}>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">לידים בטיפול שוטף</p>
+                <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{stats.active}</p>
+                <div className="flex items-center gap-1 mt-2 text-indigo-500">
+                  <Loader2 className="w-3 h-3 animate-spin" /> <span className="text-[10px] font-bold">בעבודה</span>
+                </div>
+              </div>
+              <div className={`p-6 ${cardClassSoft}`}>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">אחוז המרה</p>
+                <p className="text-3xl font-black text-purple-600 dark:text-purple-400">{stats.successRate}%</p>
+                <div className="flex items-center gap-1 mt-2 text-purple-500">
+                  <BarChart className="w-3 h-3" /> <span className="text-[10px] font-bold">יעילות סגירה</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className={`p-8 ${cardClass}`}>
+                <h3 className="text-lg font-black mb-6 flex items-center gap-2"><TableProperties className="w-5 h-5 text-indigo-500" /> התפלגות סטטוסים</h3>
+                <div className="space-y-4">
+                  {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+                    const count = stats.byStatus[status] || 0;
+                    const percent = stats.total > 0 ? (count / stats.total * 100) : 0;
+                    if (count === 0 && !['חדש', 'בבדיקה עם גילי', 'מחכה לחתימה', 'חתם'].includes(status)) return null;
+                    return (
+                      <div key={status} className="group">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-sm font-bold flex items-center gap-2">{config.label} <span className="text-xs text-gray-400">({count})</span></span>
+                          <span className="text-xs font-black opacity-60">{percent.toFixed(0)}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-1000 ease-out rounded-full ${config.bg.replace('bg-', 'bg-').split(' ')[0]}`}
+                            style={{ width: `${percent}%`, backgroundColor: 'currentColor' }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className={`p-8 ${cardClass} flex flex-col items-center justify-center text-center`}>
+                <div className="w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
+                  <RefreshCw className="w-10 h-10 text-indigo-500" />
+                </div>
+                <h3 className="text-xl font-black">תובנות AI בקרוב</h3>
+                <p className="text-gray-500 max-w-xs mt-2">אנחנו מפתחים מודל שינתח את סיכומי השיחות וימליץ על פעולות לשיפור המרה.</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Archive Tab */}
         {activeTab === 'archive' && (
-           <div className={`p-16 text-center ${cardClassSoft}`}>
-             <CheckCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-             <h3 className="text-xl font-bold">הארכיון ייבנה מחדש בקרוב</h3>
-           </div>
+          <div className="animate-in fade-in duration-500 pb-20">
+            <div className="flex items-center gap-4 mb-6">
+              <div className={`flex items-center gap-3 px-4 py-3 w-full md:w-96 ${cardClass}`}>
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="חיפוש בארכיון..." 
+                  value={archiveSearch} 
+                  onChange={(e) => setArchiveSearch(e.target.value)} 
+                  className="bg-transparent outline-none text-sm w-full font-bold" 
+                />
+              </div>
+              <p className="text-sm font-bold text-gray-500">{archiveLeads.length} לידים מאורכבים</p>
+            </div>
+            
+            <div className={`overflow-hidden rounded-3xl ${cardClass}`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-right">
+                  <thead className="bg-gray-50/50 dark:bg-[#151822]/80 border-b border-gray-100 dark:border-gray-800/50">
+                    <tr>
+                      <th className="px-6 py-4 font-bold min-w-[250px]">שם וטלפון</th>
+                      <th className="px-4 py-4 font-bold min-w-[170px]">סטטוס סופי</th>
+                      <th className="px-4 py-4 font-bold min-w-[200px]">הערות</th>
+                      <th className="px-4 py-4 font-bold text-center">תאריך סגירה</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100/50 dark:divide-gray-800/50">
+                    {archiveLeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-20 text-center text-gray-400 font-bold">אין לידים בארכיון</td>
+                      </tr>
+                    ) : (
+                      archiveLeads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-amber-50/30 dark:hover:bg-amber-500/5 transition-all">
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-black text-lg">{lead.clientName || 'ללא שם'}</span>
+                              <span className="font-mono font-bold text-gray-500" dir="ltr">{lead.phone}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`text-xs font-black rounded-xl px-3 py-2 border ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}>
+                              {getStatusStyle(lead.status).label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="text-sm font-semibold opacity-70 line-clamp-2">{lead.generalNotes || lead.liveCallNotes || 'אין הערות'}</p>
+                          </td>
+                          <td className="px-4 py-4 text-center font-bold text-gray-400">
+                            {lead.signedAt ? formatDate(lead.signedAt) : lead.lastContacted ? formatDate(lead.lastContacted) : '-'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Decision Tree Tab */}
