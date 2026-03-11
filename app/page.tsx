@@ -32,9 +32,12 @@ function getStatusStyle(status: string) {
 
 // === Phone number normalization for matching ===
 function normalizePhone(phone: string): string {
+  if (!phone) return "";
   const digits = phone.replace(/[^\d]/g, '');
-  if (digits.startsWith('972') && digits.length >= 12) {
-    return '0' + digits.substring(3);
+  // Israeli numbers are usually 10 digits (05...) or 12 digits (9725...)
+  // We'll take the last 9 digits to match regardless of prefix (0 or 972)
+  if (digits.length >= 9) {
+    return digits.slice(-9);
   }
   return digits;
 }
@@ -169,11 +172,21 @@ export default function Home() {
   };
 
   const handleCallEnd = useCallback(async (phone: string) => {
+    console.log("Call ended for phone:", phone);
     const normalized = normalizePhone(phone);
     if (!normalized) return;
-    const lead = leads.find(l => l.phone && normalizePhone(l.phone) === normalized);
+    
+    const lead = leads.find(l => {
+      if (!l.phone) return false;
+      const leadNorm = normalizePhone(l.phone);
+      return leadNorm === normalized;
+    });
+
     if (lead) {
+      console.log("Found lead, updating status:", lead.clientName);
       handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
+    } else {
+      console.log("No matching lead found for:", normalized);
     }
   }, [leads, handleLeadUpdate]);
 

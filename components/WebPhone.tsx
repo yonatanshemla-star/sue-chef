@@ -96,7 +96,13 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       const Twilio = window.Twilio;
       const device = new Twilio.Device(token, {
         codecPreferences: ['opus', 'pcmu'],
-        edge: ['frankfurt', 'dublin', 'roaming'],
+        audioConstraints: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+        maxAverageBitrate: 64000,
+        edge: ['dublin', 'frankfurt', 'roaming'],
         dscp: true,
         fakeLocalAudio: false,
         allowIncomingWhileBusy: true,
@@ -208,12 +214,13 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         connectionRef.current.disconnect();
       }
     }
+    const finalPhone = incomingCallerId ? incomingCallerId.phone : targetPhone;
     setCallStatus('ended');
     setIncomingCallerId(null);
     setTimeout(() => {
       setCallStatus('idle');
       if (onCallEnd) {
-        onCallEnd(incomingCallerId ? incomingCallerId.phone : targetPhone);
+        onCallEnd(finalPhone);
       }
       onClose();
     }, 1500);
