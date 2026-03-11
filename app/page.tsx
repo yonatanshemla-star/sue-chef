@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import WebPhone from '@/components/WebPhone';
 import LegalDecisionTree from '@/components/LegalDecisionTree';
@@ -370,16 +370,12 @@ export default function Home() {
   const formatDuration = (seconds: string) => { if (!seconds) return "00:00"; const s = parseInt(seconds); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
   const formatDate = (d: string) => new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(new Date(d));
 
-  const cardClass = "bg-white/80 dark:bg-[#0f111a]/80 backdrop-blur-xl border border-white/40 dark:border-white/5 shadow-2xl shadow-indigo-500/5 dark:text-gray-100 rounded-3xl";
-  const cardClassSoft = "bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-white/20 dark:border-gray-700/50 rounded-2xl";
+  const cardClass = "premium-glass rounded-3xl";
+  const cardClassSoft = "bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border border-white/20 dark:border-white/5 rounded-2xl";
 
   return (
-    <div className={`min-h-screen transition-all duration-500 ${darkMode ? 'dark bg-[#0a0a0f] text-gray-100' : 'bg-[#f4f7fa] text-gray-900'} relative overflow-hidden`}>
-      {/* Background Orbs */}
-      <div className={`absolute top-[-10%] sm:right-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-40 pointer-events-none transition-all duration-1000 ${darkMode ? 'bg-indigo-900' : 'bg-blue-300'}`} />
-      <div className={`absolute bottom-[-10%] sm:left-[-10%] w-[600px] h-[600px] rounded-full blur-[150px] opacity-30 pointer-events-none transition-all duration-1000 ${darkMode ? 'bg-fuchsia-900/50' : 'bg-indigo-300'}`} />
-
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans relative z-10" dir="rtl">
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100' : 'text-slate-900'} bg-mesh relative overflow-hidden selection:bg-indigo-500/20`}>
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10" dir="rtl">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex flex-col">
@@ -425,73 +421,79 @@ export default function Home() {
         </div>
 
         {/* Tabs */}
-        <div className={`flex flex-wrap gap-2 mb-8 p-1.5 w-fit rounded-[20px] ${cardClass}`}>
-          <button onClick={() => setActiveTab('crm')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'crm' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
-            <TableProperties className="w-4 h-4" /> טבלת מעקב
+        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] premium-glass relative overflow-hidden group">
+          <button onClick={() => setActiveTab('crm')} className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-500 relative z-10 ${activeTab === 'crm' ? 'bg-indigo-600 text-white shadow-[0_8px_20px_-4px_rgba(79,70,229,0.4)] scale-105' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
+            <TableProperties className="w-4.5 h-4.5" /> טבלת מעקב
           </button>
-          <button onClick={() => setActiveTab('calls')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'calls' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
-            <PhoneCall className="w-4 h-4" /> שיחות אחרונות
+          <button onClick={() => setActiveTab('calls')} className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-500 relative z-10 ${activeTab === 'calls' ? 'bg-blue-600 text-white shadow-[0_8px_20px_-4px_rgba(37,99,235,0.4)] scale-105' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
+            <PhoneCall className="w-4.5 h-4.5" /> שיחות אחרונות
           </button>
-          <button onClick={() => setActiveTab('archive')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'archive' ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
-            <CheckCircle className="w-4 h-4" /> ארכיון
+          <button onClick={() => setActiveTab('archive')} className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-500 relative z-10 ${activeTab === 'archive' ? 'bg-amber-600 text-white shadow-[0_8px_20px_-4px_rgba(217,119,6,0.4)] scale-105' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
+            <CheckCircle className="w-4.5 h-4.5" /> ארכיון
           </button>
-          <button onClick={() => setActiveTab('analytics')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'analytics' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
-            <BarChart className="w-4 h-4" /> אנליטיקה
+          <button onClick={() => setActiveTab('analytics')} className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-500 relative z-10 ${activeTab === 'analytics' ? 'bg-purple-600 text-white shadow-[0_8px_20px_-4px_rgba(147,51,234,0.4)] scale-105' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
+            <BarChart className="w-4.5 h-4.5" /> אנליטיקה
           </button>
-          <button onClick={() => setActiveTab('tree')} className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${activeTab === 'tree' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'}`}>
-            <ClipboardList className="w-4 h-4" /> עץ החלטות
+          <button onClick={() => setActiveTab('tree')} className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-500 relative z-10 ${activeTab === 'tree' ? 'bg-emerald-600 text-white shadow-[0_8px_20px_-4px_rgba(5,150,105,0.4)] scale-105' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
+            <ClipboardList className="w-4.5 h-4.5" /> עץ החלטות
           </button>
         </div>
 
         {/* CRM Content */}
         {activeTab === 'crm' && (
           <div className="animate-in fade-in duration-500 pb-20">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-              <button onClick={addNewLead} className="group relative flex items-center gap-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3.5 rounded-2xl text-sm font-bold shadow-xl overflow-hidden hover:scale-105 active:scale-95 transition-all">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Plus className="w-4 h-4 relative z-10" /> <span className="relative z-10">ליד חדש</span>
-              </button>
-              <div className={`flex items-center gap-2 p-1.5 ${cardClass}`}>
-                <button onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors bg-white/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500" /> {sortOrder === 'desc' ? 'הכי חדשים קודם' : 'הכי ישנים קודם'}
+            <div className="flex flex-wrap items-center gap-4 mb-8">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 premium-glass rounded-[20px] shadow-sm">
+                <button onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all bg-white/40 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-700 active:scale-95 border border-white/20 dark:border-white/5">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500" /> {sortOrder === 'desc' ? 'הכי חדשים' : 'הכי ישנים'}
                 </button>
-                <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
-                <select value={filterImportance ?? ''} onChange={e => setFilterImportance(e.target.value === '' ? null : Number(e.target.value))} className="px-4 py-2.5 rounded-xl text-xs font-bold outline-none cursor-pointer bg-transparent appearance-none text-gray-700 dark:text-gray-200">
-                  <option value="">🎯 הצג את כל הלידים</option>
-                  <option value="1">🔴 חשיבות עליונה</option>
-                  <option value="2">🟠 חשיבות בינונית-גבוהה</option>
-                  <option value="0">🆕 לידים שטרם טופלו</option>
-                </select>
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+                <div className="relative group">
+                  <select value={filterImportance ?? ''} onChange={e => setFilterImportance(e.target.value === '' ? null : Number(e.target.value))} className="px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider outline-none cursor-pointer bg-transparent appearance-none text-slate-700 dark:text-slate-200 pr-10">
+                    <option value="">🎯 כל הלידים</option>
+                    <option value="1">🔴 חשיבות עליונה</option>
+                    <option value="2">🟠 בינונית-גבוהה</option>
+                    <option value="0">🆕 לידים חדשים</option>
+                  </select>
+                  <Maximize2 className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none rotate-90" />
+                </div>
               </div>
-              <div className={`flex items-center gap-3 px-4 py-2 w-full md:w-80 ${cardClass}`}>
-                <RefreshCw className="w-4 h-4 text-gray-400" />
-                <input type="text" placeholder="חיפוש גלובלי..." value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} className="bg-transparent outline-none text-sm w-full font-bold" />
+              
+              <div className="flex items-center gap-4 flex-1 min-w-[300px]">
+                <div className="flex items-center gap-3 px-6 py-3.5 premium-glass rounded-[24px] flex-1 group focus-within:premium-glass-active transition-all duration-500">
+                  <RefreshCw className={`w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors ${loadingLeads ? 'animate-spin' : ''}`} />
+                  <input type="text" placeholder="חיפוש מהיר בכל הלידים..." value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} className="bg-transparent outline-none text-sm w-full font-bold placeholder:text-slate-400 dark:placeholder:text-slate-500" />
+                </div>
+                <button onClick={addNewLead} className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-[24px] text-sm font-black shadow-xl shadow-indigo-500/20 active:scale-95 transition-all whitespace-nowrap">
+                  <Plus className="w-5 h-5" /> הוסף ליד חדש
+                </button>
               </div>
             </div>
-            {loadingLeads ? (
-               <div className="p-16 flex flex-col items-center justify-center gap-4"><Loader2 className="w-10 h-10 text-indigo-500 animate-spin" /></div>
+
+            {crmLeads.length === 0 ? (
+              <div className="text-center py-20 text-gray-400 font-bold">אין לידים פעילים</div>
             ) : (
-              <div className={`overflow-hidden rounded-3xl ${cardClass}`}>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-right">
-                    <thead className="bg-gray-50/50 dark:bg-[#151822]/80 border-b border-gray-100 dark:border-gray-800/50">
+              <div className="premium-glass rounded-[32px] overflow-hidden shadow-2xl border-white/50">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-sm text-right border-collapse">
+                    <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
                       <tr>
-                        <th className="px-6 py-4 font-bold min-w-[280px]">שם וטלפון לחיוג</th>
-                        <th className="px-2 py-4 font-bold w-10"></th>
-                        <th className="px-4 py-4 font-bold min-w-[170px]">סטטוס</th>
-                        <th className="px-4 py-4 font-bold min-w-[200px]">הערות</th>
-                        <th className="px-4 py-4 font-bold text-center">מסך שיחה</th>
+                        <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
+                        <th className="px-2 py-6 font-bold w-12 text-center"></th>
+                        <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[180px]">סטטוס טיפול</th>
+                        <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[220px]">הערות ומעקב</th>
+                        <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 text-center">מסך שיחה</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100/50 dark:divide-gray-800/50">
+                    <tbody className="divide-y divide-indigo-500/5">
                       {crmLeads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition-all">
-                          <td className="px-6 py-4">
-                            <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-4 p-2 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800/30 transition-all">
-                              <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-5 h-5" /></button>
-                              <div className="flex flex-col flex-1">
-                                <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-lg bg-transparent outline-none" placeholder="שם הליד..." />
-                                <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-bold text-gray-500 bg-transparent outline-none" placeholder="05..." dir="ltr" />
+                        <tr key={lead.id} className="group hover:bg-white/40 dark:hover:bg-white/5 transition-all duration-300">
+                          <td className="px-8 py-5">
+                            <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
+                              <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 active:scale-90 transition-all hover:scale-110"><Phone className="w-6 h-6" /></button>
+                              <div className="flex flex-col flex-1 gap-1">
+                                <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors" placeholder="שם הלקוח..." />
+                                <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
                               </div>
                             </div>
                           </td>
@@ -523,16 +525,28 @@ export default function Home() {
                                 )}
                              </div>
                           </td>
-                          <td className="px-4 py-4">
-                            <select value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`text-xs font-black rounded-xl px-3 py-2 outline-none border cursor-pointer w-full ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}>
-                              {Object.entries(STATUS_CONFIG).filter(([k]) => !AUTO_ONLY_STATUSES.has(k)).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
+                          <td className="px-6 py-5">
+                            <div className="relative group/select">
+                              <select 
+                                value={lead.status} 
+                                onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
+                                className={`text-[11px] font-black rounded-2xl px-4 py-3 outline-none border transition-all cursor-pointer w-full appearance-none shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border} group-hover/select:shadow-indigo-500/10`}
+                              >
+                                {Object.entries(STATUS_CONFIG).filter(([k]) => !AUTO_ONLY_STATUSES.has(k)).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                              </select>
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50"><ChevronDown size={14} /></div>
+                            </div>
                           </td>
-                          <td className="px-4 py-4">
-                            <textarea value={lead.generalNotes || ''} onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} className="w-full text-sm font-semibold bg-white/50 dark:bg-gray-800/50 border rounded-xl p-2 outline-none h-16 resize-none" placeholder="הערות..." />
+                          <td className="px-6 py-5">
+                            <textarea 
+                              value={lead.generalNotes || ''} 
+                              onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
+                              className="w-full text-sm font-semibold bg-white/30 dark:bg-slate-900/40 border border-white/40 dark:border-white/5 rounded-2xl p-3 outline-none h-16 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500/20" 
+                              placeholder="הערות למעקב..." 
+                            />
                           </td>
-                          <td className="px-4 py-4 text-center">
-                             <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200 transition-all hover:bg-amber-100 shadow-sm"><Maximize2 className="w-4 h-4" /> פתח</button>
+                          <td className="px-6 py-5 text-center">
+                             <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
                           </td>
                         </tr>
                       ))}
@@ -705,102 +719,113 @@ export default function Home() {
 
         {/* =================== LIVE NOTES MODAL =================== */}
         {liveNotesLead && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
-            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setLiveNotesLead(null)} />
-            <div className={`relative w-full max-w-[1280px] h-[90vh] flex flex-col rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden ${darkMode ? 'bg-[#0f111a]' : 'bg-[#f8fafc]'}`}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-500">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl" onClick={() => setLiveNotesLead(null)} />
+            <div className={`relative w-full max-w-[1280px] h-[90vh] flex flex-col rounded-[40px] shadow-[0_32px_128px_-12px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden premium-glass`}>
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b bg-white dark:bg-black/20 backdrop-blur-xl z-10">
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center"><PhoneCall className="w-6 h-6 text-white" /></div>
+              <div className="flex items-center justify-between p-8 border-b border-indigo-500/10 bg-white/40 dark:bg-slate-950/40 backdrop-blur-3xl z-10 transition-colors duration-500">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-[24px] bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-500/30 flex items-center justify-center animate-float"><PhoneCall className="w-8 h-8 text-white" /></div>
                   <div>
-                    <h3 className="font-black text-2xl">שיחה עם {liveNotesLead.clientName || 'לקוח'}</h3>
-                    <p className="text-sm font-medium text-indigo-500" dir="ltr">{liveNotesLead.phone}</p>
+                    <h3 className="font-black text-3xl tracking-tight text-glow">שיחה עם {liveNotesLead.clientName || 'לקוח'}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <p className="text-sm font-black text-indigo-500/80 uppercase tracking-widest" dir="ltr">{liveNotesLead.phone}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-xs transition-all ${showDecisionTree ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-white dark:bg-gray-800'}`}><ClipboardList className="w-4 h-4" /> {showDecisionTree ? 'חזרה לשיחה' : 'עץ החלטות'}</button>
-                  <button onClick={() => setShowScript(!showScript)} className="flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-xs bg-white dark:bg-gray-800"><FileText className="w-4 h-4" /> {showScript ? 'הסתר תסריט' : 'הצג תסריט'}</button>
-                  <button onClick={() => setLiveNotesLead(null)} className="p-2.5 rounded-xl border bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+                <div className="flex items-center gap-4">
+                  <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl border font-black text-xs transition-all duration-300 shadow-sm active:scale-95 ${showDecisionTree ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20' : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/10'}`}><ClipboardList className="w-4 h-4" /> {showDecisionTree ? 'חזרה לשיחה' : 'עץ החלטות'}</button>
+                  <button onClick={() => setShowScript(!showScript)} className="flex items-center gap-3 px-6 py-3.5 rounded-2xl border font-black text-xs transition-all duration-300 shadow-sm active:scale-95 bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/10"><FileText className="w-4 h-4" /> {showScript ? 'הסתר תסריט' : 'הצג תסריט'}</button>
+                  <button onClick={() => setLiveNotesLead(null)} className="p-3.5 rounded-2xl border bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-white/10 text-slate-400 hover:text-red-500 hover:rotate-90 transition-all duration-300"><X className="w-6 h-6" /></button>
                 </div>
               </div>
 
-               {/* Modal Body: 3-Panel Layout */}
-               <div className="flex-1 flex overflow-hidden min-h-0">
-                 {showDecisionTree ? (
-                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50 dark:bg-black/40">
-                     <LegalDecisionTree compact={true} onComplete={handleTreeComplete} />
-                   </div>
-                 ) : (
-                   <>
-                     {/* 1. Agent Assist (Right Panel) */}
-                     <div className="w-80 border-l p-6 flex flex-col gap-4 overflow-y-auto bg-white/50 dark:bg-black/20 custom-scrollbar">
-                       <div className="flex items-center justify-between mb-2">
-                         <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                           <RefreshCw className={isAssistLoading ? 'animate-spin' : ''} size={14} /> המלצות AI בזמן אמת
-                         </h4>
-                         <button 
-                           onClick={() => fetchAgentAssist(liveNotesLead.liveCallNotes || '')}
-                           disabled={isAssistLoading}
-                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
-                           title="רענן המלצות באופן ידני"
-                         >
-                           <RefreshCw size={12} className={isAssistLoading ? 'animate-spin' : ''} />
-                         </button>
-                       </div>
-                       {assistError && (
-                         <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 text-amber-700 dark:text-amber-400 text-xs font-bold text-center">
-                            ⚠️ {assistError}
-                         </div>
-                       )}
+                {/* Modal Body: 3-Panel Layout */}
+                <div className="flex-1 flex overflow-hidden min-h-0 bg-white/10 dark:bg-black/10">
+                  {showDecisionTree ? (
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/30 dark:bg-slate-950/20 backdrop-blur-md">
+                      <LegalDecisionTree compact={true} onComplete={handleTreeComplete} />
+                    </div>
+                  ) : (
+                    <>
+                      {/* 1. Agent Assist (Right Panel) */}
+                      <div className="w-96 border-l border-indigo-500/10 p-8 flex flex-col gap-6 overflow-y-auto bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl custom-scrollbar">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-[11px] font-black text-indigo-500/80 uppercase tracking-widest flex items-center gap-3">
+                            <RefreshCw className={`w-5 h-5 ${isAssistLoading ? 'animate-spin' : ''}`} /> המלצות AI בזמן אמת
+                          </h4>
+                          <button
+                            onClick={() => fetchAgentAssist(liveNotesLead.liveCallNotes || '')}
+                            disabled={isAssistLoading}
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            title="רענן המלצות באופן ידני"
+                          >
+                            <RefreshCw size={14} className={isAssistLoading ? 'animate-spin' : ''} />
+                          </button>
+                        </div>
+                        {assistError && (
+                          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 text-amber-700 dark:text-amber-400 text-xs font-bold text-center">
+                             ⚠️ {assistError}
+                          </div>
+                        )}
 
-                       {assistCards.length === 0 && !isAssistLoading && !assistError && (
-                         <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2" /><p className="text-xs font-bold">הקלד הערות לקבלת סיוע</p></div>
-                       )}
-                       {assistCards.map((card, idx) => (
-                         <div key={idx} className={`p-4 rounded-2xl border animate-in slide-in-from-right-4 duration-500 ${card.emoji === '🔴' ? 'bg-red-50 dark:bg-red-900/20 border-red-200' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200'}`}>
-                           <p className="text-sm font-bold leading-snug">{card.emoji} {card.text}</p>
-                         </div>
-                       ))}
-                     </div>
+                        {assistCards.length === 0 && !isAssistLoading && !assistError && (
+                          <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2" /><p className="text-xs font-black uppercase tracking-tighter">הקלד הערות לקבלת סיוע</p></div>
+                        )}
+                        {assistCards.map((card, idx) => (
+                          <div key={idx} className={`p-5 rounded-3xl border animate-in slide-in-from-right-4 duration-500 ${card.emoji === '🔴' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 shadow-[0_8px_32px_-4px_rgba(239,68,68,0.2)]' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 shadow-[0_8px_32px_-4px_rgba(245,158,11,0.2)]'}`}>
+                            <p className="text-base font-bold leading-snug">{card.emoji} {card.text}</p>
+                          </div>
+                        ))}
+                      </div>
 
-                     {/* 2. Main Notes Area (Center) */}
-                     <div className="flex-1 p-8 flex flex-col bg-white/30 overflow-y-auto custom-scrollbar">
-                       <div className="flex items-center gap-2 mb-4"><div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /><h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">תיעוד שיחה לייב</h4></div>
-                       <textarea
-                         autoFocus
-                         value={liveNotesLead.liveCallNotes || ''}
-                         onChange={e => {
-                           const v = e.target.value;
-                           handleLeadUpdate(liveNotesLead.id, { liveCallNotes: v });
-                           debouncedAgentAssist(v);
-                         }}
-                         onKeyDown={e => {
-                           if (e.key === 'Enter') {
-                             if (assistTimeoutRef.current) clearTimeout(assistTimeoutRef.current);
-                             fetchAgentAssist(liveNotesLead.liveCallNotes || '');
-                           }
-                         }}
-                         placeholder="הקלד כאן בנקודות את עיקרי השיחה..."
-                         className="w-full flex-1 text-xl leading-relaxed bg-transparent outline-none resize-none font-medium text-gray-800 dark:text-white"
-                       />
-                     </div>
-                   </>
-                 )}
+                      {/* 2. Main Notes Area (Center) */}
+                      <div className="flex-1 p-10 flex flex-col bg-white/5 dark:bg-black/5 overflow-y-auto custom-scrollbar relative">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse" />
+                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">תיעוד שיחה בשידור חי</h4>
+                        </div>
+                        <textarea
+                          autoFocus
+                          value={liveNotesLead.liveCallNotes || ''}
+                          onChange={e => {
+                            const v = e.target.value;
+                            handleLeadUpdate(liveNotesLead.id, { liveCallNotes: v });
+                            debouncedAgentAssist(v);
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              if (assistTimeoutRef.current) clearTimeout(assistTimeoutRef.current);
+                              fetchAgentAssist(liveNotesLead.liveCallNotes || '');
+                            }
+                          }}
+                          placeholder="כתוב כאן נקודות מרכזיות מהשיחה..."
+                          className="w-full flex-1 text-2xl leading-relaxed bg-transparent outline-none resize-none font-bold text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 selection:bg-indigo-500/30"
+                        />
+                      </div>
+                    </>
+                  )}
 
-                 {/* 3. Script / Help (Left Panel - Collapsible) */}
-                 <div className={`transition-all duration-500 border-r bg-indigo-50/30 dark:bg-[#12141f] overflow-y-auto custom-scrollbar ${showScript ? 'w-[450px] opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
-                   {showScript && (
-                     <div className="p-8">
-                       <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-6 flex items-center gap-2"><FileText size={16} /> תסריט שיחה מנצח</h4>
-                       <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium opacity-80">{CALL_SCRIPT}</p>
-                     </div>
-                   )}
-                 </div>
-               </div>
+                  {/* 3. Script / Help (Left Panel - Collapsible) */}
+                  <div className={`transition-all duration-700 border-r border-indigo-500/10 bg-indigo-50/20 dark:bg-slate-950/40 backdrop-blur-2xl overflow-y-auto custom-scrollbar ${showScript ? 'w-[450px] opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
+                    {showScript && (
+                      <div className="p-10 animate-in fade-in slide-in-from-left-4 duration-700">
+                        <h4 className="text-[11px] font-black text-indigo-500/80 uppercase tracking-widest mb-8 flex items-center gap-3"><FileText size={18} /> תסריט שיחה מנצח</h4>
+                        <div className="prose dark:prose-invert max-w-none">
+                          <p className="text-base leading-loose whitespace-pre-wrap font-bold text-slate-700 dark:text-slate-300 opacity-90">{CALL_SCRIPT}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
               {/* Modal Footer */}
-              <div className="p-6 border-t bg-white/80 dark:bg-black/60 backdrop-blur-xl flex justify-between items-center z-10">
-                <span className="text-xs font-bold text-gray-400">נשמר אוטומטית עכשיו</span>
+              <div className="p-8 border-t border-indigo-500/10 bg-white/40 dark:bg-slate-950/40 backdrop-blur-3xl flex justify-between items-center z-10 transition-colors duration-500">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-wider">תיעוד השיחה נשמר אוטומטית ברקע</span>
+                </div>
                 <div className="flex items-center gap-4">
                   <button onClick={() => {
                     const msg = encodeURIComponent(`*סיכום שיחה עם ${liveNotesLead.clientName}*\n\n${liveNotesLead.liveCallNotes}`);

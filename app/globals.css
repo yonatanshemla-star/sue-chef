@@ -3,72 +3,80 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand: #3b82f6;
-  --color-brand-hover: #2563eb;
-  --color-high: #ef4444;       
-  --color-high-bg: #fee2e2;    
-  --color-medium: #f59e0b;     
-  --color-medium-bg: #fef3c7;  
-  --color-low: #10b981;        
-  --color-low-bg: #d1fae5;
+  --color-brand: #6366f1;
+  --color-brand-hover: #4f46e5;
   --font-sans: var(--font-assistant), system-ui, -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, helvetica, arial, sans-serif;
 }
 
+@layer base {
+  body {
+    @apply min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200;
+  }
+}
+
 @layer utilities {
-  .rtl-glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+  .premium-glass {
+    @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/40 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
   }
-  
-  .dark .rtl-glass {
-    background: rgba(17, 24, 39, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .premium-glass-active {
+    @apply bg-white/90 dark:bg-slate-800/80 backdrop-blur-3xl border-white/60 dark:border-white/20 shadow-[0_12px_48px_0_rgba(31,38,135,0.15)];
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+
+  .bg-mesh {
+    background-color: #f8fafc;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.1) 0px, transparent 50%);
+  }
+
+  .dark .bg-mesh {
+    background-color: #030712;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.1) 0px, transparent 50%);
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
   }
 }
 
-body {
-  background-color: #f8fafc;
-  color: #0f172a;
-  min-height: 100vh;
+/* Custom Scrollbar for Premium Feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.dark body, .dark {
-  background-color: #030712;
-  color: #f8fafc;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Dark mode form elements */
-.dark select,
-.dark option {
-  background-color: #1f2937;
-  color: #e5e7eb;
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 dark:bg-gray-800 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors;
 }
 
-.dark select option {
-  background-color: #1f2937;
-  color: #e5e7eb;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
 }
 
-.dark table {
-  color: #e5e7eb;
-}
-
-.dark tbody tr {
-  background-color: #111827;
-}
-
-.dark tbody tr:hover {
-  background-color: #1e1b4b20;
-}
-
-.dark input,
-.dark textarea {
-  color: #e5e7eb;
-}
-
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: #4b5563;
+/* Fix for Safari backdrop-filter */
+@supports not (backdrop-filter: blur(16px)) {
+  .premium-glass {
+    @apply bg-white dark:bg-slate-900;
+  }
 }
