@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown } from "lucide-react";
 import type { Lead } from "@/utils/storage";
-import WebPhone from '@/components/WebPhone';
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import { legalQuestions } from '@/utils/legalQuestions';
 import { evaluateResults } from '@/utils/legalLogic';
@@ -141,12 +140,22 @@ export default function Home() {
     } catch (error) { console.error('Failed to update lead:', error); fetchLeads(); }
   };
 
-  const initiateCall = (lead: Lead) => {
+  const initiateCall = (lead: any) => {
     if (!lead.phone) return;
-    setPhoneTarget({ name: lead.clientName || 'ללא שם', phone: lead.phone });
-    setIsPhoneOpen(true);
-    // Automatically update status to "ממתין לעדכון" on call start
+    // 1. Update status to "ממתין לעדכון" (Orange - Importance 1)
+    // Absolute precision: using the exact key from STATUS_CONFIG
     handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
+    
+    // 2. Open the "Live Notes" modal for documentation
+    setLiveNotesLead(lead);
+
+    // 3. Trigger external app (MicroSIP etc.) via tel: protocol
+    const phone = lead.phone || '';
+    // Remove all non-digits for the tel: link
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
+    window.location.href = `tel:${cleanPhone}`;
+    
+    console.log(`Triggering external call to: ${cleanPhone}`);
   };
 
   const copyToClipboard = (text: string) => {
@@ -442,31 +451,32 @@ export default function Home() {
         {/* CRM Content */}
         {activeTab === 'crm' && (
           <div className="animate-in fade-in duration-500 pb-20">
-            <div className="flex flex-wrap items-center gap-4 mb-8">
-              <div className="flex flex-wrap items-center gap-2 p-1.5 premium-glass rounded-[20px] shadow-sm">
-                <button onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all bg-white/40 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-700 active:scale-95 border border-white/20 dark:border-white/5">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500" /> {sortOrder === 'desc' ? 'הכי חדשים' : 'הכי ישנים'}
-                </button>
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
-                <div className="relative group">
-                  <select value={filterImportance ?? ''} onChange={e => setFilterImportance(e.target.value === '' ? null : Number(e.target.value))} className="px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider outline-none cursor-pointer bg-transparent appearance-none text-slate-700 dark:text-slate-200 pr-10">
-                    <option value="">🎯 כל הלידים</option>
-                    <option value="1">🔴 חשיבות עליונה</option>
-                    <option value="2">🟠 בינונית-גבוהה</option>
-                    <option value="0">🆕 לידים חדשים</option>
-                  </select>
-                  <Maximize2 className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none rotate-90" />
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 flex-1 min-w-[300px]">
-                <div className="flex items-center gap-3 px-6 py-3.5 premium-glass rounded-[24px] flex-1 group focus-within:premium-glass-active transition-all duration-500">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+              <button onClick={addNewLead} className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-[24px] text-sm font-black shadow-xl shadow-indigo-500/20 active:scale-95 transition-all animate-in slide-in-from-right-4 duration-500">
+                <Plus className="w-5 h-5" /> הוסף ליד חדש
+              </button>
+
+              <div className="flex flex-wrap items-center gap-4 flex-1 justify-end animate-in slide-in-from-left-4 duration-500">
+                <div className="flex items-center gap-3 px-6 py-3.5 premium-glass rounded-[24px] w-full max-w-md group focus-within:premium-glass-active transition-all duration-500">
                   <RefreshCw className={`w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors ${loadingLeads ? 'animate-spin' : ''}`} />
                   <input type="text" placeholder="חיפוש מהיר בכל הלידים..." value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} className="bg-transparent outline-none text-sm w-full font-bold placeholder:text-slate-400 dark:placeholder:text-slate-500" />
                 </div>
-                <button onClick={addNewLead} className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-[24px] text-sm font-black shadow-xl shadow-indigo-500/20 active:scale-95 transition-all whitespace-nowrap">
-                  <Plus className="w-5 h-5" /> הוסף ליד חדש
-                </button>
+                
+                <div className="flex flex-wrap items-center gap-2 p-1.5 premium-glass rounded-[20px] shadow-sm">
+                  <button onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all bg-white/40 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-700 active:scale-95 border border-white/20 dark:border-white/5">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500" /> {sortOrder === 'desc' ? 'הכי חדשים' : 'הכי ישנים'}
+                  </button>
+                  <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+                  <div className="relative group">
+                    <select value={filterImportance ?? ''} onChange={e => setFilterImportance(e.target.value === '' ? null : Number(e.target.value))} className="px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider outline-none cursor-pointer bg-transparent appearance-none text-slate-700 dark:text-slate-200 pr-10">
+                      <option value="">🎯 כל הלידים</option>
+                      <option value="1">🔴 חשיבות עליונה</option>
+                      <option value="2">🟠 בינונית-גבוהה</option>
+                      <option value="0">🆕 לידים חדשים</option>
+                    </select>
+                    <Maximize2 className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none rotate-90" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -486,8 +496,12 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-indigo-500/5">
-                      {crmLeads.map((lead) => (
-                        <tr key={lead.id} className="group hover:bg-white/40 dark:hover:bg-white/5 transition-all duration-300">
+                      {crmLeads.map((lead, idx) => (
+                        <tr 
+                          key={lead.id} 
+                          className="group hover:bg-white/60 dark:hover:bg-white/5 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 fill-mode-both"
+                          style={{ animationDelay: `${idx * 50}ms`, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
+                        >
                           <td className="px-8 py-5">
                             <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
                               <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 active:scale-90 transition-all hover:scale-110"><Phone className="w-6 h-6" /></button>
@@ -541,7 +555,7 @@ export default function Home() {
                             <textarea 
                               value={lead.generalNotes || ''} 
                               onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
-                              className="w-full text-sm font-semibold bg-white/30 dark:bg-slate-900/40 border border-white/40 dark:border-white/5 rounded-2xl p-3 outline-none h-16 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500/20" 
+                              className="w-full text-sm font-bold bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none h-20 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-4 focus:ring-indigo-500/10 shadow-sm" 
                               placeholder="הערות למעקב..." 
                             />
                           </td>
@@ -750,15 +764,15 @@ export default function Home() {
                   ) : (
                     <>
                       {/* 1. Agent Assist (Right Panel) */}
-                      <div className="w-96 border-l border-indigo-500/10 p-8 flex flex-col gap-6 overflow-y-auto bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl custom-scrollbar">
+                      <div className="w-96 border-l border-slate-200 dark:border-white/5 p-8 flex flex-col gap-6 overflow-y-auto bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl custom-scrollbar animate-in slide-in-from-right-8 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-[11px] font-black text-indigo-500/80 uppercase tracking-widest flex items-center gap-3">
-                            <RefreshCw className={`w-5 h-5 ${isAssistLoading ? 'animate-spin' : ''}`} /> המלצות AI בזמן אמת
+                          <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-3">
+                            <RefreshCw className={`w-5 h-5 ${isAssistLoading ? 'animate-spin' : ''} text-indigo-500`} /> המלצות AI בזמן אמת
                           </h4>
                           <button
                             onClick={() => fetchAgentAssist(liveNotesLead.liveCallNotes || '')}
                             disabled={isAssistLoading}
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
                             title="רענן המלצות באופן ידני"
                           >
                             <RefreshCw size={14} className={isAssistLoading ? 'animate-spin' : ''} />
@@ -771,20 +785,20 @@ export default function Home() {
                         )}
 
                         {assistCards.length === 0 && !isAssistLoading && !assistError && (
-                          <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2" /><p className="text-xs font-black uppercase tracking-tighter">הקלד הערות לקבלת סיוע</p></div>
+                          <div className="text-center py-20 opacity-30"><HelpCircle size={40} className="mx-auto mb-2 text-slate-400" /><p className="text-xs font-black uppercase tracking-tighter">הקלד הערות לקבלת סיוע</p></div>
                         )}
                         {assistCards.map((card, idx) => (
-                          <div key={idx} className={`p-5 rounded-3xl border animate-in slide-in-from-right-4 duration-500 ${card.emoji === '🔴' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 shadow-[0_8px_32px_-4px_rgba(239,68,68,0.2)]' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 shadow-[0_8px_32px_-4px_rgba(245,158,11,0.2)]'}`}>
+                          <div key={idx} className={`p-6 rounded-3xl border animate-in slide-in-from-right-4 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${card.emoji === '🔴' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 shadow-[0_8px_32px_-4px_rgba(239,68,68,0.15)]' : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 shadow-[0_8px_32px_-4px_rgba(245,158,11,0.15)]'}`}>
                             <p className="text-base font-bold leading-snug">{card.emoji} {card.text}</p>
                           </div>
                         ))}
                       </div>
 
                       {/* 2. Main Notes Area (Center) */}
-                      <div className="flex-1 p-10 flex flex-col bg-white/5 dark:bg-black/5 overflow-y-auto custom-scrollbar relative">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse" />
-                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">תיעוד שיחה בשידור חי</h4>
+                      <div className="flex-1 p-12 flex flex-col bg-white dark:bg-slate-950 overflow-y-auto custom-scrollbar relative animate-in fade-in duration-1000">
+                        <div className="flex items-center gap-3 mb-8">
+                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse" />
+                          <h4 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">תיעוד שיחה בשידור חי - {liveNotesLead.clientName}</h4>
                         </div>
                         <textarea
                           autoFocus
@@ -801,19 +815,19 @@ export default function Home() {
                             }
                           }}
                           placeholder="כתוב כאן נקודות מרכזיות מהשיחה..."
-                          className="w-full flex-1 text-2xl leading-relaxed bg-transparent outline-none resize-none font-bold text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 selection:bg-indigo-500/30"
+                          className="w-full flex-1 text-xl leading-relaxed bg-transparent outline-none resize-none font-black text-slate-800 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-800 selection:bg-indigo-500/20"
                         />
                       </div>
                     </>
                   )}
 
                   {/* 3. Script / Help (Left Panel - Collapsible) */}
-                  <div className={`transition-all duration-700 border-r border-indigo-500/10 bg-indigo-50/20 dark:bg-slate-950/40 backdrop-blur-2xl overflow-y-auto custom-scrollbar ${showScript ? 'w-[450px] opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
+                  <div className={`transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] border-r border-slate-200 dark:border-white/5 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-3xl overflow-y-auto custom-scrollbar ${showScript ? 'w-[480px] opacity-100' : 'w-0 opacity-0 overflow-hidden'}`}>
                     {showScript && (
-                      <div className="p-10 animate-in fade-in slide-in-from-left-4 duration-700">
-                        <h4 className="text-[11px] font-black text-indigo-500/80 uppercase tracking-widest mb-8 flex items-center gap-3"><FileText size={18} /> תסריט שיחה מנצח</h4>
+                      <div className="p-12 animate-in fade-in slide-in-from-left-8 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]">
+                        <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-10 flex items-center gap-3"><FileText size={18} className="text-indigo-500" /> תסריט שיחה מנצח</h4>
                         <div className="prose dark:prose-invert max-w-none">
-                          <p className="text-base leading-loose whitespace-pre-wrap font-bold text-slate-700 dark:text-slate-300 opacity-90">{CALL_SCRIPT}</p>
+                          <p className="text-lg leading-loose whitespace-pre-wrap font-bold text-slate-700 dark:text-slate-300 opacity-90">{CALL_SCRIPT}</p>
                         </div>
                       </div>
                     )}
@@ -839,14 +853,7 @@ export default function Home() {
         )}
       </main>
 
-      <WebPhone 
-        isOpen={isPhoneOpen} 
-        onClose={() => setIsPhoneOpen(false)} 
-        onCallEnd={handleCallEnd}
-        targetName={phoneTarget.name}
-        targetPhone={phoneTarget.phone}
-        leads={leads}
-      />
+      {/* WebPhone component removed to restore MicroSIP / External App usage as requested */}
     </div>
   );
 }
