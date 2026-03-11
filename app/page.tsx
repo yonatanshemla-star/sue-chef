@@ -117,6 +117,11 @@ export default function Home() {
   const [isAssistLoading, setIsAssistLoading] = useState(false);
   const [assistError, setAssistError] = useState<string | null>(null);
   const assistTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const leadsRef = useRef<Lead[]>(leads);
+
+  useEffect(() => {
+    leadsRef.current = leads;
+  }, [leads]);
 
   // === Data Fetching ===
   const fetchLeads = async () => {
@@ -134,6 +139,14 @@ export default function Home() {
     try {
       await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...updates }) });
     } catch (error) { console.error('Failed to update lead:', error); fetchLeads(); }
+  };
+
+  const initiateCall = (lead: Lead) => {
+    if (!lead.phone) return;
+    setPhoneTarget({ name: lead.clientName || 'ללא שם', phone: lead.phone });
+    setIsPhoneOpen(true);
+    // Automatically update status to "ממתין לעדכון" on call start
+    handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
   };
 
   const copyToClipboard = (text: string) => {
@@ -176,7 +189,8 @@ export default function Home() {
     const normalized = normalizePhone(phone);
     if (!normalized) return;
     
-    const lead = leads.find(l => {
+    // Use leadsRef.current to avoid stale closures and unnecessary re-creations
+    const lead = leadsRef.current.find(l => {
       if (!l.phone) return false;
       const leadNorm = normalizePhone(l.phone);
       return leadNorm === normalized;
@@ -188,7 +202,7 @@ export default function Home() {
     } else {
       console.log("No matching lead found for:", normalized);
     }
-  }, [leads, handleLeadUpdate]);
+  }, [handleLeadUpdate]); // leads is no longer a dependency
 
   const fetchAgentAssist = async (notes: string) => {
     if (!notes || notes.trim().length < 5) return;
@@ -474,7 +488,7 @@ export default function Home() {
                         <tr key={lead.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition-all">
                           <td className="px-6 py-4">
                             <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-4 p-2 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800/30 transition-all">
-                              <button onClick={() => window.location.href=`tel:${lead.phone}`} className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-5 h-5" /></button>
+                              <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-5 h-5" /></button>
                               <div className="flex flex-col flex-1">
                                 <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-lg bg-transparent outline-none" placeholder="שם הליד..." />
                                 <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-bold text-gray-500 bg-transparent outline-none" placeholder="05..." dir="ltr" />

@@ -25,6 +25,11 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const deviceRef = useRef<any>(null);
   const connectionRef = useRef<any>(null);
+  const onCallEndRef = useRef(onCallEnd);
+
+  useEffect(() => {
+    onCallEndRef.current = onCallEnd;
+  }, [onCallEnd]);
 
   // Load Twilio SDK from CDN
   useEffect(() => {
@@ -219,8 +224,8 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
     setIncomingCallerId(null);
     setTimeout(() => {
       setCallStatus('idle');
-      if (onCallEnd) {
-        onCallEnd(finalPhone);
+      if (onCallEndRef.current) {
+        onCallEndRef.current(finalPhone);
       }
       onClose();
     }, 1500);
