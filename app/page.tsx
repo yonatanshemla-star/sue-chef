@@ -450,6 +450,7 @@ export default function Home() {
                     <thead className="bg-gray-50/50 dark:bg-[#151822]/80 border-b border-gray-100 dark:border-gray-800/50">
                       <tr>
                         <th className="px-6 py-4 font-bold min-w-[280px]">שם וטלפון לחיוג</th>
+                        <th className="px-2 py-4 font-bold w-10"></th>
                         <th className="px-4 py-4 font-bold min-w-[170px]">סטטוס</th>
                         <th className="px-4 py-4 font-bold min-w-[200px]">הערות</th>
                         <th className="px-4 py-4 font-bold text-center">מסך שיחה</th>
@@ -467,6 +468,34 @@ export default function Home() {
                               </div>
                             </div>
                           </td>
+                          <td className="px-2 py-4 text-center relative">
+                             <div className="relative">
+                                <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"><MoreVertical className="w-5 h-5 text-gray-400" /></button>
+                                {openMenuId === lead.id && (
+                                  <>
+                                    <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+                                      <button onClick={() => {
+                                        const phone = normalizePhone(lead.phone || '').replace(/^0/, '972');
+                                        const firstName = lead.clientName ? lead.clientName.split(' ')[0] : 'לקוח';
+                                        const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עו"ד HBA. השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך, אשמח אם נוכל לשוחח כשיהיה זמן`);
+                                        window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+                                        setOpenMenuId(null);
+                                      }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
+                                      <button onClick={() => {
+                                        copyToClipboard(lead.phone || '');
+                                        setOpenMenuId(null);
+                                      }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800"><Copy className="w-4 h-4" /> העתק מספר</button>
+                                      <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                                      <button onClick={() => {
+                                        deleteLead(lead.id, lead.clientName);
+                                        setOpenMenuId(null);
+                                      }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"><Trash2 className="w-4 h-4" /> מחק ליד</button>
+                                    </div>
+                                  </>
+                                )}
+                             </div>
+                          </td>
                           <td className="px-4 py-4">
                             <select value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`text-xs font-black rounded-xl px-3 py-2 outline-none border cursor-pointer w-full ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}>
                               {Object.entries(STATUS_CONFIG).filter(([k]) => !AUTO_ONLY_STATUSES.has(k)).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -475,34 +504,8 @@ export default function Home() {
                           <td className="px-4 py-4">
                             <textarea value={lead.generalNotes || ''} onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} className="w-full text-sm font-semibold bg-white/50 dark:bg-gray-800/50 border rounded-xl p-2 outline-none h-16 resize-none" placeholder="הערות..." />
                           </td>
-                          <td className="px-4 py-4 text-center relative">
-                            <div className="flex items-center justify-center gap-2">
-                               <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200 transition-all hover:bg-amber-100 shadow-sm"><Maximize2 className="w-4 h-4" /> פתח</button>
-                               <div className="relative">
-                                  <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"><MoreVertical className="w-5 h-5 text-gray-400" /></button>
-                                  {openMenuId === lead.id && (
-                                    <>
-                                      <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
-                                      <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                        <button onClick={() => {
-                                          const msg = encodeURIComponent(`שלום ${lead.clientName}, אני פונה אליך ממשרד HBA...`);
-                                          window.open(`https://wa.me/${normalizePhone(lead.phone || '')}?text=${msg}`, '_blank');
-                                          setOpenMenuId(null);
-                                        }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
-                                        <button onClick={() => {
-                                          copyToClipboard(lead.phone || '');
-                                          setOpenMenuId(null);
-                                        }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800"><Copy className="w-4 h-4" /> העתק מספר</button>
-                                        <div className="h-px bg-gray-100 dark:bg-gray-800" />
-                                        <button onClick={() => {
-                                          deleteLead(lead.id, lead.clientName);
-                                          setOpenMenuId(null);
-                                        }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"><Trash2 className="w-4 h-4" /> מחק ליד</button>
-                                      </div>
-                                    </>
-                                  )}
-                               </div>
-                            </div>
+                          <td className="px-4 py-4 text-center">
+                             <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200 transition-all hover:bg-amber-100 shadow-sm"><Maximize2 className="w-4 h-4" /> פתח</button>
                           </td>
                         </tr>
                       ))}
@@ -774,7 +777,7 @@ export default function Home() {
                 <div className="flex items-center gap-4">
                   <button onClick={() => {
                     const msg = encodeURIComponent(`*סיכום שיחה עם ${liveNotesLead.clientName}*\n\n${liveNotesLead.liveCallNotes}`);
-                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                    window.open(`https://web.whatsapp.com/send?text=${msg}`, '_blank');
                   }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95"><MessageSquare size={18} /> שלח סיכום (WhatsApp)</button>
                   <button onClick={() => setLiveNotesLead(null)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 text-white px-10 py-3.5 rounded-2xl text-sm font-bold shadow-xl transition-all active:scale-95 flex items-center gap-2"><Check size={20} /> סיום שימוש</button>
                 </div>
