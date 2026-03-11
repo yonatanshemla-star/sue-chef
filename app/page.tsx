@@ -159,11 +159,23 @@ export default function Home() {
     try {
       const balRes = await fetch("/api/twilio/balance"); const balData = await balRes.json();
       if (balData.success) setTwilioBalance(balData.balance);
-      const callsRes = await fetch("/api/twilio/calls"); const callsData = await callsRes.json();
-      if (callsData.success) setRecentCalls(callsData.calls);
+      const callsRes = await fetch("/api/twilio/calls");
+      if (callsRes.ok) {
+        const data = await callsRes.json();
+        setRecentCalls(data.calls || []);
+      }
     } catch (e) { console.error("Failed to fetch Twilio data", e); }
     finally { setLoadingCalls(false); }
   };
+
+  const handleCallEnd = useCallback(async (phone: string) => {
+    const normalized = normalizePhone(phone);
+    if (!normalized) return;
+    const lead = leads.find(l => l.phone && normalizePhone(l.phone) === normalized);
+    if (lead) {
+      handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
+    }
+  }, [leads, handleLeadUpdate]);
 
   const fetchAgentAssist = async (notes: string) => {
     if (!notes || notes.trim().length < 5) return;
@@ -211,7 +223,7 @@ export default function Home() {
     }
     if (answers.taxPaid) summaryParts.push(`מס ששולם: ${answers.taxPaid}`);
     
-    const treeSummary = `\n--- סיכום עץ החלטות ---\n${summaryParts.join('\n')}\n------------------------\n`;
+    const treeSummary = `\nסיכום עץ החלטות:\n${summaryParts.join('\n')}\n`;
     const newNotes = (liveNotesLead.liveCallNotes || '') + treeSummary;
     
     handleLeadUpdate(liveNotesLead.id, { liveCallNotes: newNotes });
@@ -314,13 +326,18 @@ export default function Home() {
     const active = leads.filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי').length;
     const successRate = total > 0 ? (signed / total * 100).toFixed(1) : "0";
     
+    // Average cost per call
+    const callsWithPrice = recentCalls.filter(c => c.price && parseFloat(c.price) !== 0);
+    const totalCost = callsWithPrice.reduce((sum, c) => sum + Math.abs(parseFloat(c.price)), 0);
+    const avgCost = callsWithPrice.length > 0 ? (totalCost / callsWithPrice.length).toFixed(3) : "0.00";
+
     const byStatus = leads.reduce((acc, l) => {
       acc[l.status] = (acc[l.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    return { total, signed, active, successRate, byStatus };
-  }, [leads]);
+    return { total, signed, active, successRate, byStatus, avgCost };
+  }, [leads, recentCalls]);
 
   // === Helpers ===
   const formatDuration = (seconds: string) => { if (!seconds) return "00:00"; const s = parseInt(seconds); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
@@ -458,8 +475,34 @@ export default function Home() {
                           <td className="px-4 py-4">
                             <textarea value={lead.generalNotes || ''} onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} className="w-full text-sm font-semibold bg-white/50 dark:bg-gray-800/50 border rounded-xl p-2 outline-none h-16 resize-none" placeholder="הערות..." />
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200 transition-all hover:bg-amber-100 shadow-sm"><Maximize2 className="w-4 h-4" /> פתח</button>
+                          <td className="px-4 py-4 text-center relative">
+                            <div className="flex items-center justify-center gap-2">
+                               <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200 transition-all hover:bg-amber-100 shadow-sm"><Maximize2 className="w-4 h-4" /> פתח</button>
+                               <div className="relative">
+                                  <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"><MoreVertical className="w-5 h-5 text-gray-400" /></button>
+                                  {openMenuId === lead.id && (
+                                    <>
+                                      <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                                      <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        <button onClick={() => {
+                                          const msg = encodeURIComponent(`שלום ${lead.clientName}, אני פונה אליך ממשרד HBA...`);
+                                          window.open(`https://wa.me/${normalizePhone(lead.phone || '')}?text=${msg}`, '_blank');
+                                          setOpenMenuId(null);
+                                        }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
+                                        <button onClick={() => {
+                                          copyToClipboard(lead.phone || '');
+                                          setOpenMenuId(null);
+                                        }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800"><Copy className="w-4 h-4" /> העתק מספר</button>
+                                        <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                                        <button onClick={() => {
+                                          deleteLead(lead.id, lead.clientName);
+                                          setOpenMenuId(null);
+                                        }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"><Trash2 className="w-4 h-4" /> מחק ליד</button>
+                                      </div>
+                                    </>
+                                  )}
+                               </div>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -523,10 +566,10 @@ export default function Home() {
                 </div>
               </div>
               <div className={`p-6 ${cardClassSoft}`}>
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">אחוז המרה</p>
-                <p className="text-3xl font-black text-purple-600 dark:text-purple-400">{stats.successRate}%</p>
-                <div className="flex items-center gap-1 mt-2 text-purple-500">
-                  <BarChart className="w-3 h-3" /> <span className="text-[10px] font-bold">יעילות סגירה</span>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">עלות ממוצעת לשיחה</p>
+                <p className="text-3xl font-black text-amber-600 dark:text-amber-400" dir="ltr">{stats.avgCost}$</p>
+                <div className="flex items-center gap-1 mt-2 text-amber-500">
+                  <DollarSign className="w-3 h-3" /> <span className="text-[10px] font-bold">מערכת טוויליו</span>
                 </div>
               </div>
             </div>
@@ -535,10 +578,10 @@ export default function Home() {
               <div className={`p-8 ${cardClass}`}>
                 <h3 className="text-lg font-black mb-6 flex items-center gap-2"><TableProperties className="w-5 h-5 text-indigo-500" /> התפלגות סטטוסים</h3>
                 <div className="space-y-4">
-                  {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+                  {['חתם', 'לא ענה', 'מחכה לחתימה', 'לא רלוונטי', 'נגמר'].map((status) => {
+                    const config = STATUS_CONFIG[status];
                     const count = stats.byStatus[status] || 0;
                     const percent = stats.total > 0 ? (count / stats.total * 100) : 0;
-                    if (count === 0 && !['חדש', 'בבדיקה עם גילי', 'מחכה לחתימה', 'חתם'].includes(status)) return null;
                     return (
                       <div key={status} className="group">
                         <div className="flex justify-between items-center mb-1.5">
@@ -555,13 +598,6 @@ export default function Home() {
                     );
                   })}
                 </div>
-              </div>
-              <div className={`p-8 ${cardClass} flex flex-col items-center justify-center text-center`}>
-                <div className="w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
-                  <RefreshCw className="w-10 h-10 text-indigo-500" />
-                </div>
-                <h3 className="text-xl font-black">תובנות AI בקרוב</h3>
-                <p className="text-gray-500 max-w-xs mt-2">אנחנו מפתחים מודל שינתח את סיכומי השיחות וימליץ על פעולות לשיפור המרה.</p>
               </div>
             </div>
           </div>
@@ -751,6 +787,7 @@ export default function Home() {
       <WebPhone 
         isOpen={isPhoneOpen} 
         onClose={() => setIsPhoneOpen(false)} 
+        onCallEnd={handleCallEnd}
         targetName={phoneTarget.name}
         targetPhone={phoneTarget.phone}
         leads={leads}

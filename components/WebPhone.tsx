@@ -6,12 +6,13 @@ import { Phone, Mic, MicOff, Volume2, VolumeX, Plus, User, Info, X, LayoutGrid, 
 interface WebPhoneProps {
   isOpen: boolean; // Tells it to pop open for an outbound dial request
   onClose: () => void;
+  onCallEnd?: (phone: string) => void;
   targetName: string; // The outbound name
   targetPhone: string; // The outbound phone
   leads: any[]; // Used for Smart Caller ID
 }
 
-export default function WebPhone({ isOpen, onClose, targetName, targetPhone, leads }: WebPhoneProps) {
+export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targetPhone, leads }: WebPhoneProps) {
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended' | 'incoming'>('idle');
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -94,10 +95,11 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone, lea
       // @ts-ignore
       const Twilio = window.Twilio;
       const device = new Twilio.Device(token, {
-        codecPreferences: ['pcmu', 'opus'],
+        codecPreferences: ['opus', 'pcmu'],
         edge: ['frankfurt', 'dublin', 'roaming'],
         dscp: true,
         fakeLocalAudio: false,
+        allowIncomingWhileBusy: true,
         debug: true
       });
 
@@ -210,6 +212,9 @@ export default function WebPhone({ isOpen, onClose, targetName, targetPhone, lea
     setIncomingCallerId(null);
     setTimeout(() => {
       setCallStatus('idle');
+      if (onCallEnd) {
+        onCallEnd(incomingCallerId ? incomingCallerId.phone : targetPhone);
+      }
       onClose();
     }, 1500);
   };

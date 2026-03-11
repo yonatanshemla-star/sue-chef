@@ -145,6 +145,11 @@ export default function LegalDecisionTree({ onFinish, onComplete, compact = fals
               className="w-full px-6 py-5 bg-gray-50 dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-700 rounded-2xl text-xl font-bold focus:border-indigo-500 outline-none transition-all text-center"
               value={answers[currentQuestion.id] || ''} 
               onChange={(e) => handleSelect(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && answers[currentQuestion.id]) {
+                  handleNext();
+                }
+              }}
               placeholder="הקלד כאן..."
             />
           )}

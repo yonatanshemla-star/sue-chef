@@ -53,6 +53,14 @@ export async function POST(req: Request) {
       if (response.ok) {
         text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       } else {
+        if (response.status === 429) {
+          return NextResponse.json({ 
+            success: true, 
+            alerts: [
+              { emoji: "⚠️", text: "המערכת עמוסה כרגע, מנסה שוב..." }
+            ] 
+          });
+        }
         throw new Error(data.error?.message || `Status ${response.status}`);
       }
     } catch (e: any) {
