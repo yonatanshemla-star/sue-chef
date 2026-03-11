@@ -815,7 +815,7 @@ export default function Home() {
                             }
                           }}
                           placeholder="כתוב כאן נקודות מרכזיות מהשיחה..."
-                          className="w-full flex-1 text-xl leading-relaxed bg-transparent outline-none resize-none font-black text-slate-800 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-800 selection:bg-indigo-500/20"
+                          className="w-full flex-1 text-lg leading-loose bg-transparent outline-none resize-none font-bold text-slate-700 dark:text-slate-300 placeholder:text-slate-200 dark:placeholder:text-slate-800 selection:bg-indigo-500/20"
                         />
                       </div>
                     </>
