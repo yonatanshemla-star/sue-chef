@@ -368,8 +368,25 @@ export default function Home() {
   const stats = useMemo(() => {
     const total = leads.length;
     const signed = leads.filter(l => l.status === 'חתם').length;
-    const active = leads.filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי').length;
-    const successRate = total > 0 ? (signed / total * 100).toFixed(1) : "0";
+    const disqualified = leads.filter(l => l.status === 'לא רלוונטי').length;
+    const noAnswer = leads.filter(l => l.status === 'לא ענה').length;
+    const newLeads = leads.filter(l => l.status === 'חדש').length;
+    
+    // Total screened (not new)
+    const screened = total - newLeads;
+    
+    // Leads that were deemed relevant after screening
+    const actuallyRelevant = leads.filter(l => 
+      l.status !== 'חדש' && 
+      l.status !== 'לא רלוונטי' && 
+      l.status !== 'לא ענה'
+    ).length;
+
+    // Leads that were relevant but ended without a deal
+    const lostRelevant = leads.filter(l => l.status === 'נגמר').length;
+    
+    const successRate = actuallyRelevant > 0 ? ((signed / actuallyRelevant) * 100).toFixed(1) : "0";
+    const disqualificationRate = screened > 0 ? ((disqualified / screened) * 100).toFixed(1) : "0";
     
     // Average cost per call
     const callsWithPrice = recentCalls.filter(c => c.price && parseFloat(c.price) !== 0);
@@ -381,7 +398,10 @@ export default function Home() {
       return acc;
     }, {} as Record<string, number>);
 
-    return { total, signed, active, successRate, byStatus, avgCost };
+    return { 
+      total, signed, actuallyRelevant, lostRelevant, disqualified, noAnswer, newLeads, screened,
+      successRate, disqualificationRate, byStatus, avgCost 
+    };
   }, [leads, recentCalls]);
 
   // === Helpers ===
@@ -611,63 +631,116 @@ export default function Home() {
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <div className="animate-in fade-in duration-500 pb-20">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className={`p-6 ${cardClassSoft}`}>
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">סה"כ לידים במערכת</p>
-                <p className="text-3xl font-black">{stats.total}</p>
-                <div className="flex items-center gap-1 mt-2 text-indigo-500">
-                  <Plus className="w-3 h-3" /> <span className="text-[10px] font-bold">צמיחה מתמדת</span>
+          <div className="animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-20">
+            {/* 1. Funnel Overview */}
+            <div className={`mb-12 p-10 ${cardClass} border border-white/20 shadow-2xl overflow-hidden relative`}>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
+              <div className="absolute bottom-0 left-10 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
+              
+              <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+                <div className="w-full md:w-1/2">
+                  <h3 className="text-3xl font-black tracking-tight mb-2">משפך המרות עמוק</h3>
+                  <p className="text-gray-500 dark:text-gray-400 font-bold text-sm mb-10 italic">ניתוח ביצועים מבוסס על "לידים רלוונטיים" בלבד</p>
+                  
+                  <div className="flex flex-col gap-6">
+                    {[
+                      { label: 'כל הלידים', count: stats.total, color: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-400', icon: <UserPlus className="w-4 h-4" /> },
+                      { label: 'נסרקו (Screened)', count: stats.screened, color: 'bg-indigo-300 dark:bg-indigo-700', text: 'text-indigo-700 dark:text-indigo-300', icon: <PhoneCall className="w-4 h-4" /> },
+                      { label: 'רלוונטיים באמת', count: stats.actuallyRelevant, color: 'bg-blue-400 dark:bg-blue-600', text: 'text-blue-800 dark:text-blue-200', icon: <CheckCircle className="w-4 h-4" /> },
+                      { label: 'חתימות (הצלחה)', count: stats.signed, color: 'bg-emerald-500', text: 'text-emerald-900 dark:text-emerald-100', icon: <DollarSign className="w-4 h-4" /> }
+                    ].map((step, idx) => {
+                      const perc = stats.total > 0 ? (step.count / stats.total * 100) : 0;
+                      return (
+                        <div key={idx} className="group flex items-center gap-6">
+                          <div className="w-48 text-left">
+                            <p className={`text-sm font-black uppercase tracking-widest ${step.text}`}>{step.label}</p>
+                            <p className="text-2xl font-black tracking-tighter">{step.count}</p>
+                          </div>
+                          <div className="flex-1 h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
+                            <div 
+                              className={`h-full transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] rounded-full ${step.color} shadow-lg`}
+                              style={{ width: `${perc}%`, transitionDelay: `${idx * 150}ms` }}
+                            />
+                          </div>
+                          <div className="w-16 text-right font-black opacity-30 text-xs">{perc.toFixed(0)}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-              <div className={`p-6 ${cardClassSoft}`}>
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">לידים חתומים (הצלחה)</p>
-                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{stats.signed}</p>
-                <div className="flex items-center gap-1 mt-2 text-emerald-500">
-                  <CheckCircle className="w-3 h-3" /> <span className="text-[10px] font-bold">חוזים חתומים</span>
-                </div>
-              </div>
-              <div className={`p-6 ${cardClassSoft}`}>
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">לידים בטיפול שוטף</p>
-                <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{stats.active}</p>
-                <div className="flex items-center gap-1 mt-2 text-indigo-500">
-                  <Loader2 className="w-3 h-3 animate-spin" /> <span className="text-[10px] font-bold">בעבודה</span>
-                </div>
-              </div>
-              <div className={`p-6 ${cardClassSoft}`}>
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">עלות ממוצעת לשיחה</p>
-                <p className="text-3xl font-black text-amber-600 dark:text-amber-400" dir="ltr">{stats.avgCost}$</p>
-                <div className="flex items-center gap-1 mt-2 text-amber-500">
-                  <DollarSign className="w-3 h-3" /> <span className="text-[10px] font-bold">מערכת טוויליו</span>
+
+                <div className="w-full md:w-1/3 flex flex-col gap-6">
+                   <div className="p-8 rounded-[32px] bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl relative overflow-hidden group">
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl transition-transform group-hover:scale-150 duration-700" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">אחוז הצלחה מהרלוונטיים</p>
+                      <h4 className="text-6xl font-black tracking-tighter mb-4">{stats.successRate}<span className="text-2xl opacity-50">%</span></h4>
+                      <p className="text-xs font-bold leading-relaxed opacity-80">זהו האחוז האמיתי שמייצג את היכולת של המשרד להחתים לקוחות שעברו סינון.</p>
+                   </div>
+                   
+                   <div className="p-8 rounded-[32px] bg-white dark:bg-slate-900 border border-indigo-500/10 shadow-xl">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">אחוז פסילה ראשוני</p>
+                      <h4 className="text-4xl font-black tracking-tighter mb-2">{stats.disqualificationRate}<span className="text-xl opacity-30">%</span></h4>
+                      <p className="text-xs font-bold text-slate-500 leading-relaxed">אחוז הלידים (לאחר שיחה ראשונה) שנמצאו כלא רלוונטיים מיד.</p>
+                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* 2. Detailed Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Lost & Status Breakdown */}
               <div className={`p-8 ${cardClass}`}>
-                <h3 className="text-lg font-black mb-6 flex items-center gap-2"><TableProperties className="w-5 h-5 text-indigo-500" /> התפלגות סטטוסים</h3>
-                <div className="space-y-4">
-                  {['חתם', 'לא ענה', 'מחכה לחתימה', 'לא רלוונטי', 'נגמר'].map((status) => {
-                    const config = STATUS_CONFIG[status];
-                    const count = stats.byStatus[status] || 0;
-                    const percent = stats.total > 0 ? (count / stats.total * 100) : 0;
-                    return (
-                      <div key={status} className="group">
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-sm font-bold flex items-center gap-2">{config.label} <span className="text-xs text-gray-400">({count})</span></span>
-                          <span className="text-xs font-black opacity-60">{percent.toFixed(0)}%</span>
-                        </div>
-                        <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-1000 ease-out rounded-full ${config.bg.replace('bg-', 'bg-').split(' ')[0]}`}
-                            style={{ width: `${percent}%`, backgroundColor: 'currentColor' }}
-                          />
-                        </div>
+                <h3 className="text-lg font-black mb-6 flex items-center gap-3"><PhoneOff className="w-5 h-5 text-red-500" /> לידים שאבדו</h3>
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between p-4 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+                      <div>
+                        <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase">נסגרו כ-"נגמר"</p>
+                        <p className="text-2xl font-black text-red-700 dark:text-red-300">{stats.lostRelevant}</p>
                       </div>
-                    );
-                  })}
+                      <X className="w-8 h-8 text-red-200 dark:text-red-800" />
+                   </div>
+                   <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase">לא ענו (נטלו)</p>
+                        <p className="text-2xl font-black">{stats.noAnswer}</p>
+                      </div>
+                      <Phone className="w-8 h-8 text-slate-200 dark:text-slate-700" />
+                   </div>
                 </div>
               </div>
+
+              {/* Status Efficiency */}
+              <div className={`p-8 ${cardClass} md:col-span-2`}>
+                <h3 className="text-lg font-black mb-6 flex items-center gap-3"><BarChart className="w-5 h-5 text-indigo-500" /> התפלגות מלאה (כולל ארכיון)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                   {Object.entries(STATUS_CONFIG).map(([k,v]) => {
+                     const count = stats.byStatus[k] || 0;
+                     if (count === 0) return null;
+                     return (
+                       <div key={k} className={`p-5 rounded-3xl border ${v.bg} ${v.border} group transition-all hover:scale-105 duration-300`}>
+                          <p className={`text-[10px] font-black uppercase mb-1 opacity-60 ${v.color}`}>{v.label.split(' ')[1] || v.label}</p>
+                          <p className={`text-2xl font-black ${v.color}`}>{count}</p>
+                       </div>
+                     );
+                   })}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Financial Info */}
+            <div className={`mt-8 p-10 ${cardClass} flex flex-col md:flex-row items-center justify-between gap-8 group`}>
+               <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-[24px] bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center group-hover:rotate-12 transition-transform duration-500">
+                    <DollarSign className="w-8 h-8 text-amber-600 dark:text-amber-400 shadow-glow" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">עלות תקשורת ממוצעת לליד</h4>
+                    <p className="text-4xl font-black text-amber-600 dark:text-amber-400" dir="ltr">{stats.avgCost}$</p>
+                  </div>
+               </div>
+               <div className="text-left md:text-right max-w-sm">
+                  <p className="text-xs font-bold text-slate-500 leading-relaxed italic">הנתון מחושב לפי עלות שיחות טוויליו בזמן אמת. לידים שנסגרים בחתימה מחזירים את ההשקעה תוך פחות מ-24 שעות.</p>
+               </div>
             </div>
           </div>
         )}
