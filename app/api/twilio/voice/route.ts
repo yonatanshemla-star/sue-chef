@@ -21,8 +21,11 @@ export async function POST(req: Request) {
       // 2. From a SIP client (sip:...) dialing a phone number
       const isFromApp = fromStr.startsWith('client:');
       const isFromSip = fromStr.startsWith('sip:');
-      // If it's from SIP, we check if the 'To' is a phone number (doesn't contain @ or client:)
-      const isOutbound = isFromApp || (isFromSip && !toStr.includes('@') && !toStr.startsWith('client:'));
+      
+      // For SIP, it's outbound if the 'To' looks like a phone number even with a domain
+      // e.g. sip:+972522818541@sip.twilio.com -> contains digits and is meant for a phone
+      const toValue = toStr.split('@')[0].replace('sip:', '');
+      const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
 
       let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 

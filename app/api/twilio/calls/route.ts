@@ -78,7 +78,7 @@ export async function GET() {
                         }
                     }
                   }
-              } catch (e) { 
+              } catch (e: any) { 
                 console.error("Error fetching recording for", call.sid, e); 
               }
           }
@@ -92,19 +92,21 @@ export async function GET() {
               startTime: call.start_time,
               duration: call.duration,
               direction: call.direction,
-              recordingUrl: recordingUrl
+              recordingUrl: recordingUrl,
+              debug_found: !!recordingUrl
           };
     }));
 
-    // Filter out internal SIP legs if they don't have recordings and aren't primary
-    const finalCalls = filteredCalls.filter(c => {
-      if (c.isSip && !c.recordingUrl) return false;
-      return true;
-    });
+    // NO FILTERING FOR DEBUG
+    const finalCalls = filteredCalls;
 
     return NextResponse.json({ 
       success: true, 
-      calls: finalCalls
+      calls: finalCalls,
+      debug: {
+        raw_count: data.calls.length,
+        filtered_count: finalCalls.length
+      }
     });
   } catch (error) {
     console.error("Error fetching calls:", error);

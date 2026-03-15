@@ -699,6 +699,11 @@ export default function Home() {
                         <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{formatDate(call.startTime)}</p>
                       </div>
                       <div className="flex items-center gap-3">
+                        {/* Debug info */}
+                        <div className="text-[9px] text-gray-400 font-mono opacity-60">
+                          {call.recordingUrl ? 'REC_OK' : 'NO_REC'} | {call.sid.substring(0,4)}
+                        </div>
+
                         {call.recordingUrl && (
                           <button 
                             onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
