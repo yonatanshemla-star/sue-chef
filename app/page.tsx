@@ -377,9 +377,9 @@ export default function Home() {
     
     // Leads that were deemed relevant after screening
     const actuallyRelevant = leads.filter(l => 
-      l.status !== 'חדש' && 
-      l.status !== 'לא רלוונטי' && 
-      l.status !== 'לא ענה'
+      l.status === 'גילי צריך לדבר איתו' || 
+      l.status === 'מחכה לחתימה' || 
+      l.status === 'חתם'
     ).length;
 
     // Leads that were relevant but ended without a deal
@@ -423,7 +423,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
-                navigator.clipboard.writeText('+9725983303');
+                navigator.clipboard.writeText('+972509833303');
                 setLawyerPhoneCopied(true);
                 setTimeout(() => setLawyerPhoneCopied(false), 2000);
               }}
@@ -434,7 +434,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">הוסף עו״ד לשיחה</p>
-                <p className={`text-sm font-black leading-none transition-colors ${lawyerPhoneCopied ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`} dir="ltr">{lawyerPhoneCopied ? '✓ הועתק!' : '+972-598-3303'}</p>
+                <p className={`text-sm font-black leading-none transition-colors ${lawyerPhoneCopied ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`} dir="ltr">{lawyerPhoneCopied ? '✓ הועתק!' : '+972-50-983-3303'}</p>
               </div>
             </button>
             <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
@@ -718,7 +718,7 @@ export default function Home() {
                      if (count === 0) return null;
                      return (
                        <div key={k} className={`p-5 rounded-3xl border ${v.bg} ${v.border} group transition-all hover:scale-105 duration-300`}>
-                          <p className={`text-[10px] font-black uppercase mb-1 opacity-60 ${v.color}`}>{v.label.split(' ')[1] || v.label}</p>
+                          <p className={`text-[10px] font-black uppercase mb-1 opacity-60 ${v.color}`}>{v.label.substring(v.label.indexOf(' ') + 1)}</p>
                           <p className={`text-2xl font-black ${v.color}`}>{count}</p>
                        </div>
                      );
