@@ -31,8 +31,10 @@ export async function POST(req: Request) {
 
       if (isOutbound && toStr) {
           // Outbound call
+          // Clean the number for Dial (Twilio Dial Number needs digits only or E.164)
+          // toValue was already extracted from toStr
           twiml += `  <Dial record="record-from-answer-dual">\n`;
-          twiml += `    <Number>${toStr}</Number>\n`;
+          twiml += `    <Number>${toValue}</Number>\n`;
           twiml += `  </Dial>\n`;
       } else if (destinationNumber) {
           // Inbound call (someone calling the Twilio number)

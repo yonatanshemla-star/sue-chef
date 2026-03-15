@@ -97,8 +97,12 @@ export async function GET() {
           };
     }));
 
-    // NO FILTERING FOR DEBUG
-    const finalCalls = filteredCalls;
+    // NO FILTERING FOR DEBUG - RESTORED BUT KEPT RAW DATA LOGIC
+    // Filter out internal SIP legs if they don't have recordings and aren't primary
+    const finalCalls = filteredCalls.filter(c => {
+      if (c.isSip && !c.recordingUrl) return false;
+      return true;
+    });
 
     return NextResponse.json({ 
       success: true, 
