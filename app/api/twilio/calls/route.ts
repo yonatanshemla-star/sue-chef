@@ -37,10 +37,11 @@ export async function GET() {
 
           if (call.status === 'completed' || call.status === 'in-progress' || call.recording_sid) {
               try {
-                  // Try this SID and parent SID
+                  // Try this SID, parent SID, and check for child legs recordings
                   const sidsToTry = [call.sid];
                   if (call.parent_call_sid) sidsToTry.push(call.parent_call_sid);
                   
+                  // Check current leg and potential parent for direct recordings
                   for (const sid of sidsToTry) {
                     const recRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${sid}/Recordings.json`, {
                         headers: { 'Authorization': `Basic ${auth}` }
@@ -51,6 +52,29 @@ export async function GET() {
                             const recSid = recData.recordings[0].sid;
                             recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recSid}.mp3`;
                             break;
+                        }
+                    }
+                  }
+
+                  // If still no recording, check child legs (common for <Dial> recordings)
+                  if (!recordingUrl) {
+                    const childRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?ParentCallSid=${call.sid}`, {
+                        headers: { 'Authorization': `Basic ${auth}` }
+                    });
+                    if (childRes.ok) {
+                        const childData = await childRes.json();
+                        for (const childCall of (childData.calls || [])) {
+                          const childRecRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${childCall.sid}/Recordings.json`, {
+                              headers: { 'Authorization': `Basic ${auth}` }
+                          });
+                          if (childRecRes.ok) {
+                              const childRecData = await childRecRes.json();
+                              if (childRecData.recordings && childRecData.recordings.length > 0) {
+                                  const recSid = childRecData.recordings[0].sid;
+                                  recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recSid}.mp3`;
+                                  break;
+                              }
+                          }
                         }
                     }
                   }

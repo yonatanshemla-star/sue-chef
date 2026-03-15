@@ -32,7 +32,9 @@ function getStatusStyle(status: string) {
 // === Phone number normalization for matching ===
 function normalizePhone(phone: string): string {
   if (!phone) return "";
-  const digits = phone.replace(/[^\d]/g, '');
+  // Handle SIP URIs by taking the user part (before @)
+  const cleanPhone = phone.startsWith('sip:') ? phone.split('@')[0].replace('sip:', '') : phone;
+  const digits = cleanPhone.replace(/[^\d]/g, '');
   // Israeli numbers are usually 10 digits (05...) or 12 digits (9725...)
   // We'll take the last 9 digits to match regardless of prefix (0 or 972)
   if (digits.length >= 9) {
