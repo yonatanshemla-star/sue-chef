@@ -682,9 +682,9 @@ export default function Home() {
           <div className={`p-6 ${cardClass}`}>
             {/* DEBUG BANNER */}
             <div className="mb-6 p-5 bg-red-100 border-2 border-red-500 rounded-3xl text-red-700 font-black text-center animate-pulse shadow-xl shadow-red-500/20">
-              ⚠️ מצב ניפוי שגיאות פעיל (v2.2) ⚠️<br/>
-              <span className="text-xs opacity-70">אם אתה רואה את זה, הקוד מעודכן. בצע שיחה חדשה מ-MicroSIP.</span>
-            </div>
+              ⚠️ מצב ניפוי שגיאות פעיל (v2.3) ⚠️<br/>
+              <span className="text-xs opacity-70">אם אתה רואה v2.3, תיקון ההקלטה פעיל. בצע שיחה חדשה.</span>
+           </div>
             
             <h3 className="font-bold text-lg mb-6 flex items-center gap-3"><History className="w-6 h-6 text-indigo-500" /> שיחות אחרונות</h3>
             <div className="flex flex-col gap-3 max-w-3xl mx-auto">
