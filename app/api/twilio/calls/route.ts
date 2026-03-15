@@ -13,6 +13,16 @@ export async function GET() {
 
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     
+    // SCAN ALL RECENT RECORDINGS IN THE ACCOUNT AS A FALLBACK
+    const recsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings.json?PageSize=50`, {
+      headers: { 'Authorization': `Basic ${auth}` }
+    });
+    const recsData = recsRes.ok ? await recsRes.json() : { recordings: [] };
+    const accountRecsMap = new Map();
+    (recsData.recordings || []).forEach((r: any) => {
+      if (r.call_sid) accountRecsMap.set(r.call_sid, r.sid);
+    });
+
     // Fetch last 20 calls
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?PageSize=20`, {
       headers: {
@@ -54,6 +64,17 @@ export async function GET() {
                             break;
                         }
                     }
+                  }
+                  
+                  // LAST RESORT FALLBACK: Check our accountRecsMap (pre-fetched top 50 recs)
+                  if (!recordingUrl) {
+                     for (const sid of sidsToTry) {
+                        const recSid = accountRecsMap.get(sid);
+                        if (recSid) {
+                           recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recSid}.mp3`;
+                           break;
+                        }
+                     }
                   }
 
                   // If still no recording, check child legs (common for <Dial> recordings)

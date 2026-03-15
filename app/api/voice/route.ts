@@ -8,21 +8,45 @@ function logInfo(msg: string) {
 }
 
 export async function POST(req: Request) {
-  logInfo('Incoming Voice GET/POST (Initial Call)');
-  // Return XML (TwiML) to instruct Twilio what to do when a call connects
-  const twiml = `
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Dial callerId="+19787014880">
-        +972522818541
-    </Dial>
-</Response>
-  `.trim();
+  try {
+     const formData = await req.formData();
+     const from = formData.get('From') || '';
+     const to = formData.get('To') || '';
+     
+     const fromStr = from.toString();
+     const toStr = to.toString();
 
-  return new NextResponse(twiml, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/xml',
-    },
-  });
+     const isFromApp = fromStr.startsWith('client:');
+     const isFromSip = fromStr.startsWith('sip:');
+     
+     const toValue = toStr.split('@')[0].replace('sip:', '');
+     const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
+
+     let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
+
+     if (isOutbound && toStr) {
+         twiml += `  <Dial record="record-from-answer-dual" recordingChannels="dual" trim="trim-silence">\n`;
+         twiml += `    <Number>${toValue}</Number>\n`;
+         twiml += `  </Dial>\n`;
+     } else {
+         twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
+         twiml += `    <Client>dashboard_user</Client>\n`;
+         if (process.env.MY_PHONE_NUMBER) {
+            twiml += `    <Number>${process.env.MY_PHONE_NUMBER}</Number>\n`;
+         }
+         twiml += `  </Dial>\n`;
+     }
+
+     twiml += `</Response>`;
+
+     return new NextResponse(twiml, {
+         status: 200,
+         headers: { 'Content-Type': 'text/xml' },
+     });
+  } catch (err: any) {
+      return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Error</Say></Response>`, {
+         status: 500,
+         headers: { 'Content-Type': 'text/xml' }
+      });
+  }
 }
