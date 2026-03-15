@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import { legalQuestions } from '@/utils/legalQuestions';
@@ -684,26 +684,51 @@ export default function Home() {
                 const callPhone = call.direction === 'inbound' ? call.from : call.to;
                 const matchedName = findLeadNameByPhone(callPhone || '', leads);
                 return (
-                  <div key={call.sid} className={`p-5 rounded-2xl flex justify-between items-center ${cardClassSoft}`}>
-                    <div>
-                      <p className="font-bold text-indigo-600 dark:text-indigo-400">{matchedName || 'לא מזוהה'}</p>
-                      <p className="text-sm font-mono" dir="ltr">{callPhone}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">{formatDate(call.startTime)}</p>
+                  <div key={call.sid} className={`p-5 rounded-3xl flex flex-col gap-4 border transition-all duration-300 hover:shadow-lg ${cardClassSoft}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-black text-lg text-indigo-600 dark:text-indigo-400">{matchedName || 'ליד לא מזוהה'}</p>
+                          {leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider">תומלל 🤖</span>
+                          )}
+                        </div>
+                        <p className="text-xs font-mono font-bold text-slate-400" dir="ltr">{callPhone}</p>
+                        <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{formatDate(call.startTime)}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {call.recordingUrl && (
+                          <button 
+                            onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
+                            disabled={transcribingSids.has(call.sid)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black transition-all shadow-sm active:scale-95 ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400 border-transparent' : 'bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-500 shadow-indigo-500/20'}`}
+                          >
+                            {transcribingSids.has(call.sid) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                            {transcribingSids.has(call.sid) ? 'מתמלל...' : 
+                             leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary ? 'תמלל שוב' : 'תמלל שיחה'}
+                          </button>
+                        )}
+                        <span className="text-xs font-mono font-black bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-white/50 dark:border-white/5">{formatDuration(call.duration)}</span>
+                        <span className={`text-[9px] font-black px-2.5 py-1.5 rounded-xl border uppercase tracking-wider ${call.status === 'completed' ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-red-200 text-red-600 bg-red-50'}`}>{call.direction === 'inbound' ? 'נכנסת' : 'יוצאת'}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      {call.recordingUrl && (
+                    
+                    {/* Transcription Preview */}
+                    {leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary && (
+                      <div className="p-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-indigo-500/5 animate-in slide-in-from-top-2 duration-500">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Brain className="w-3.5 h-3.5 text-indigo-500" />
+                          <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">סיכום AI</span>
+                        </div>
+                        <p className="text-xs font-bold leading-relaxed opacity-80">{leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary}</p>
                         <button 
-                          onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
-                          disabled={transcribingSids.has(call.sid)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200'}`}
+                          onClick={() => setLiveNotesLead(leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || '')) || null)}
+                          className="mt-3 text-[10px] font-black text-indigo-600 hover:underline flex items-center gap-1"
                         >
-                          {transcribingSids.has(call.sid) ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                          {transcribingSids.has(call.sid) ? 'בתמלול...' : 'תמלל שיחה'}
+                          קרא תמלול מלא ופרטים מרכזיים <ArrowUpDown className="w-3 h-3 rotate-180" />
                         </button>
-                      )}
-                      <span className="text-xs font-mono font-bold bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">{formatDuration(call.duration)}</span>
-                      <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${call.status === 'completed' ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-red-200 text-red-600 bg-red-50'}`}>{call.direction === 'inbound' ? 'נכנסת' : 'יוצאת'}</span>
-                    </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

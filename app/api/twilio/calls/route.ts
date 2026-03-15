@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
 export async function GET() {
   try {
@@ -22,57 +24,63 @@ export async function GET() {
     
     const data = await res.json();
     
-    // Filter out SIP URI calls - only show real phone number calls
-    const filteredCalls = await Promise.all(data.calls
-      .filter((call: any) => {
-        const from = call.from || '';
-        const to = call.to || '';
-        return !from.startsWith('sip:') && !to.startsWith('sip:');
-      })
-      .map(async (call: any) => {
+    // SAVE RAW DATA FOR DEBUGGING
+    try {
+      fs.writeFileSync(path.join(process.cwd(), 'raw_calls_debug.json'), JSON.stringify(data, null, 2));
+    } catch (e) {}
+
+    const filteredCalls = await Promise.all(data.calls.map(async (call: any) => {
           let recordingUrl = null;
-          // Check for recordings if the call status is completed or in-progress
-          // We also check if recording_sid exists directly on the call object
+          const from = call.from || '';
+          const to = call.to || '';
+          const isSip = from.startsWith('sip:') || to.startsWith('sip:');
+
           if (call.status === 'completed' || call.status === 'in-progress' || call.recording_sid) {
               try {
-                  // Try to get recording SID from call object first
-                  let recSid = call.recording_sid;
+                  // Try this SID and parent SID
+                  const sidsToTry = [call.sid];
+                  if (call.parent_call_sid) sidsToTry.push(call.parent_call_sid);
                   
-                  if (!recSid) {
-                    const recRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${call.sid}/Recordings.json`, {
+                  for (const sid of sidsToTry) {
+                    const recRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${sid}/Recordings.json`, {
                         headers: { 'Authorization': `Basic ${auth}` }
                     });
                     if (recRes.ok) {
                         const recData = await recRes.json();
                         if (recData.recordings && recData.recordings.length > 0) {
-                            recSid = recData.recordings[0].sid;
+                            const recSid = recData.recordings[0].sid;
+                            recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recSid}.mp3`;
+                            break;
                         }
                     }
                   }
-                  
-                  if (recSid) {
-                    recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recSid}.mp3`;
-                  }
-              } catch (e) { console.error("Error fetching recording for", call.sid, e); }
+              } catch (e) { 
+                console.error("Error fetching recording for", call.sid, e); 
+              }
           }
 
           return {
               sid: call.sid,
-              from: call.from,
-              to: call.to,
+              from: from,
+              to: to,
+              isSip: isSip,
               status: call.status,
               startTime: call.start_time,
               duration: call.duration,
               direction: call.direction,
-              price: call.price,
-              priceUnit: call.price_unit,
               recordingUrl: recordingUrl
           };
-      }));
+    }));
+
+    // Filter out internal SIP legs if they don't have recordings and aren't primary
+    const finalCalls = filteredCalls.filter(c => {
+      if (c.isSip && !c.recordingUrl) return false;
+      return true;
+    });
 
     return NextResponse.json({ 
       success: true, 
-      calls: filteredCalls
+      calls: finalCalls
     });
   } catch (error) {
     console.error("Error fetching calls:", error);
