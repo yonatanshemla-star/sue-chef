@@ -13,23 +13,31 @@ export async function POST(req: Request) {
       const from = formData.get('From') || '';
       const to = formData.get('To') || '';
       
-      // Outbound calls from the dashboard follow a specific pattern
-      const isOutbound = from.toString().startsWith('client:');
+      const fromStr = from.toString();
+      const toStr = to.toString();
+
+      // Outbound calls: 
+      // 1. From the dashboard (client:...)
+      // 2. From a SIP client (sip:...) dialing a phone number
+      const isFromApp = fromStr.startsWith('client:');
+      const isFromSip = fromStr.startsWith('sip:');
+      // If it's from SIP, we check if the 'To' is a phone number (doesn't contain @ or client:)
+      const isOutbound = isFromApp || (isFromSip && !toStr.includes('@') && !toStr.startsWith('client:'));
 
       let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
-      if (isOutbound && to) {
-         // Outbound call from dashboard
-         twiml += `  <Dial record="record-from-answer-dual">\n`;
-         twiml += `    <Number>${to}</Number>\n`;
-         twiml += `  </Dial>\n`;
-     } else if (destinationNumber) {
-         // Inbound call
-         twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
-         twiml += `    <Number>${destinationNumber}</Number>\n`;
-         twiml += `    <Client>dashboard_user</Client>\n`;
-         twiml += `  </Dial>\n`;
-     } else {
+      if (isOutbound && toStr) {
+          // Outbound call
+          twiml += `  <Dial record="record-from-answer-dual">\n`;
+          twiml += `    <Number>${toStr}</Number>\n`;
+          twiml += `  </Dial>\n`;
+      } else if (destinationNumber) {
+          // Inbound call (someone calling the Twilio number)
+          twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
+          twiml += `    <Number>${destinationNumber}</Number>\n`;
+          twiml += `    <Client>dashboard_user</Client>\n`;
+          twiml += `  </Dial>\n`;
+      } else {
          // Fallback directly to voicemail
          twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
          twiml += `    <Client>dashboard_user</Client>\n`;
