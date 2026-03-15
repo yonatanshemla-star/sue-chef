@@ -19,6 +19,7 @@ export interface Lead {
   urgency: 'נמוכה' | 'בינונית' | 'גבוהה';
   isSigned?: boolean;
   signedAt?: string;
+  wasRelevant?: boolean;
 }
 
 // Initialize the leads table if it doesn't exist

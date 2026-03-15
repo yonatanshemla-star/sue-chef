@@ -25,6 +25,17 @@ test-*.js
 diag-models.js
 list-*.js
 scripts/
+check_recent_rec*.js
+diag_rec.js
+hello_test.js
+check_output.txt
+recording_results.txt
+output.txt
+git_status_debug.txt
+*.js
+!app/**/*.js
+!utils/**/*.js
+!components/**/*.js
 
 # local data
 leads.json

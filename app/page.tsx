@@ -110,6 +110,7 @@ export default function Home() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [archiveSearch, setArchiveSearch] = useState('');
   const [expandedCallSid, setExpandedCallSid] = useState<string | null>(null);
+  const [transcribingSids, setTranscribingSids] = useState<Set<string>>(new Set());
   
   // Agent Assist State
   const [assistCards, setAssistCards] = useState<{emoji: string, text: string}[]>([]);
@@ -134,6 +135,14 @@ export default function Home() {
   };
 
   const handleLeadUpdate = async (id: string, updates: Partial<Lead>) => {
+    // If status is being updated, check if it's one of the "relevant" ones
+    if (updates.status) {
+      const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
+      if (isRelevant) {
+        updates.wasRelevant = true;
+      }
+    }
+
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
     if (liveNotesLead?.id === id) setLiveNotesLead(prev => prev ? { ...prev, ...updates } : null);
     try {
@@ -253,7 +262,69 @@ export default function Home() {
     }, 3000); // 3 seconds debounce for free tier
   }, []);
 
-  useEffect(() => { fetchTwilioData(); fetchLeads(); const i1 = setInterval(fetchTwilioData, 60000); const i2 = setInterval(fetchLeads, 30000); return () => { clearInterval(i1); clearInterval(i2); }; }, []);
+  const handleTranscribe = async (callSid: string, recordingUrl: string, phone: string) => {
+    if (transcribingSids.has(callSid)) return;
+    
+    // Find the lead for this phone
+    const normalized = normalizePhone(phone);
+    const lead = leads.find(l => l.phone && normalizePhone(l.phone) === normalized);
+    
+    if (!lead) {
+      alert("לא נמצא ליד מתאים למספר הטלפון הזה. יש לוודא שהליד קיים בטבלה.");
+      return;
+    }
+
+    setTranscribingSids(prev => new Set(prev).add(callSid));
+    try {
+      const res = await fetch('/api/twilio/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          leadId: lead.id,
+          recordingUrl,
+          callSid
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        // Refresh leads to get the new transcription
+        await fetchLeads();
+      } else {
+        alert("שגיאה בתמלול: " + (data.error || "שגיאה לא ידועה"));
+      }
+    } catch (err) {
+      console.error("Transcription error:", err);
+      alert("כשל בחיבור לשרת התמלול");
+    } finally {
+      setTranscribingSids(prev => {
+        const next = new Set(prev);
+        next.delete(callSid);
+        return next;
+      });
+    }
+  };
+
+  useEffect(() => { 
+    fetchTwilioData(); 
+    fetchLeads(); 
+    const i1 = setInterval(fetchTwilioData, 60000); 
+    const i2 = setInterval(fetchLeads, 30000); 
+    return () => { clearInterval(i1); clearInterval(i2); }; 
+  }, []);
+
+  // One-time migration for historical relevance on mount/data load
+  useEffect(() => {
+    if (leads.length > 0) {
+      const needsMigration = leads.filter(l => 
+        !l.wasRelevant && ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(l.status)
+      );
+      if (needsMigration.length > 0) {
+        console.log(`Migrating ${needsMigration.length} leads for relevance history...`);
+        needsMigration.forEach(l => handleLeadUpdate(l.id, { wasRelevant: true }));
+      }
+    }
+  }, [leads.length]); // Only run when leads are first loaded or count changes
 
   const handleTreeComplete = (answers: any) => {
     if (!liveNotesLead) return;
@@ -377,6 +448,7 @@ export default function Home() {
     
     // Leads that were deemed relevant after screening
     const actuallyRelevant = leads.filter(l => 
+      l.wasRelevant === true ||
       l.status === 'גילי צריך לדבר איתו' || 
       l.status === 'מחכה לחתימה' || 
       l.status === 'חתם'
@@ -619,6 +691,16 @@ export default function Home() {
                       <p className="text-[10px] text-gray-400 mt-1">{formatDate(call.startTime)}</p>
                     </div>
                     <div className="flex items-center gap-4">
+                      {call.recordingUrl && (
+                        <button 
+                          onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
+                          disabled={transcribingSids.has(call.sid)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200'}`}
+                        >
+                          {transcribingSids.has(call.sid) ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                          {transcribingSids.has(call.sid) ? 'בתמלול...' : 'תמלל שיחה'}
+                        </button>
+                      )}
                       <span className="text-xs font-mono font-bold bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">{formatDuration(call.duration)}</span>
                       <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${call.status === 'completed' ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-red-200 text-red-600 bg-red-50'}`}>{call.direction === 'inbound' ? 'נכנסת' : 'יוצאת'}</span>
                     </div>
