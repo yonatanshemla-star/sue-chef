@@ -40,17 +40,19 @@ export async function POST(req: NextRequest) {
     const audioBuffer = await audioRes.arrayBuffer();
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
 
-    // 2. Send to Gemini
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 2. Send to Gemini - using v1beta for reliable JSON mode support
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const prompt = `אתה עוזר אישי של עורך דין. הקשב להקלטת השיחה הזאת עם לקוח פוטנציאלי.
-חלץ את הפרטים הבאים בפורמט JSON בלבד (ללא הקדמות או תוספות):
-- aiSummary: סיכום קצר של השיחה (2-3 משפטים).
-- sentiment: האם הלקוח נראה מעוניין? (חיובי/ניטרלי/שלילי).
-- fullTranscription: תמלול מלא של המילים שנאמרו בשיחה, מילה במילה.
-- keyDetails: פרטים חשובים שעלו (גיל, מצב רפואי, הכנסות וכו').
+חלץ את הפרטים הבאים בפורמט JSON בלבד:
+{
+  "aiSummary": "סיכום קצר של השיחה (2-3 משפטים)",
+  "sentiment": "חיובי/ניטרלי/שלילי",
+  "fullTranscription": "תמלול מלא של המילים שנאמרו בשיחה",
+  "keyDetails": "פרטים חשובים שעלו (גיל, מצב רפואי, הכנסות וכו')"
+}
 
-השתמש בשפה המדוברת בהקלטה (עברית). החזר רק JSON תקין ומדויק.`;
+השתמש בשפה המדוברת בהקלטה (עברית). החזר רק JSON תקין ומדויק ללא הקדמות.`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
