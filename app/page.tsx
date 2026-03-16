@@ -106,7 +106,7 @@ export default function Home() {
   // Decision Tree state in modal
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   
-  // Filtering & Sorting
+  const [sortBy, setSortBy] = useState<'date' | 'importance'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterImportance, setFilterImportance] = useState<number | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
@@ -426,10 +426,15 @@ export default function Home() {
     })
     .filter(l => filterImportance === null || getStatusStyle(l.status).importance === filterImportance)
     .sort((a, b) => {
+      if (sortBy === 'importance') {
+        const impA = getStatusStyle(a.status).importance;
+        const impB = getStatusStyle(b.status).importance;
+        if (impA !== impB) return impA - impB;
+      }
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    }), [leads, filterImportance, sortOrder, globalSearch]);
+    }), [leads, filterImportance, sortOrder, globalSearch, sortBy]);
 
   const archiveLeads = useMemo(() => leads
     .filter(l => l.status === 'חתם' || l.status === 'לא רלוונטי' || l.status === 'נגמר')
@@ -500,7 +505,7 @@ export default function Home() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef</h1>
+            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v3.0</span></h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">{crmLeads.length} לידים פעילים בטיפול שוטף</p>
           </div>
           <div className="flex items-center gap-4">
@@ -575,8 +580,11 @@ export default function Home() {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2 p-1.5 premium-glass rounded-[20px] shadow-sm">
-                  <button onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all bg-white/40 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-700 active:scale-95 border border-white/20 dark:border-white/5">
-                    <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500" /> {sortOrder === 'desc' ? 'הכי חדשים' : 'הכי ישנים'}
+                  <button onClick={() => setSortBy(s => s === 'date' ? 'importance' : 'date')} className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all border ${sortBy === 'importance' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20' : 'bg-white/40 dark:bg-slate-800/40 border-white/20 dark:border-white/5 active:scale-95'}`}>
+                    <ArrowUpDown className={`w-3.5 h-3.5 ${sortBy === 'importance' ? 'text-white' : 'text-indigo-500'}`} /> {sortBy === 'importance' ? 'לפי חשיבות' : 'סדר כרונולוגי'}
+                  </button>
+                  <button onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all bg-white/40 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-700 active:scale-95 border border-white/20 dark:border-white/5 mx-1">
+                    {sortOrder === 'desc' ? 'הכי חדשים' : 'הכי ישנים'}
                   </button>
                   <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
                   <div className="relative group">
@@ -725,6 +733,11 @@ export default function Home() {
                           </button>
                         )}
                         <span className="text-xs font-mono font-black bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-white/50 dark:border-white/5">{formatDuration(call.duration)}</span>
+                        {call.price && (
+                          <span className="text-[10px] font-mono font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 rounded-xl border border-amber-200/50 mr-2" dir="ltr">
+                            {Math.abs(parseFloat(call.price)).toFixed(3)}$
+                          </span>
+                        )}
                         <span className={`text-[9px] font-black px-2.5 py-1.5 rounded-xl border uppercase tracking-wider ${call.status === 'completed' ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-red-200 text-red-600 bg-red-50'}`}>{call.direction === 'inbound' ? 'נכנסת' : 'יוצאת'}</span>
                       </div>
                     </div>
@@ -1049,9 +1062,9 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-4">
                   <button onClick={() => {
-                    const msg = encodeURIComponent(`*סיכום שיחה עם ${liveNotesLead.clientName}*\n\n${liveNotesLead.liveCallNotes}`);
-                    window.open(`https://web.whatsapp.com/send?text=${msg}`, '_blank');
-                  }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95"><MessageSquare size={18} /> שלח סיכום (WhatsApp)</button>
+                    copyToClipboard(liveNotesLead.liveCallNotes || '');
+                    alert('התיעוד הועתק ללוח!');
+                  }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95"><Copy size={18} /> העתק תיעוד</button>
                   <button onClick={() => setLiveNotesLead(null)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 text-white px-10 py-3.5 rounded-2xl text-sm font-bold shadow-xl transition-all active:scale-95 flex items-center gap-2"><Check size={20} /> סיום שימוש</button>
                 </div>
               </div>

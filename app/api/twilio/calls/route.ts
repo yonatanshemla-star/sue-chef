@@ -114,6 +114,7 @@ export async function GET() {
               duration: call.duration,
               direction: call.direction,
               recordingUrl: recordingUrl,
+              price: call.price,
               debug_found: !!recordingUrl
           };
     }));

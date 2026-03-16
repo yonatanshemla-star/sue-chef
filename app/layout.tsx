@@ -11,6 +11,9 @@ const assistant = Assistant({
 export const metadata: Metadata = {
   title: "Sue-Chef | Lead Management",
   description: "Lead management system",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
