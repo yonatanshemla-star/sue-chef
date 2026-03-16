@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         }],
         generationConfig: {
           temperature: 0.1,
-          responseMimeType: "application/json"
+          response_mime_type: "application/json"
         }
       })
     });
