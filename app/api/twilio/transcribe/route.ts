@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const prompt = `אתה עוזר אישי של עורך דין. הקשב להקלטת השיחה הזאת עם לקוח פוטנציאלי.
-חלץ את הפרטים הבאים בפורמט JSON:
+חלץ את הפרטים הבאים בפורמט JSON בלבד (ללא הקדמות או תוספות):
 - aiSummary: סיכום קצר של השיחה (2-3 משפטים).
 - sentiment: האם הלקוח נראה מעוניין? (חיובי/ניטרלי/שלילי).
 - fullTranscription: תמלול מלא של המילים שנאמרו בשיחה, מילה במילה.
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         }],
         generationConfig: {
           temperature: 0.1,
-          response_mime_type: "application/json"
+          responseMimeType: "application/json"
         }
       })
     });
@@ -116,3 +116,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+ Riverside
