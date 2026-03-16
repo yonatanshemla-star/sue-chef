@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
 
     // 2. Send to Gemini
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const prompt = `אתה עוזר אישי של עורך דין. הקשב להקלטת השיחה הזאת עם לקוח פוטנציאלי.
 חלץ את הפרטים הבאים בפורמט JSON:

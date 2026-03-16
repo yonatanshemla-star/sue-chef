@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function normalizeToE164(phone: string): string {
-  // Remove all non-digit characters
   let digits = phone.replace(/\D/g, '');
-  
-  // If it starts with 0, replace with +972
   if (digits.startsWith('0')) {
     return '+972' + digits.substring(1);
   }
-  
-  // If it starts with 972 and not +, add +
   if (digits.startsWith('972') && digits.length > 10) {
     return '+' + digits;
   }
-  
-  // If already starts with +, return as is (but cleaned)
   if (phone.startsWith('+')) {
     return '+' + digits;
   }
-  
   return digits;
 }
 
@@ -26,20 +18,21 @@ export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const to = searchParams.get('to');
+    
+    // Use the Twilio business number as callerId so the lead sees the business number.
+    const userMobile = process.env.MY_PHONE_NUMBER;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-    if (!to || !twilioPhone) {
-      console.error('Bridge Error: Missing parameters', { to, twilioPhone });
+    if (!to || !userMobile) {
+      console.error('Bridge Error: Missing parameters', { to, userMobile });
       return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Error</Say></Response>`, {
         headers: { 'Content-Type': 'text/xml' }
       });
     }
 
     const e164To = normalizeToE164(to);
-    console.log(`Bridging call to lead: ${e164To} (original: ${to})`);
+    console.log(`Bridging call to lead: ${e164To} using callerId: ${userMobile}`);
 
-    // No <Say> tag as requested by user.
-    // Just <Dial> directly to connect.
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial callerId="${twilioPhone}" record="record-from-answer-dual" recordingChannels="dual" trim="trim-silence">
@@ -61,4 +54,3 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   return POST(req);
 }
-
