@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Download, Mail, ExternalLink, Clipboard, AlertCircle } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import { legalQuestions } from '@/utils/legalQuestions';
@@ -152,7 +152,7 @@ export default function Home() {
     } catch (error) { console.error('Failed to update lead:', error); fetchLeads(); }
   };
 
-  const initiateCall = (lead: any) => {
+  const initiateCall = async (lead: any) => {
     if (!lead.phone) return;
     // 1. Update status to "ממתין לעדכון" ONLY if current status is "חדש"
     if (lead.status === 'חדש') {
@@ -162,13 +162,22 @@ export default function Home() {
     // 2. Open the "Live Notes" modal for documentation
     setLiveNotesLead(lead);
 
-    // 3. Trigger external app (MicroSIP etc.) via tel: protocol
-    const phone = lead.phone || '';
-    // Remove all non-digits for the tel: link
-    const cleanPhone = phone.replace(/[^\d+]/g, '');
-    window.location.href = `tel:${cleanPhone}`;
-    
-    console.log(`Triggering external call to: ${cleanPhone}`);
+    // 3. Bridge Call via Twilio
+    try {
+      console.log(`Initiating bridge call to: ${lead.phone}`);
+      const res = await fetch('/api/twilio/call/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: lead.phone })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert("שגיאה בהוצאת השיחה: " + (data.error || "לא ידוע"));
+      }
+    } catch (err) {
+      console.error("Initiate Call Error:", err);
+      alert("נכשל להתחבר לשרת טוויליו.");
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -680,11 +689,6 @@ export default function Home() {
         {/* Calls Tab */}
         {activeTab === 'calls' && (
           <div className={`p-6 ${cardClass}`}>
-            {/* DEBUG BANNER */}
-            <div className="mb-6 p-5 bg-red-100 border-2 border-red-500 rounded-3xl text-red-700 font-black text-center animate-pulse shadow-xl shadow-red-500/20">
-              ⚠️ מצב ניפוי שגיאות פעיל (v2.4 - Blanket Fix) ⚠️<br/>
-              <span className="text-xs opacity-70">אם אתה רואה v2.4, כל נתיבי ה-TwiML עודכנו להקלטה כפולה וחיפוש אגרסיבי. בצע שיחה.</span>
-          </div>
             
             <h3 className="font-bold text-lg mb-6 flex items-center gap-3"><History className="w-6 h-6 text-indigo-500" /> שיחות אחרונות</h3>
             <div className="flex flex-col gap-3 max-w-3xl mx-auto">
@@ -705,10 +709,9 @@ export default function Home() {
                         <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{formatDate(call.startTime)}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        {/* Debug info */}
-                        <div className="text-[9px] text-gray-400 font-mono opacity-60">
-                          {call.recordingUrl ? 'REC_OK' : 'NO_REC'} | {call.sid.substring(0,4)}
-                        </div>
+                        <div className="text-[9px] opacity-30 font-mono mt-1 text-right truncate max-w-[80px]" dir="ltr">
+                    {call.sid}
+                  </div>
 
                         {call.recordingUrl && (
                           <button 

@@ -3,12 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
      const formData = await req.formData();
-     const caller = formData.get('From') || 'Unknown';
      
-     // 1. We want to ring the user's actual phone or SIP client
-     //    Since we don't have the explicit destination number hardcoded, 
-     //    we will demonstrate ringing a predefined Client name, or a destination passed in ENV.
-     //    If no destination is set, it goes straight to voicemail.
       const destinationNumber = process.env.MY_PHONE_NUMBER;
       const from = formData.get('From') || '';
       const to = formData.get('To') || '';
@@ -31,9 +26,8 @@ export async function POST(req: Request) {
 
       if (isOutbound && toStr) {
           // Outbound call
-          // Clean the number for Dial (Twilio Dial Number needs digits only or E.164)
-          // toValue was already extracted from toStr
-          twiml += `  <Dial record="record-from-answer-dual" recordingChannels="dual" trim="trim-silence">\n`;
+          const callerId = process.env.TWILIO_PHONE_NUMBER || process.env.MY_PHONE_NUMBER;
+          twiml += `  <Dial callerId="${callerId}" record="record-from-answer-dual" recordingChannels="dual" trim="trim-silence">\n`;
           twiml += `    <Number>${toValue}</Number>\n`;
           twiml += `  </Dial>\n`;
       } else if (destinationNumber) {
@@ -65,3 +59,8 @@ export async function POST(req: Request) {
       });
   }
 }
+
+export async function GET(req: Request) {
+  return POST(req);
+}
+
