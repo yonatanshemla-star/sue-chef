@@ -19,6 +19,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'חדש': { label: '🆕 חדש', color: 'text-indigo-700', bg: 'bg-indigo-50', darkBg: 'dark:bg-indigo-950 dark:text-indigo-300', border: 'border-indigo-300 dark:border-indigo-700', importance: 0 },
   'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/80 dark:text-orange-200', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 1 },
   'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 0 },
+  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-900/20 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', importance: 1 },
   'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 5 },
   'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 3 },
 };
@@ -93,7 +94,7 @@ export default function Home() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [processingImageId, setProcessingImageId] = useState<string | null>(null);
-  const [lawyerPhoneCopied, setLawyerPhoneCopied] = useState(false);
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   
   // Live notes modal
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
@@ -507,26 +508,10 @@ export default function Home() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v4.2</span></h1>
+            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v5.0</span></h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">{crmLeads.length} לידים פעילים בטיפול שוטף</p>
           </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText('+972509833303');
-                setLawyerPhoneCopied(true);
-                setTimeout(() => setLawyerPhoneCopied(false), 2000);
-              }}
-              className={`flex items-center gap-3 px-5 py-3.5 transition-all duration-300 active:scale-95 ${cardClass} ${lawyerPhoneCopied ? 'ring-2 ring-emerald-400 dark:ring-emerald-500' : 'hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-600'}`}
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 ${lawyerPhoneCopied ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-indigo-100 dark:bg-indigo-900/40'}`}>
-                {lawyerPhoneCopied ? <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <UserPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">הוסף עו״ד לשיחה</p>
-                <p className={`text-sm font-black leading-none transition-colors ${lawyerPhoneCopied ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`} dir="ltr">{lawyerPhoneCopied ? '✓ הועתק!' : '+972-50-983-3303'}</p>
-              </div>
-            </button>
             <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
               <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -580,7 +565,7 @@ export default function Home() {
                   <RefreshCw className={`w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors ${loadingLeads ? 'animate-spin' : ''}`} />
                   <input type="text" placeholder="חיפוש מהיר בכל הלידים..." value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} className="bg-transparent outline-none text-sm w-full font-bold placeholder:text-slate-400 dark:placeholder:text-slate-500" />
                 </div>
-                
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
                 <div className="flex flex-wrap items-center gap-2 p-1.5 premium-glass rounded-[20px] shadow-sm">
                   <button onClick={() => setSortBy(s => s === 'date' ? 'importance' : 'date')} className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all border ${sortBy === 'importance' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/20' : 'bg-white/40 dark:bg-slate-800/40 border-white/20 dark:border-white/5 active:scale-95'}`}>
                     <ArrowUpDown className={`w-3.5 h-3.5 ${sortBy === 'importance' ? 'text-white' : 'text-indigo-500'}`} /> {sortBy === 'importance' ? 'לפי חשיבות' : 'סדר כרונולוגי'}
@@ -589,15 +574,12 @@ export default function Home() {
                     {sortOrder === 'desc' ? 'הכי חדשים' : 'הכי ישנים'}
                   </button>
                   <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
-                  <div className="relative group">
-                    <select value={filterImportance ?? ''} onChange={e => setFilterImportance(e.target.value === '' ? null : Number(e.target.value))} className="px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider outline-none cursor-pointer bg-transparent appearance-none text-slate-700 dark:text-slate-200 pr-10">
-                      <option value="">🎯 כל הלידים</option>
-                      <option value="1">🔴 חשיבות עליונה</option>
-                      <option value="2">🟠 בינונית-גבוהה</option>
-                      <option value="0">🆕 לידים חדשים</option>
-                    </select>
-                    <Maximize2 className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none rotate-90" />
-                  </div>
+                  <button 
+                    onClick={() => setShowFollowUpModal(true)}
+                    className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 active:scale-95"
+                  >
+                    <History className="w-4 h-4" /> במעקב ({leads.filter(l => l.status === 'במעקב').length})
+                  </button>
                 </div>
               </div>
             </div>
@@ -764,7 +746,6 @@ export default function Home() {
                         <AudioWhatsApp src={call.recordingUrl} />
                       </div>
                     )}
- Riverside
                     
                     {/* Transcription Preview */}
                     {leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary && (
@@ -1087,7 +1068,6 @@ export default function Home() {
                 <div className="flex items-center gap-4">
                   <button onClick={() => {
                     copyToClipboard(liveNotesLead.liveCallNotes || '');
-                    alert('התיעוד הועתק ללוח!');
                   }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-lg flex items-center gap-2 transition-all active:scale-95"><Copy size={18} /> העתק תיעוד</button>
                   <button onClick={() => setLiveNotesLead(null)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:scale-105 text-white px-10 py-3.5 rounded-2xl text-sm font-bold shadow-xl transition-all active:scale-95 flex items-center gap-2"><Check size={20} /> סיום שימוש</button>
                 </div>
@@ -1097,7 +1077,79 @@ export default function Home() {
         )}
       </main>
 
-      {/* WebPhone component removed to restore MicroSIP / External App usage as requested */}
+      {/* =================== FOLLOW UP MODAL =================== */}
+      {showFollowUpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-500">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" onClick={() => setShowFollowUpModal(false)} />
+          <div className="relative w-full max-w-4xl max-h-[85vh] flex flex-col rounded-[40px] shadow-2xl border border-white/20 overflow-hidden premium-glass animate-in slide-in-from-bottom-8 duration-700">
+            <div className="p-8 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <History className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black">לידים במעקב</h3>
+                  <p className="text-xs font-bold text-amber-500 uppercase tracking-widest mt-1">אלו הלידים שחשוב לך לחזור אליהם בעתיד</p>
+                </div>
+              </div>
+              <button onClick={() => setShowFollowUpModal(false)} className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-all">
+                <X className="w-6 h-6 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+              {leads.filter(l => l.status === 'במעקב').length === 0 ? (
+                <div className="text-center py-20 opacity-30">
+                  <History size={60} className="mx-auto mb-4 text-slate-400" />
+                  <p className="font-black uppercase tracking-widest">אין לידים במעקב כרגע</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {leads.filter(l => l.status === 'במעקב').map((lead) => (
+                    <div key={lead.id} className="p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-amber-500/30 transition-all group">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-5">
+                          <button onClick={() => initiateCall(lead)} className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-indigo-500/20">
+                            <Phone className="w-5 h-5" />
+                          </button>
+                          <div>
+                            <h4 className="text-xl font-black">{lead.clientName || 'ללא שם'}</h4>
+                            <p className="text-sm font-mono text-slate-400 mt-0.5" dir="ltr">{lead.phone}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <select 
+                            value={lead.status} 
+                            onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })}
+                            className="text-[10px] font-black rounded-xl px-4 py-2 bg-amber-500 text-white outline-none cursor-pointer active:scale-95 transition-all"
+                          >
+                            {Object.entries(STATUS_CONFIG).filter(([k]) => !AUTO_ONLY_STATUSES.has(k)).map(([k,v]) => (
+                              <option key={k} value={k}>{v.label}</option>
+                            ))}
+                          </select>
+                          <button onClick={() => setLiveNotesLead(lead)} className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-all">
+                            <Maximize2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      {lead.generalNotes && (
+                        <div className="mt-4 p-4 rounded-2xl bg-black/20 text-xs font-bold text-slate-400 leading-relaxed italic">
+                          "{lead.generalNotes}"
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-white/5 bg-black/10 flex justify-center">
+               <button onClick={() => setShowFollowUpModal(false)} className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white transition-colors">סגור חלונית</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

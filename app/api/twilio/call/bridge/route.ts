@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Dial callerId="${twilioPhone}" record="record-from-answer-dual" recordingChannels="dual" trim="trim-silence">
+    <Dial callerId="${twilioPhone}" record="do-not-record" recordingChannels="dual" trim="trim-silence">
         <Number>${e164To}</Number>
     </Dial>
 </Response>`;
