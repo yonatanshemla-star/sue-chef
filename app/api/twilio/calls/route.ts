@@ -13,7 +13,7 @@ export async function GET() {
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     
     // 1. Prefetch top recordings for the account to speed up lookup
-    const recsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings.json?PageSize=60`, {
+    const recsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings.json?PageSize=100`, {
       headers: { 'Authorization': `Basic ${auth}` }
     });
     const recsData = recsRes.ok ? await recsRes.json() : { recordings: [] };
@@ -22,8 +22,8 @@ export async function GET() {
       if (r.call_sid) accountRecsMap.set(r.call_sid, r.sid);
     });
 
-    // 2. Fetch last 60 calls to have enough context for grouping bridge legs
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?PageSize=60`, {
+    // 2. Fetch last 100 calls to have enough context for grouping bridge legs
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?PageSize=100`, {
       headers: { 'Authorization': `Basic ${auth}` }
     });
 
@@ -96,7 +96,7 @@ export async function GET() {
     // 5. Final Sort and Slice (Return unique transactions, newest first)
     const finalCalls = consolidated
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-      .slice(0, 20);
+      .slice(0, 50);
 
     return NextResponse.json({ 
       success: true, 

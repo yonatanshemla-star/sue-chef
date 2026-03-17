@@ -505,7 +505,7 @@ export default function Home() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v3.6</span></h1>
+            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v3.7</span></h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">{crmLeads.length} לידים פעילים בטיפול שוטף</p>
           </div>
           <div className="flex items-center gap-4">
@@ -721,17 +721,28 @@ export default function Home() {
                     {call.sid}
                   </div>
 
-                        {call.recordingUrl && (
-                          <button 
-                            onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
-                            disabled={transcribingSids.has(call.sid)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black transition-all shadow-sm active:scale-95 ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400 border-transparent' : 'bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-500 shadow-indigo-500/20'}`}
-                          >
-                            {transcribingSids.has(call.sid) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                            {transcribingSids.has(call.sid) ? 'מתמלל...' : 
-                             leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary ? 'תמלל שוב' : 'תמלל שיחה'}
-                          </button>
-                        )}
+                        <div className="flex flex-col gap-2">
+                          {call.recordingUrl && (
+                            <div className="flex flex-col gap-2">
+                              <audio 
+                                controls 
+                                className="h-8 w-48 opacity-80 hover:opacity-100 transition-opacity"
+                                src={call.recordingUrl}
+                              >
+                                דפדפן זה לא תומך בנגן אודיו.
+                              </audio>
+                              <button 
+                                onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
+                                disabled={transcribingSids.has(call.sid)}
+                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-[9px] font-black transition-all active:scale-95 ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400' : 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 underline decoration-indigo-500/30'}`}
+                              >
+                                {transcribingSids.has(call.sid) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                                {transcribingSids.has(call.sid) ? 'מתמלל...' : 
+                                 leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary ? 'עדכן תמלול' : 'נסה תמלול (AI)'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <span className="text-xs font-mono font-black bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-white/50 dark:border-white/5">{formatDuration(call.duration)}</span>
                         {call.price && (
                           <span className="text-[10px] font-mono font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 rounded-xl border border-amber-200/50 mr-2" dir="ltr">
