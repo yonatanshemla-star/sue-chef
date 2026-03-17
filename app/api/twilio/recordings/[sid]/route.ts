@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sid: string } }
+  { params }: { params: Promise<{ sid: string }> }
 ) {
   try {
-    const { sid } = params;
+    const { sid } = await params;
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
 
