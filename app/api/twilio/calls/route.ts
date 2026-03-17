@@ -60,7 +60,7 @@ export async function GET() {
         if (!recordingUrl) {
           const sidRec = accountRecsMap.get(leg.sid);
           if (sidRec) {
-            recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${sidRec}.mp3`;
+            recordingUrl = `/api/twilio/recordings/${sidRec}`;
           } else {
             // Check Twilio API directly for this leg if not in map
             try {
@@ -70,7 +70,7 @@ export async function GET() {
               if (recRes.ok) {
                 const recData = await recRes.json();
                 if (recData.recordings?.length > 0) {
-                  recordingUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${recData.recordings[0].sid}.mp3`;
+                  recordingUrl = `/api/twilio/recordings/${recData.recordings[0].sid}`;
                 }
               }
             } catch (e) {}

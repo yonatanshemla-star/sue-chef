@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Download, Mail, ExternalLink, Clipboard, AlertCircle } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Download, Mail, ExternalLink, Clipboard, AlertCircle, MonitorPlay } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import { legalQuestions } from '@/utils/legalQuestions';
 import { evaluateResults } from '@/utils/legalLogic';
+import AudioWhatsApp from "@/components/AudioWhatsApp";
 
 // === Status Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number }> = {
@@ -112,6 +113,7 @@ export default function Home() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [archiveSearch, setArchiveSearch] = useState('');
   const [expandedCallSid, setExpandedCallSid] = useState<string | null>(null);
+  const [activeAudioSid, setActiveAudioSid] = useState<string | null>(null);
   const [transcribingSids, setTranscribingSids] = useState<Set<string>>(new Set());
   
   // Agent Assist State
@@ -505,7 +507,7 @@ export default function Home() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v3.7</span></h1>
+            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">Sue-Chef <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest">v3.9</span></h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">{crmLeads.length} לידים פעילים בטיפול שוטף</p>
           </div>
           <div className="flex items-center gap-4">
@@ -721,26 +723,15 @@ export default function Home() {
                     {call.sid}
                   </div>
 
-                        <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
                           {call.recordingUrl && (
-                            <div className="flex flex-col gap-2">
-                              <audio 
-                                controls 
-                                className="h-8 w-48 opacity-80 hover:opacity-100 transition-opacity"
-                                src={call.recordingUrl}
-                              >
-                                דפדפן זה לא תומך בנגן אודיו.
-                              </audio>
-                              <button 
-                                onClick={() => handleTranscribe(call.sid, call.recordingUrl, callPhone)}
-                                disabled={transcribingSids.has(call.sid)}
-                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-[9px] font-black transition-all active:scale-95 ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400' : 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 underline decoration-indigo-500/30'}`}
-                              >
-                                {transcribingSids.has(call.sid) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-                                {transcribingSids.has(call.sid) ? 'מתמלל...' : 
-                                 leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary ? 'עדכן תמלול' : 'נסה תמלול (AI)'}
-                              </button>
-                            </div>
+                            <button 
+                              onClick={() => setActiveAudioSid(activeAudioSid === call.sid ? null : call.sid)}
+                              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all active:scale-95 shadow-lg ${activeAudioSid === call.sid ? 'bg-indigo-600 text-white shadow-indigo-600/30 ring-2 ring-indigo-500/20' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border border-indigo-500/10'}`}
+                            >
+                              <MonitorPlay className={`w-4 h-4 ${activeAudioSid === call.sid ? 'text-white' : 'text-indigo-500'}`} />
+                              {activeAudioSid === call.sid ? 'סגור נגן' : 'האזן להקלטה'}
+                            </button>
                           )}
                         </div>
                         <span className="text-xs font-mono font-black bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-white/50 dark:border-white/5">{formatDuration(call.duration)}</span>
@@ -752,6 +743,28 @@ export default function Home() {
                         <span className={`text-[9px] font-black px-2.5 py-1.5 rounded-xl border uppercase tracking-wider ${call.status === 'completed' ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-red-200 text-red-600 bg-red-50'}`}>{call.direction === 'inbound' ? 'נכנסת' : 'יוצאת'}</span>
                       </div>
                     </div>
+
+                    {/* Expandable WhatsApp Player Row */}
+                    {activeAudioSid === call.sid && call.recordingUrl && (
+                      <div className="mt-2 p-5 rounded-[32px] bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 animate-in slide-in-from-top-4 duration-500 flex flex-col gap-5">
+                        <div className="flex items-center justify-between px-2">
+                           <div className="flex items-center gap-2.5">
+                              <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                              <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">נגן הקלטה חכם</span>
+                           </div>
+                           <button 
+                              onClick={(e) => { e.stopPropagation(); handleTranscribe(call.sid, call.recordingUrl, callPhone); }}
+                              disabled={transcribingSids.has(call.sid)}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black transition-all active:scale-95 ${transcribingSids.has(call.sid) ? 'bg-gray-100 text-gray-400' : 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border border-indigo-500/10 shadow-sm'}`}
+                            >
+                              {transcribingSids.has(call.sid) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
+                              {transcribingSids.has(call.sid) ? 'מתמלל...' : 'תמלל עם AI'}
+                            </button>
+                        </div>
+                        <AudioWhatsApp src={call.recordingUrl} />
+                      </div>
+                    )}
+ Riverside
                     
                     {/* Transcription Preview */}
                     {leads.find(l => l.phone && normalizePhone(l.phone) === normalizePhone(callPhone || ''))?.aiSummary && (
