@@ -40,11 +40,11 @@ export async function POST(req: NextRequest) {
     const audioBuffer = await audioRes.arrayBuffer();
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
 
-    // 2. Send to Gemini - using v1beta and gemini-2.0-flash-exp (Modern model)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+    // 2. Send to Gemini - using v1 (most stable) and 1.5-flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const prompt = `אתה עוזר אישי של עורך דין. הקשב להקלטת השיחה הזאת עם לקוח פוטנציאלי.
-חלץ את הפרטים הבאים בפורמט JSON בלבד:
+חלץ את הפרטים הבאים בפורמט JSON בלבד (ללא הקדמות או תוספות):
 {
   "aiSummary": "סיכום קצר של השיחה (2-3 משפטים)",
   "sentiment": "חיובי/ניטרלי/שלילי",
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   "keyDetails": "פרטים חשובים שעלו (גיל, מצב רפואי, הכנסות וכו')"
 }
 
-השתמש בשפה המדוברת בהקלטה (עברית). החזר רק JSON תקין ומדויק ללא הקדמות.`;
+השתמש בשפה המדוברת בהקלטה (עברית). החזר רק JSON תקין ומדויק.`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
@@ -70,8 +70,8 @@ export async function POST(req: NextRequest) {
           ]
         }],
         generationConfig: {
-          temperature: 0.1,
-          responseMimeType: "application/json"
+          temperature: 0.1
+          // Removed response_mime_type because it's causing "unknown field" errors on some v1 endpoints
         }
       })
     });
@@ -93,7 +93,11 @@ export async function POST(req: NextRequest) {
     
     if (!responseText) throw new Error("Empty response from Gemini");
     
-    const result = JSON.parse(responseText.replace(/```json|```/gi, "").trim());
+    // Manual JSON extraction to be safe since we disabled JSON mode
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in response");
+    
+    const result = JSON.parse(jsonMatch[0]);
 
     // 3. Update the lead in DB
     const leads = await getLeads();
