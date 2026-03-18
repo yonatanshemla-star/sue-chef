@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, Mic, MicOff, Volume2, VolumeX, Plus, User, Info, X, LayoutGrid, Video, UserPlus, Grid3X3, PhoneOff } from 'lucide-react';
+import { Phone, Mic, MicOff, Volume2, VolumeX, Plus, User, Info, X, LayoutGrid, Video, UserPlus, Grid3X3, PhoneOff, ChevronDown } from 'lucide-react';
 
 interface WebPhoneProps {
   isOpen: boolean; // Tells it to pop open for an outbound dial request
@@ -100,23 +100,23 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       // @ts-ignore
       const Twilio = window.Twilio;
       const device = new Twilio.Device(token, {
-        codecPreferences: ['opus', 'pcmu'],
+        codecPreferences: ['opus', 'pcmu'], // Opus is high quality and works well on weak connections
         audioConstraints: {
           autoGainControl: true,
           echoCancellation: true,
           noiseSuppression: true,
         },
-        maxAverageBitrate: 64000,
-        edge: ['dublin', 'frankfurt', 'roaming'],
+        maxAverageBitrate: 16000, // Reduced bitrate for better stability on weak internet
+        edge: ['frankfurt'], // Force Frankfurt (Germany) for lowest latency in Israel
         dscp: true,
         fakeLocalAudio: false,
         allowIncomingWhileBusy: true,
-        debug: true
+        debug: false
       });
 
       deviceRef.current = device;
 
-      device.on('registered', () => console.log('WebPhone ready for incoming calls'));
+      device.on('registered', () => console.log('WebPhone ready for incoming calls (Frankfurt Edge)'));
 
       device.on('incoming', (connection: any) => {
         console.log('Incoming call!', connection);
@@ -157,6 +157,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
   const handleOutboundCall = async () => {
     setCallStatus('calling');
     setErrorMessage(null);
+    setIsMinimized(false); // Open expanded UI for outbound initiation
     
     try {
       if (!deviceRef.current) {
@@ -243,96 +244,92 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
   if (!isOpen && callStatus === 'idle') return null;
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-[60] flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || callStatus !== 'idle' ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className={`fixed bottom-0 left-0 right-0 z-[60] flex flex-col items-center pb-8 pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || callStatus !== 'idle' ? 'translate-y-0' : 'translate-y-full'}`}>
       
-      {/* Minimized Floating Bar (iPhone Dynamic Island Style) */}
+      {/* Dynamic Island style at bottom center */}
       <div 
-        className={`bg-slate-950/80 backdrop-blur-3xl border border-white/20 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.6)] rounded-full px-8 py-4 flex items-center gap-8 mb-8 transition-all duration-700 cursor-pointer hover:bg-black group premium-glass-active ${isMinimized ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-10 pointer-events-none absolute'}`}
+        className={`pointer-events-auto bg-slate-950/80 backdrop-blur-3xl border border-white/20 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.6)] rounded-full px-6 py-3 flex items-center gap-6 transition-all duration-700 cursor-pointer hover:bg-black group premium-glass-active ${isMinimized ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-20 pointer-events-none absolute'}`}
         onClick={() => setIsMinimized(false)}
       >
-        <div className="flex items-center gap-4">
-          <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
-          <div className="flex flex-col">
-            <span className="text-white font-black text-sm tracking-tight">{targetName}</span>
-            <span className="text-white/40 font-mono text-[10px] uppercase font-black tracking-widest">{formatDuration(duration)}</span>
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+          <div className="flex items-center gap-2.5">
+            <span className="text-white font-black text-xs tracking-tight">{targetName || incomingCallerId?.name || 'שיחה'}</span>
+            <span className="h-3 w-px bg-white/10" />
+            <span className="text-white/40 font-mono text-[9px] uppercase font-black tracking-widest">{formatDuration(duration)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-4 border-l border-white/10 pl-6">
-          <button onClick={(e) => { e.stopPropagation(); handleEndCall(); }} className="p-3 bg-red-500 hover:bg-red-600 rounded-full text-white transition-all hover:scale-110 active:scale-90 shadow-lg shadow-red-500/20">
-            <PhoneOff className="w-4 h-4" />
+        <div className="flex items-center gap-3">
+          <button onClick={(e) => { e.stopPropagation(); handleEndCall(); }} className="p-2 bg-red-500 hover:bg-red-600 rounded-full text-white transition-all hover:scale-110 active:scale-90 shadow-lg shadow-red-500/20">
+            <PhoneOff className="w-3.5 h-3.5" />
           </button>
-          <LayoutGrid className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
         </div>
       </div>
 
-      {/* Main Expanded Panel (Functional, not a phone mockup) */}
+      {/* Main Expanded Panel - Modern Glass UI from the bottom */}
       <div 
-        className={`w-full max-w-2xl premium-glass border-t border-white/20 shadow-[0_-32px_128px_-12px_rgba(0,0,0,0.7)] rounded-t-[50px] px-10 pt-8 pb-12 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isMinimized ? 'translate-y-full opacity-0 pointer-events-none absolute' : 'translate-y-0'}`}
+        className={`pointer-events-auto w-[400px] premium-glass border border-white/20 shadow-[0_32px_128px_-12px_rgba(0,0,0,0.7)] rounded-[40px] px-8 pt-6 pb-10 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isMinimized ? 'translate-y-[150%] opacity-0 pointer-events-none absolute scale-90' : 'translate-y-0 opacity-100 scale-100'}`}
       >
         {/* Header Controls */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-8">
           <button 
             onClick={() => setIsMinimized(true)}
-            className="p-3 hover:bg-white/10 rounded-[20px] text-white/40 hover:text-white transition-all duration-300"
-            title="מזער"
+            className="p-2.5 hover:bg-white/10 rounded-2xl text-white/40 hover:text-white transition-all duration-300"
+            title="מזער חלונית"
           >
-            <X className="w-8 h-8" />
+            <ChevronDown className="w-6 h-6" />
           </button>
-          <div className="flex flex-col items-center text-center">
-             <div className={`text-[11px] font-black px-4 py-1.5 rounded-full mb-4 uppercase tracking-[0.2em] border shadow-sm transition-all duration-500
+          
+          <div className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] border shadow-sm transition-all duration-500
                ${callStatus === 'connected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' : 
                  callStatus === 'calling' ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 shadow-indigo-500/10' : 
                  callStatus === 'incoming' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10 animate-pulse' : 
                  callStatus === 'ended' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
                  'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
-               {callStatus === 'connected' ? 'שיחה פעילה' : 
-                callStatus === 'calling' ? 'חיוג...' : 
-                callStatus === 'incoming' ? 'שיחה נכנסת!' : 
-                callStatus === 'ended' ? 'השיחה נותקה' : 'ממתין'}
-             </div>
-             
-             <h2 className="text-4xl font-black text-white leading-tight tracking-tight text-glow">
-               {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.name : (targetName || 'חיוג')}
-             </h2>
-             <p className="text-base text-white/30 font-bold mt-2 tracking-widest opacity-60" dir="ltr">
-               {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.phone : targetPhone}
-             </p>
-             
-             {errorMessage && (
-                <div className="mt-4 text-sm font-black text-red-400 bg-red-400/10 px-4 py-2 rounded-2xl border border-red-400/20 animate-in fade-in zoom-in duration-300">
-                  ⚠️ {errorMessage}
-                </div>
-             )}
+               {callStatus === 'connected' ? 'מחובר' : 
+                callStatus === 'calling' ? 'מחייג' : 
+                callStatus === 'incoming' ? 'נכנסת' : 
+                callStatus === 'ended' ? 'נותקה' : 'ממתין'}
           </div>
-          <div className="w-14 h-14" /> {/* Balancer */}
+
+          <div className="w-10 h-10" /> {/* Balancer */}
         </div>
 
-        {/* Duration & Pulse */}
-        <div className="flex flex-col items-center mb-12">
-          <div className="text-5xl font-mono font-black text-white mb-6 tracking-tighter">
+        {/* Contact Info */}
+        <div className="flex flex-col items-center text-center mb-10">
+           <h2 className="text-3xl font-black text-white leading-tight tracking-tight text-glow">
+             {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.name : (targetName || 'שיחה')}
+           </h2>
+           <p className="text-sm font-mono text-white/30 font-bold mt-2 tracking-widest opacity-60" dir="ltr">
+             {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.phone : targetPhone}
+           </p>
+           
+           {errorMessage && (
+              <div className="mt-4 text-[10px] font-black text-red-400 bg-red-400/10 px-3 py-1.5 rounded-xl border border-red-400/20 animate-in fade-in zoom-in duration-300 uppercase tracking-widest">
+                {errorMessage}
+              </div>
+           )}
+        </div>
+
+        {/* Duration & Wave */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="text-4xl font-mono font-black text-white mb-6 tracking-tighter">
             {formatDuration(duration)}
           </div>
-          <div className="flex gap-2 h-2.5 items-center">
-            {[1,2,3,4,5,6,7].map(i => (
-              <div key={i} className={`w-2.5 bg-indigo-500 rounded-full transition-all duration-700 ${callStatus === 'connected' ? 'animate-bounce' : 'h-1.5 opacity-10'}`} style={{ animationDelay: `${i * 0.1}s`, height: callStatus === 'connected' ? `${10 + Math.sin(i) * 10}px` : '4px' }} />
+          <div className="flex gap-1.5 h-6 items-center">
+            {[1,2,3,4,5,6,7,8,9,10].map(i => (
+              <div key={i} className={`w-1 bg-indigo-500 rounded-full transition-all duration-700 ${callStatus === 'connected' ? 'animate-bounce' : 'h-1.5 opacity-10'}`} style={{ animationDelay: `${i * 0.05}s`, height: callStatus === 'connected' ? `${8 + Math.random() * 16}px` : '4px' }} />
             ))}
           </div>
         </div>
 
         {/* Action Grid */}
-        <div className="grid grid-cols-4 gap-8 max-w-lg mx-auto mb-12">
+        <div className="grid grid-cols-2 gap-4 max-w-[280px] mx-auto mb-10">
           <ActionButton 
             icon={isMuted ? MicOff : Mic} 
             label={isMuted ? "בטל השתקה" : "השתק"} 
             active={isMuted} 
             onClick={toggleMute}
-            disabled={callStatus !== 'connected'}
-          />
-          <ActionButton 
-            icon={Grid3X3} 
-            label="מקשים" 
-            active={isKeypad} 
-            onClick={() => setIsKeypad(!isKeypad)}
             disabled={callStatus !== 'connected'}
           />
           <ActionButton 
@@ -342,39 +339,33 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
             onClick={() => setIsSpeaker(!isSpeaker)}
             disabled={callStatus !== 'connected'}
           />
-           <ActionButton 
-            icon={Plus} 
-            label="שיחה נוספת" 
-            onClick={() => {}}
-            disabled={callStatus !== 'connected'}
-          />
         </div>
 
         {/* Primary Bottom Actions */}
-        <div className="flex items-center justify-center gap-16">
-            {callStatus === 'incoming' && (
+        <div className="flex items-center justify-center gap-8">
+            {callStatus === 'incoming' ? (
+              <>
+                <button 
+                  onClick={handleEndCall}
+                  className="w-16 h-16 bg-red-500 hover:bg-red-600 text-white rounded-[24px] flex items-center justify-center shadow-lg transition-all duration-300 active:scale-90"
+                >
+                  <PhoneOff className="w-8 h-8 fill-current" />
+                </button>
+                <button 
+                  onClick={handleAcceptIncoming}
+                  className="w-20 h-20 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[28px] flex items-center justify-center shadow-[0_12px_40px_rgba(16,185,129,0.3)] animate-pulse transition-all duration-300 active:scale-90"
+                >
+                  <Phone className="w-10 h-10 fill-current" />
+                </button>
+              </>
+            ) : (
               <button 
-                onClick={handleAcceptIncoming}
-                className="group flex flex-col items-center gap-4"
+                onClick={handleEndCall}
+                className="w-20 h-20 bg-red-500 hover:bg-red-600 text-white rounded-[28px] flex items-center justify-center shadow-[0_12px_40px_rgba(239,68,68,0.3)] transition-all duration-300 active:scale-90"
               >
-                <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-[32px] flex items-center justify-center shadow-[0_20px_50px_rgba(16,185,129,0.4)] animate-bounce transition-all duration-300 active:scale-90 group-hover:scale-110 group-hover:rotate-6">
-                  <Phone className="w-12 h-12 fill-current" />
-                </div>
-                <span className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.2em] group-hover:text-emerald-300 transition-colors">מענה לשיחה</span>
+                <PhoneOff className="w-10 h-10 fill-current" />
               </button>
             )}
-
-            <button 
-              onClick={handleEndCall}
-              className="group flex flex-col items-center gap-4"
-            >
-              <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-red-700 text-white rounded-[32px] flex items-center justify-center shadow-[0_20px_50px_rgba(239,68,68,0.4)] transition-all duration-300 active:scale-90 group-hover:scale-110 group-hover:-rotate-6">
-                <PhoneOff className="w-12 h-12 fill-current" />
-              </div>
-              <span className="text-[11px] font-black text-red-400 uppercase tracking-[0.2em] group-hover:text-red-300 transition-colors">
-                {callStatus === 'incoming' ? 'דחיית שיחה' : 'ניתוק שיחה'}
-              </span>
-            </button>
         </div>
       </div>
     </div>
@@ -383,14 +374,14 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
 
 function ActionButton({ icon: Icon, label, active, onClick, disabled }: { icon: any, label: string, active?: boolean, onClick: () => void, disabled?: boolean }) {
   return (
-    <div className={`flex flex-col items-center gap-3 transition-opacity duration-300 ${disabled ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
+    <div className={`flex flex-col items-center gap-2 transition-opacity duration-300 ${disabled ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
       <button 
         onClick={onClick}
-        className={`w-20 h-20 rounded-[28px] flex items-center justify-center transition-all duration-300 active:scale-90 shadow-lg ${active ? 'bg-white text-slate-900 shadow-white/20' : 'bg-white/5 text-white hover:bg-white/10 border border-white/5'}`}
+        className={`w-full h-12 rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-95 border ${active ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-white/60 hover:text-white border-white/10 hover:bg-white/10'}`}
       >
-        <Icon className={`w-8 h-8 ${active ? 'fill-slate-900' : ''}`} />
+        <Icon className={`w-5 h-5 ${active ? 'fill-slate-900' : ''}`} />
+        <span className="mr-2 text-[10px] font-black uppercase tracking-widest">{label}</span>
       </button>
-      <span className="text-[11px] text-white/60 font-black uppercase tracking-wider">{label}</span>
     </div>
   );
 }

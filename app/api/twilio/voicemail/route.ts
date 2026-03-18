@@ -8,14 +8,6 @@ export async function POST(req: Request) {
      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="he-IL" voice="Google.he-IL-Standard-A">שלום, כרגע אין באפשרותנו לענות. אנא השאירו הודעה ונחזור אליכם בהקדם.</Say>
-  <Record 
-    timeout="10" 
-    transcribe="false" 
-    playBeep="true" 
-    action="/api/twilio/webhook" 
-    recordingStatusCallback="/api/twilio/webhook"
-    recordingStatusCallbackEvent="completed"
-  />
   <Say language="he-IL" voice="Google.he-IL-Standard-A">לא התקבלה הודעה, להתראות.</Say>
 </Response>`;
 

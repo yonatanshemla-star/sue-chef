@@ -30,15 +30,46 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const keys = Array.from(formData.keys());
     logInfo(`Webhook received keys: ${keys.join(', ')}`);
-    const recordingUrl = formData.get('RecordingUrl') as string;
-    logInfo(`RecordingUrl: ${recordingUrl}`);
-    
-    if (!recordingUrl) {
-      logInfo('ERROR: Missing RecordingUrl');
-      return NextResponse.json({ error: 'Missing RecordingUrl' }, { status: 400 });
-    }
+     const recordingUrl = formData.get('RecordingUrl') as string;
+     const duration = parseInt(formData.get('RecordingDuration') as string || '0');
+     const skipAI = formData.get('skipAI') === 'true' || req.url.includes('skipAI=true');
+     
+     logInfo(`RecordingUrl: ${recordingUrl}, Duration: ${duration}s, skipAI: ${skipAI}`);
+     
+     if (!recordingUrl) {
+       logInfo('ERROR: Missing RecordingUrl');
+       return NextResponse.json({ error: 'Missing RecordingUrl' }, { status: 400 });
+     }
 
-    // Twilio recordings don't always have extensions attached in the URL, appending .wav ensures format
+     // COST SAVING: Skip Gemini for very short calls or if requested
+     if (duration > 0 && duration < 10 && !skipAI) {
+       logInfo(`SKIPPING AI: Call duration too short (${duration}s).`);
+     }
+
+     if (skipAI || (duration > 0 && duration < 10)) {
+        const reason = skipAI ? 'requested by user' : `short duration (${duration}s)`;
+        logInfo(`Saving basic lead without AI processing (Reason: ${reason})`);
+        
+        const basicLead = {
+          id: uuidv4(),
+          clientName: 'שיחה קולית (ללא עיבוד)',
+          phone: formData.get('From') as string || 'לא ידוע',
+          source: 'Twilio' as const,
+          createdAt: new Date().toISOString(),
+          lastContacted: null,
+          status: 'חדש' as const,
+          followUpDate: null,
+          generalNotes: `שיחה התקבלה (${duration} שניות). עיבוד AI דולג עקב ${skipAI ? 'בקשת משתמש' : 'משך שיחה קצר'}.`,
+          liveCallNotes: '',
+          recordingUrl: recordingUrl,
+          transcription: 'לא תומלל (מצב חיסכון)',
+          urgency: 'בינונית',
+        };
+        await saveLead(basicLead as any);
+        return NextResponse.json({ success: true, lead: basicLead, processed: false });
+     }
+     
+     // Twilio recordings don't always have extensions attached in the URL, appending .wav ensures format
     // But for testing generic URLs, we check if it already has an extension
     const audioUrl = recordingUrl.includes('.') && !recordingUrl.includes('twilio') ? recordingUrl : `${recordingUrl}.wav`;
     

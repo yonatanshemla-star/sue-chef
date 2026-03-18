@@ -25,11 +25,11 @@ export async function POST(req: Request) {
      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
      if (isOutbound && toStr) {
-         twiml += `  <Dial record="record-from-answer-dual" recordingChannels="dual" trim="trim-silence">\n`;
+         twiml += `  <Dial>\n`;
          twiml += `    <Number>${toValue}</Number>\n`;
          twiml += `  </Dial>\n`;
      } else {
-         twiml += `  <Dial timeout="20" record="record-from-answer-dual" action="/api/twilio/voicemail">\n`;
+         twiml += `  <Dial timeout="20" action="/api/twilio/voicemail">\n`;
          twiml += `    <Client>dashboard_user</Client>\n`;
          if (process.env.MY_PHONE_NUMBER) {
             twiml += `    <Number>${process.env.MY_PHONE_NUMBER}</Number>\n`;
