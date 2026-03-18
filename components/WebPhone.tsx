@@ -369,13 +369,20 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         <div className="mt-8 pt-6 border-t border-white/10 bg-black/20 rounded-2xl p-4">
           <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-3">Live Debug Logs</div>
           <div className="space-y-1.5">
-            {debugLogs.length === 0 && <div className="text-[10px] font-mono text-white/30 italic">Waiting for events...</div>}
-            {debugLogs.map((log, i) => (
-              <div key={i} className={`text-[11px] font-mono font-bold flex gap-2 ${log.includes('Fail') || log.includes('ERROR') ? 'text-red-400' : 'text-emerald-400'}`}>
-                <span className="opacity-40">[{i}]</span> {log}
-              </div>
-            ))}
-          </div>
+            {/* Logs */}
+        <div className="flex-1 overflow-y-auto bg-black/60 rounded-xl p-3 font-mono text-xs space-y-1 mb-3 custom-scrollbar">
+          {debugLogs.map((log, i) => (
+            <div key={i} className={log.includes('ERROR') ? 'text-red-400' : log.includes('SUCCESS') ? 'text-green-400' : 'text-zinc-400'}>
+              [{i}] {log}
+            </div>
+          ))}
+          {debugLogs.length === 0 && <div className="text-zinc-600 italic">ממתין לאירועים...</div>}
+        </div>
+
+        {/* System Info */}
+        <div className="text-[10px] text-zinc-500 font-mono mt-auto pt-2 border-t border-white/5 flex justify-between">
+          <span>SERVICE STATUS: ONLINE</span>
+          <span>APP SID: {debugLogs.find(l => l.includes('App:'))?.split(': ')[1] || 'LOADING...'}</span>
         </div>
       </div>
     </div>
