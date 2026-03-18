@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Phone, Mic, MicOff, Volume2, VolumeX, Plus, User, Info, X, LayoutGrid, Video, UserPlus, Grid3X3, PhoneOff, ChevronDown } from 'lucide-react';
+import { Device } from '@twilio/voice-sdk';
 
 interface WebPhoneProps {
   isOpen: boolean; // Tells it to pop open for an outbound dial request
@@ -37,31 +38,9 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
     onCallEndRef.current = onCallEnd;
   }, [onCallEnd]);
 
-  // Load Twilio SDK from CDN
+  // Initial setup
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // @ts-ignore
-    if (window.Twilio) {
-      setTwilioLoaded(true);
-      return;
-    }
-
-    const scriptId = 'twilio-sdk';
-    if (document.getElementById(scriptId)) return;
-
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = "https://sdk.twilio.com/js/voice/releases/2.11.0/twilio.min.js";
-    script.async = true;
-    script.onload = () => {
-      console.log('Twilio Voice SDK loaded');
-      setTwilioLoaded(true);
-    };
-    script.onerror = () => {
-      setErrorMessage('נכשל בטעינת מערכת החיוג. אנא בדוק את חיבור האינטרנט שלך.');
-    };
-    document.head.appendChild(script);
+    setTwilioLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -110,11 +89,8 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       if (!resp.ok) throw new Error('Failed to fetch token');
       const { token } = await resp.json();
 
-      const Twilio = (window as any).Twilio;
-      if (!Twilio) throw new Error('מערכת טוויליו לא נטענה');
-      
-      const device = new Twilio.Device(token, {
-        codecPreferences: ['opus', 'pcmu'],
+      const device = new Device(token, {
+        codecPreferences: [Device.Codec.Opus, Device.Codec.PCMU],
         audioConstraints: { autoGainControl: true, echoCancellation: true, noiseSuppression: true },
         maxAverageBitrate: 64000, 
         edge: ['frankfurt', 'dublin', 'roaming'], 
@@ -385,13 +361,13 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         </div>
 
         {/* Debug Logs for Troubleshooting */}
-        <div className="mt-8 pt-6 border-t border-white/5">
-          <div className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em] mb-3">Live Debug Logs</div>
-          <div className="space-y-1">
-            {debugLogs.length === 0 && <div className="text-[10px] font-mono text-white/10 italic">Waiting for events...</div>}
+        <div className="mt-8 pt-6 border-t border-white/10 bg-black/20 rounded-2xl p-4">
+          <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-3">Live Debug Logs</div>
+          <div className="space-y-1.5">
+            {debugLogs.length === 0 && <div className="text-[10px] font-mono text-white/30 italic">Waiting for events...</div>}
             {debugLogs.map((log, i) => (
-              <div key={i} className="text-[10px] font-mono text-indigo-300/60 flex gap-2">
-                <span className="opacity-30">[{i}]</span> {log}
+              <div key={i} className={`text-[11px] font-mono font-bold flex gap-2 ${log.includes('Fail') || log.includes('ERROR') ? 'text-red-400' : 'text-emerald-400'}`}>
+                <span className="opacity-40">[{i}]</span> {log}
               </div>
             ))}
           </div>
