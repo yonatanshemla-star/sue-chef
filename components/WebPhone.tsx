@@ -213,6 +213,10 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       }
     }
     const finalPhone = incomingCallerId ? incomingCallerId.phone : targetPhone;
+    
+    // If it's an error/ended abruptly, keep the UI open longer for logs (10s)
+    const timeout = (callStatus === 'ended' || callStatus === 'idle') ? 10000 : 1500;
+    
     setCallStatus('ended');
     setIncomingCallerId(null);
     setTimeout(() => {
@@ -221,7 +225,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         onCallEndRef.current(finalPhone);
       }
       onClose();
-    }, 1500);
+    }, timeout);
   };
   const toggleMute = () => {
     if (connectionRef.current) {
