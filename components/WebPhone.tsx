@@ -90,7 +90,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       const { token } = await resp.json();
 
       const device = new Device(token, {
-        codecPreferences: ['opus', 'pcmu'] as any,
+        codecPreferences: ['opus', 'pcmu'],
         audioConstraints: { autoGainControl: true, echoCancellation: true, noiseSuppression: true },
         maxAverageBitrate: 64000, 
         edge: ['frankfurt', 'dublin', 'roaming'], 
@@ -98,7 +98,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         fakeLocalAudio: false,
         allowIncomingWhileBusy: true,
         debug: true
-      });
+      } as any);
 
       deviceRef.current = device;
 
