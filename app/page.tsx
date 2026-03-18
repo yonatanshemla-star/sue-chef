@@ -7,6 +7,7 @@ import LegalDecisionTree from '@/components/LegalDecisionTree';
 import { legalQuestions } from '@/utils/legalQuestions';
 import { evaluateResults } from '@/utils/legalLogic';
 import AudioWhatsApp from "@/components/AudioWhatsApp";
+import WebPhone from "@/components/WebPhone";
 
 // === Status Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number }> = {
@@ -1180,6 +1181,14 @@ export default function Home() {
         )}
       </main>
 
+      <WebPhone 
+        isOpen={isPhoneOpen} 
+        onClose={() => setIsPhoneOpen(false)}
+        targetName={phoneTarget.name}
+        targetPhone={phoneTarget.phone}
+        leads={leads}
+        onCallEnd={handleCallEnd}
+      />
     </div>
   );
 }
