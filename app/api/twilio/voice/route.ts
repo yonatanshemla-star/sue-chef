@@ -33,11 +33,21 @@ export async function POST(req: Request) {
      }
 
      const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
-     const callerId = process.env.TWILIO_PHONE_NUMBER || process.env.MY_PHONE_NUMBER || '';
+     
+     // Normalize Caller ID
+     let callerId = process.env.TWILIO_PHONE_NUMBER || process.env.MY_PHONE_NUMBER || '';
+     if (callerId.startsWith('0') && callerId.length === 10) {
+         callerId = '+972' + callerId.substring(1);
+     } else if (callerId && !callerId.startsWith('+')) {
+         callerId = '+' + callerId;
+     }
 
      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
      if (isOutbound && toValue) {
+         if (!callerId) {
+             twiml += `  <Say language="he-IL">שגיאה: מספר מזהה חסר.</Say>\n`;
+         }
          twiml += `  <Dial callerId="${callerId}">\n`;
          twiml += `    <Number>${toValue}</Number>\n`;
          twiml += `  </Dial>\n`;
