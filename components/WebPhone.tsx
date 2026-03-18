@@ -38,10 +38,20 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
     onCallEndRef.current = onCallEnd;
   }, [onCallEnd]);
 
-  // Initial setup
+  const [initError, setInitError] = useState(false);
+
   useEffect(() => {
+    addLog('WebPhone Component Mounted');
     setTwilioLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (twilioLoaded && !deviceRef.current) {
+      initTwilioDevice();
+    }
+  }, [twilioLoaded]);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (callStatus === 'connected') {
@@ -63,31 +73,28 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Initialize Twilio Device for INCOMING calls as soon as SDK is loaded
-  useEffect(() => {
-    if (twilioLoaded && !deviceRef.current) {
-      initTwilioDevice();
-    }
-  }, [twilioLoaded]);
-
   // Outbound Trigger
   useEffect(() => {
     if (isOpen && (callStatus === 'idle' || callStatus === 'ended')) {
       if (twilioLoaded) {
         handleOutboundCall();
       } else {
-        setErrorMessage('טוען מערכת חיוג... שימו לב: יש לוודא אישור מיקרופון בדפדפן');
+        setErrorMessage('טוען מערכת חיוג...');
       }
     }
-  }, [isOpen, targetPhone, twilioLoaded]); // Removed callStatus check from deps to avoid re-triggering during call
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  }, [isOpen, targetPhone, twilioLoaded]);
 
   const initTwilioDevice = async () => {
     try {
+      setInitError(false);
+      addLog('Fetching token...');
       const resp = await fetch('/api/twilio/token');
-      if (!resp.ok) throw new Error('Failed to fetch token');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const { token, twimlAppSid } = await resp.json();
+      
+      if (!twimlAppSid) {
+        addLog('WARNING: No App SID received');
+      }
       addLog(`Token fetched for App: ${twimlAppSid || 'Unknown'}`);
 
       const device = new Device(token, {
@@ -96,56 +103,36 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         maxAverageBitrate: 64000, 
         edge: ['frankfurt', 'dublin', 'roaming'], 
         dscp: true,
-        fakeLocalAudio: false,
-        allowIncomingWhileBusy: true,
         debug: true
       } as any);
 
       deviceRef.current = device;
+      addLog('Device created, registering...');
 
-      device.on('registered', () => console.log('WebPhone ready for incoming calls (Frankfurt Edge)'));
-
-      device.on('incoming', (connection: any) => {
-        console.log('Incoming call!', connection);
-        connectionRef.current = connection;
-        
-        const rawPhone = connection.parameters.From;
-        
-        // Smart Caller ID: find lead by phone
-        const normalizedIn = rawPhone.replace(/\D/g, '');
-        const currentLeads = leads || [];
-        const match = currentLeads.find(l => {
-          const lPhone = (l.phone || '').replace(/\D/g, '');
-          // match last 9 digits in case of country code diffs
-          if (lPhone.length >= 9 && normalizedIn.length >= 9) {
-             return normalizedIn.slice(-9) === lPhone.slice(-9);
-          }
-          return false;
-        });
-
-        setIncomingCallerId({
-           phone: rawPhone,
-           name: match ? match.clientName : 'מספר לא מזוהה'
-        });
-        setCallStatus('incoming');
-
-        connection.on('accept', () => setCallStatus('connected'));
-        connection.on('disconnect', () => handleEndCall());
-        connection.on('cancel', () => handleEndCall());
-        connection.on('reject', () => handleEndCall());
+      device.on('registered', () => {
+        addLog('Device registered SUCCESS');
       });
 
-      device.on('error', (err: any) => addLog(`Device Error: ${err.message}`));
-      device.on('offline', () => addLog('Device Offline'));
-      device.on('unregistered', () => addLog('Device Unregistered'));
+      device.on('incoming', (connection: any) => {
+        addLog('Incoming call!');
+        connectionRef.current = connection;
+        const rawPhone = connection.parameters.From;
+        setIncomingCallerId({ phone: rawPhone, name: 'שיחה נכנסת' });
+        setCallStatus('incoming');
+        connection.on('accept', () => setCallStatus('connected'));
+        connection.on('disconnect', () => handleEndCall());
+      });
+
+      device.on('error', (err: any) => {
+        addLog(`Device ERROR: ${err.message}`);
+        setInitError(true);
+      });
 
       await device.register();
-      addLog('Device registered');
     } catch (err: any) {
       console.error('Twilio init failed', err);
-      const msg = err.message || 'שגיאת רשת';
-      setErrorMessage('כשל באתחול הטלפון: ' + msg);
-      addLog(`Init Fail: ${msg}`);
+      addLog(`Init FAIL: ${err.message}`);
+      setInitError(true);
     }
   };
 
@@ -378,9 +365,17 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
           </div>
 
           {/* System Info */}
-          <div className="text-[10px] text-white/30 font-mono pt-3 border-t border-white/5 flex justify-between uppercase tracking-tighter">
-            <span>STATUS: ONLINE</span>
-            <span>APP SID: {debugLogs.find(l => l.includes('App:'))?.split(': ')[1] || 'LOADING...'}</span>
+          <div className="text-[10px] text-white/30 font-mono pt-3 border-t border-white/5 flex justify-between items-center uppercase tracking-tighter">
+            <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${initError ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
+              <span>STATUS: {initError ? 'ERROR' : 'ONLINE'}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span>APP SID: {debugLogs.find(l => l.includes('App:'))?.split(': ')[1] || 'LOADING...'}</span>
+              {initError && (
+                <button onClick={initTwilioDevice} className="bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded text-white transition-colors">RETRY</button>
+              )}
+            </div>
           </div>
         </div>
       </div>
