@@ -41,16 +41,21 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       return;
     }
 
+    const scriptId = 'twilio-sdk';
+    if (document.getElementById(scriptId)) return;
+
     const script = document.createElement('script');
+    script.id = scriptId;
     script.src = "https://sdk.twilio.com/js/voice/releases/2.11.0/twilio.min.js";
     script.async = true;
     script.onload = () => {
       console.log('Twilio Voice SDK loaded');
       setTwilioLoaded(true);
     };
-    document.body.appendChild(script);
-
-    // Keep script on unmount to avoid reloading issues
+    script.onerror = () => {
+      setErrorMessage('נכשל בטעינת מערכת החיוג. אנא בדוק את חיבור האינטרנט שלך.');
+    };
+    document.head.appendChild(script);
   }, []);
 
   useEffect(() => {
@@ -99,17 +104,14 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       if (!resp.ok) throw new Error('Failed to fetch token');
       const { token } = await resp.json();
 
-      // @ts-ignore
-      const Twilio = window.Twilio;
+      const Twilio = (window as any).Twilio;
+      if (!Twilio) throw new Error('מערכת טוויליו לא נטענה');
+      
       const device = new Twilio.Device(token, {
-        codecPreferences: ['opus', 'pcmu'], // Opus is high quality and works well on weak connections
-        audioConstraints: {
-          autoGainControl: true,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-        maxAverageBitrate: 16000, // Reduced bitrate for better stability on weak internet
-        edge: ['frankfurt'], // Force Frankfurt (Germany) for lowest latency in Israel
+        codecPreferences: ['opus', 'pcmu'],
+        audioConstraints: { autoGainControl: true, echoCancellation: true, noiseSuppression: true },
+        maxAverageBitrate: 16000, 
+        edge: ['frankfurt'], 
         dscp: true,
         fakeLocalAudio: false,
         allowIncomingWhileBusy: true,
@@ -151,8 +153,9 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       });
 
       await device.register();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Twilio init failed', err);
+      setErrorMessage('כשל באתחול הטלפון: ' + (err.message || 'שגיאת רשת'));
     }
   };
 
@@ -246,7 +249,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
   if (!isOpen && callStatus === 'idle') return null;
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-[60] flex flex-col items-center pb-8 pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || callStatus !== 'idle' ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className={`fixed bottom-10 left-0 right-0 z-[100] flex flex-col items-center pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || callStatus !== 'idle' ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
       
       {/* Dynamic Island style at bottom center */}
       <div 
