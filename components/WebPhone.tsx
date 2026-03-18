@@ -90,7 +90,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       const { token } = await resp.json();
 
       const device = new Device(token, {
-        codecPreferences: [Device.Codec.Opus, Device.Codec.PCMU],
+        codecPreferences: ['opus', 'pcmu'] as any,
         audioConstraints: { autoGainControl: true, echoCancellation: true, noiseSuppression: true },
         maxAverageBitrate: 64000, 
         edge: ['frankfurt', 'dublin', 'roaming'], 
