@@ -162,10 +162,7 @@ export default function Home() {
       handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
     }
     
-    // 2. Open the "Live Notes" modal for documentation
-    setLiveNotesLead(lead);
-
-    // 3. Trigger WebPhone directly (Browser Call)
+    // 2. Trigger WebPhone directly (Browser Call)
     setPhoneTarget({ name: lead.clientName, phone: lead.phone });
     setIsPhoneOpen(true);
   };

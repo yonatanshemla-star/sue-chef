@@ -7,9 +7,9 @@ interface WebPhoneProps {
   isOpen: boolean; // Tells it to pop open for an outbound dial request
   onClose: () => void;
   onCallEnd?: (phone: string) => void;
-  targetName: string; // The outbound name
-  targetPhone: string; // The outbound phone
-  leads: any[]; // Used for Smart Caller ID
+  targetName: string;
+  targetPhone: string;
+  leads: any[];
 }
 
 export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targetPhone, leads }: WebPhoneProps) {
@@ -82,12 +82,14 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
 
   // Outbound Trigger
   useEffect(() => {
-    if (isOpen && callStatus === 'idle' && targetPhone && twilioLoaded) {
-      handleOutboundCall();
-    } else if (isOpen && callStatus === 'idle' && targetPhone && !twilioLoaded) {
-       setErrorMessage('טוען מערכת חיוג...'); 
+    if (isOpen && (callStatus === 'idle' || callStatus === 'ended')) {
+      if (twilioLoaded) {
+        handleOutboundCall();
+      } else {
+        setErrorMessage('טוען מערכת חיוג... שימו לב: יש לוודא אישור מיקרופון בדפדפן');
+      }
     }
-  }, [isOpen, targetPhone, twilioLoaded]);
+  }, [isOpen, targetPhone, twilioLoaded]); // Removed callStatus check from deps to avoid re-triggering during call
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
