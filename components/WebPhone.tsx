@@ -21,6 +21,12 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
   const [isKeypad, setIsKeypad] = useState(false);
   
   const [incomingCallerId, setIncomingCallerId] = useState<{name: string, phone: string} | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  const addLog = (msg: string) => {
+    console.log(`[WebPhone] ${msg}`);
+    setDebugLogs(prev => [msg, ...prev].slice(0, 5));
+  };
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const deviceRef = useRef<any>(null);
@@ -110,12 +116,12 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       const device = new Twilio.Device(token, {
         codecPreferences: ['opus', 'pcmu'],
         audioConstraints: { autoGainControl: true, echoCancellation: true, noiseSuppression: true },
-        maxAverageBitrate: 16000, 
-        edge: ['frankfurt'], 
+        maxAverageBitrate: 64000, 
+        edge: ['frankfurt', 'dublin', 'roaming'], 
         dscp: true,
         fakeLocalAudio: false,
         allowIncomingWhileBusy: true,
-        debug: false
+        debug: true
       });
 
       deviceRef.current = device;
@@ -152,51 +158,56 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         connection.on('reject', () => handleEndCall());
       });
 
+      device.on('error', (err: any) => addLog(`Device Error: ${err.message}`));
+      device.on('offline', () => addLog('Device Offline'));
+      device.on('unregistered', () => addLog('Device Unregistered'));
+
       await device.register();
+      addLog('Device registered');
     } catch (err: any) {
       console.error('Twilio init failed', err);
-      setErrorMessage('כשל באתחול הטלפון: ' + (err.message || 'שגיאת רשת'));
+      const msg = err.message || 'שגיאת רשת';
+      setErrorMessage('כשל באתחול הטלפון: ' + msg);
+      addLog(`Init Fail: ${msg}`);
     }
   };
 
   const handleOutboundCall = async () => {
+    addLog(`Starting outbound to ${targetPhone}...`);
     setCallStatus('calling');
     setErrorMessage(null);
-    setIsMinimized(false); // Open expanded UI for outbound initiation
+    setIsMinimized(false); 
     
     try {
       if (!deviceRef.current) {
+        addLog('Device missing, initializing...');
         await initTwilioDevice();
       }
       const device = deviceRef.current;
       if (!device) throw new Error("Device not initialized");
 
-      const leadForCall = (leads || []).find(l => {
-        const lp = (l.phone || '').replace(/\D/g, '');
-        const tp = (targetPhone || '').replace(/\D/g, '');
-        return lp.length >= 9 && tp.length >= 9 && lp.slice(-9) === tp.slice(-9);
-      });
-
+      addLog('Connecting via SDK...');
       const call = device.connect({ 
         params: { 
-          To: targetPhone,
-          leadId: leadForCall?.id || ''
+          To: targetPhone
         } 
       });
       connectionRef.current = call;
 
       call.on('accept', () => {
-        console.log('Call accepted');
+        addLog('Call ACCEPTED');
         setCallStatus('connected');
       });
 
+      call.on('ringing', () => addLog('Ringing...'));
+
       call.on('disconnect', () => {
-        console.log('Call disconnected');
+        addLog('Call DISCONNECTED');
         handleEndCall();
       });
 
       call.on('error', (error: any) => {
-        console.error('Call Error:', error);
+        addLog(`Call ERROR: ${error.message}`);
         setErrorMessage(`שגיאת שיחה: ${error.message || 'לא ידוע'}`);
         setCallStatus('ended');
         setTimeout(() => setCallStatus('idle'), 3000);
@@ -371,6 +382,19 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
                 <PhoneOff className="w-10 h-10 fill-current" />
               </button>
             )}
+        </div>
+
+        {/* Debug Logs for Troubleshooting */}
+        <div className="mt-8 pt-6 border-t border-white/5">
+          <div className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em] mb-3">Live Debug Logs</div>
+          <div className="space-y-1">
+            {debugLogs.length === 0 && <div className="text-[10px] font-mono text-white/10 italic">Waiting for events...</div>}
+            {debugLogs.map((log, i) => (
+              <div key={i} className="text-[10px] font-mono text-indigo-300/60 flex gap-2">
+                <span className="opacity-30">[{i}]</span> {log}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

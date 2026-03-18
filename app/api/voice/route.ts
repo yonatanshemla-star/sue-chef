@@ -10,8 +10,12 @@ function logInfo(msg: string) {
 export async function POST(req: Request) {
   try {
      const formData = await req.formData();
-     const from = formData.get('From') || '';
-     const to = formData.get('To') || '';
+     const rawData: Record<string, string> = {};
+     formData.forEach((value, key) => { rawData[key] = value.toString(); });
+     logInfo(`Voice Request: ${JSON.stringify(rawData)}`);
+
+     const from = rawData['From'] || '';
+     const to = rawData['To'] || '';
      
      const fromStr = from.toString();
      const toStr = to.toString();
