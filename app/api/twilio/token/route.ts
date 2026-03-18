@@ -58,6 +58,6 @@ export async function GET() {
     .replace(/\//g, '_');
 
   const token = `${encodedHeader}.${encodedPayload}.${signature}`;
-
-  return NextResponse.json({ token });
+ 
+  return NextResponse.json({ token, twimlAppSid });
 }

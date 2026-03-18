@@ -87,7 +87,8 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
     try {
       const resp = await fetch('/api/twilio/token');
       if (!resp.ok) throw new Error('Failed to fetch token');
-      const { token } = await resp.json();
+      const { token, twimlAppSid } = await resp.json();
+      addLog(`Token fetched for App: ${twimlAppSid || 'Unknown'}`);
 
       const device = new Device(token, {
         codecPreferences: ['opus', 'pcmu'],
