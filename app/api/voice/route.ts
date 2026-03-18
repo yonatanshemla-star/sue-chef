@@ -22,17 +22,26 @@ export async function POST(req: Request) {
 
      const isFromApp = fromStr.startsWith('client:');
      const isFromSip = fromStr.startsWith('sip:');
-     
-     const toValue = toStr.split('@')[0].replace('sip:', '');
-     const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
+          const toValueRaw = toStr.split('@')[0].replace('sip:', '').replace(/[^\d+]/g, '');
+      let toValue = toValueRaw;
 
-     let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
+      // Israeli normalization: if 05... (10 digits) -> +9725...
+      if (toValue.startsWith('0') && toValue.length === 10) {
+          toValue = '+972' + toValue.substring(1);
+      } else if (!toValue.startsWith('+') && toValue.length > 0) {
+          // If no plus, add it (assuming it's already international or needs to be)
+          toValue = '+' + toValue;
+      }
 
-     if (isOutbound && toStr) {
-         twiml += `  <Dial>\n`;
-         twiml += `    <Number>${toValue}</Number>\n`;
-         twiml += `  </Dial>\n`;
-     } else {
+      const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
+
+      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
+
+      if (isOutbound && toValue) {
+          twiml += `  <Dial>\n`;
+          twiml += `    <Number>${toValue}</Number>\n`;
+          twiml += `  </Dial>\n`;
+      } else {
          twiml += `  <Dial timeout="20" action="/api/twilio/voicemail">\n`;
          twiml += `    <Client>dashboard_user</Client>\n`;
          if (process.env.MY_PHONE_NUMBER) {
