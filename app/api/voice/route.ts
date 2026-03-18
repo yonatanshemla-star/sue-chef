@@ -15,10 +15,10 @@ export async function POST(req: Request) {
      logInfo(`Voice Request: ${JSON.stringify(rawData)}`);
 
      const from = rawData['From'] || '';
-     const to = rawData['To'] || '';
+     const to = rawData['To'] || rawData['to'] || ''; 
      
      const fromStr = from.toString();
-     const toStr = to.toString();
+     const toStr = to.toString() || '';
 
      const isFromApp = fromStr.startsWith('client:');
      const isFromSip = fromStr.startsWith('sip:');

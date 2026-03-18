@@ -163,7 +163,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       if (!device) throw new Error("Device not initialized");
 
       addLog('Connecting via SDK...');
-      const call = device.connect({ 
+      const call = await device.connect({ 
         params: { 
           To: targetPhone
         } 
