@@ -42,11 +42,12 @@ export async function POST(req: Request) {
      }
 
      const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
+     const callerId = process.env.TWILIO_PHONE_NUMBER || process.env.MY_PHONE_NUMBER || '';
 
      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
      if (isOutbound && toValue) {
-         twiml += `  <Dial>\n`;
+         twiml += `  <Dial callerId="${callerId}">\n`;
          twiml += `    <Number>${toValue}</Number>\n`;
          twiml += `  </Dial>\n`;
      } else if (!isOutbound) {
