@@ -22,11 +22,17 @@ export interface Lead {
   wasRelevant?: boolean;
 }
 
-// Initialize the leads table if it doesn't exist
 export async function initDB() {
   await sql`
     CREATE TABLE IF NOT EXISTS leads (
       id TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS debug_voice_logs (
+      id SERIAL PRIMARY KEY,
       data JSONB NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     )
@@ -64,4 +70,23 @@ export async function deleteLead(id: string): Promise<boolean> {
   await initDB();
   const result = await sql`DELETE FROM leads WHERE id = ${id}`;
   return (result.rowCount ?? 0) > 0;
+}
+
+export async function logVoiceRequest(data: any): Promise<void> {
+  try {
+    await initDB();
+    await sql`INSERT INTO debug_voice_logs (data) VALUES (${JSON.stringify(data)})`;
+  } catch (e) {
+    console.error('Log voice error:', e);
+  }
+}
+
+export async function getVoiceLogs(): Promise<any[]> {
+  try {
+    await initDB();
+    const { rows } = await sql`SELECT * FROM debug_voice_logs ORDER BY created_at DESC LIMIT 20`;
+    return rows;
+  } catch (e) {
+    return [];
+  }
 }

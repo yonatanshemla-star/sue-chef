@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logVoiceRequest } from '@/utils/storage';
 
 export async function POST(req: Request) {
   try {
@@ -8,7 +9,7 @@ export async function POST(req: Request) {
      const rawData: Record<string, string> = {};
      params.forEach((value, key) => { rawData[key] = value; });
      
-     console.log('Voice Webhook (Alternative) Params:', rawData);
+     await logVoiceRequest(rawData);
 
      const from = rawData['From'] || '';
      const to = rawData['To'] || rawData['to'] || ''; 

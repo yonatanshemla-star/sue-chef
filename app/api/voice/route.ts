@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-
-const logFile = 'webhook.log';
-function logInfo(msg: string) {
-  const timestamp = new Date().toISOString();
-  fs.appendFileSync(logFile, `[${timestamp}] ${msg}\n`, 'utf8');
-}
+import { logVoiceRequest } from '@/utils/storage';
 
 export async function POST(req: Request) {
   try {
@@ -15,8 +9,7 @@ export async function POST(req: Request) {
      const rawData: Record<string, string> = {};
      params.forEach((value, key) => { rawData[key] = value; });
      
-     // Log for debugging (will show in Vercel logs)
-     console.log('Voice Webhook Params:', rawData);
+     await logVoiceRequest(rawData);
 
      const from = rawData['From'] || '';
      // Twilio parameters for outbound calls from SDK can be 'To' or 'to'
