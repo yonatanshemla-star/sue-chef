@@ -155,17 +155,26 @@ export default function Home() {
     } catch (error) { console.error('Failed to update lead:', error); fetchLeads(); }
   };
 
-  const initiateCall = async (lead: any) => {
+  const initiateCall = async (lead: Lead) => {
     if (!lead.phone) return;
     
-    // 1. Update status to "ממתין לעדכון" ONLY if current status is "חדש"
+    // Status update logic
     if (lead.status === 'חדש') {
       handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
     }
-    
-    // 2. Trigger WebPhone directly (Browser Call)
-    setPhoneTarget({ name: lead.clientName, phone: lead.phone });
-    setIsPhoneOpen(true);
+
+    // Bridge Method: Twilio calls your mobile first
+    try {
+      fetch('/api/twilio/call/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: lead.phone })
+      });
+      // Still open the notes modal for documentation
+      setLiveNotesLead(lead);
+    } catch (err) {
+      console.error('Bridge call failed', err);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -1181,14 +1190,6 @@ export default function Home() {
         )}
       </main>
 
-      <WebPhone 
-        isOpen={isPhoneOpen} 
-        onClose={() => setIsPhoneOpen(false)}
-        targetName={phoneTarget.name}
-        targetPhone={phoneTarget.phone}
-        leads={leads}
-        onCallEnd={handleCallEnd}
-      />
     </div>
   );
 }
