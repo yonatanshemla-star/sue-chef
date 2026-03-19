@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
@@ -36,20 +36,28 @@ function formatDate(d: string | null) {
   return new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
-const CALL_SCRIPT = `פתיחה
+const CALL_SCRIPT = `פתיחה:
 "אהלן, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות, ורציתי לשוחח איתך כדי להבין איך נוכל לעזור. יש לך כמה דקות לדבר?"
 
-בירור כוונה
+בירור כוונה:
 "אני רק רוצה לוודא – אתה עדיין מעוניין שנבדוק עבורך האם נוכל לסייע?"
 
-שאלות סינון
-1. מה שמך המלא ומה הגיל שלך?
-2. יש לך כרגע הכנסות?
-3. תוכל לפרט קצת על המצב הרפואי שלך?
-4. יש לך כרגע קצבאות כלשהן?
-5. האם יש קושי בפעולות יומיומיות?
-6. האם יש לך ביטוח סיעודי בקופת חולים?
-7. משלם מס הכנסה?`;
+שאלות סינון עומק:
+1. מה שמך המלא ומה הגיל שלך? (חובה לדיוק מול ביטוח לאומי).
+2. יש לך כרגע הכנסות? מעבודה? מקצבה? (נכות/זקנה/אבטלה).
+   - אם כן, מאיפה הן מגיעות ומה הסכום בערך?
+3. תוכל לפרט קצת על המצב הרפואי שלך? 
+   - ממה אתה סובל ביומיום? 
+   - יש אבחנות ספציפיות מרופא?
+   - איך זה משפיע על היכולת שלך לעבוד או לתפקד בבית?
+4. יש לך כרגע קצבאות כלשהן? (נכות כללית, ניידות, שירותים מיוחדים).
+   - אם כן, אתה יודע מה אחוז הנכות שקיבלת?
+5. האם יש קושי בפעולות יומיומיות בסיסיות (לבוש, רחצה, אכילה)?
+6. האם יש לך ביטוח סיעודי פרטי או דרך קופת החולים?
+7. האם אתה משלם מס הכנסה? (חשוב להחזרי מס רפואיים).
+
+סגירה:
+"אוקיי, רשמתי הכל. אני מעביר את הפרטים לבדיקת היתכנות אצל גילי, המומחה שלנו. נחזור אליך בהקדם עם תשובה לגבי סיכויי התביעה."`;
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup'>('crm');
@@ -73,6 +81,21 @@ export default function Home() {
   
   // Advanced Stage Filter (Local to Table tab)
   const [showAdvancedStageOnly, setShowAdvancedStageOnly] = useState(false);
+  const [showScriptPanel, setShowScriptPanel] = useState(false);
+  const [notifications, setNotifications] = useState<{id: string, name: string, time: string}[]>([]);
+
+  // Notification interval check
+  useEffect(() => {
+    const checkNotifications = () => {
+      const now = new Date();
+      const news = leads.filter(l => l.followUpDate && new Date(l.followUpDate) <= now).map(l => ({
+        id: l.id, name: l.clientName, time: l.followUpDate
+      }));
+      setNotifications(news);
+    };
+    const interval = setInterval(checkNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [leads]);
   
   const leadsRef = useRef<Lead[]>(leads);
   useEffect(() => { leadsRef.current = leads; }, [leads]);
@@ -168,6 +191,13 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => {
+      if (showAdvancedStageOnly) {
+         // Priority: מחכה לחתימה (1), גילי צריך לדבר איתו (2), בבדיקה אצל גילי (3)
+         const order: Record<string, number> = { 'מחכה לחתימה': 1, 'גילי צריך לדבר איתו': 2, 'בבדיקה אצל גילי': 3 };
+         const orderA = order[a.status] || 99;
+         const orderB = order[b.status] || 99;
+         if (orderA !== orderB) return orderA - orderB;
+      }
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
@@ -196,12 +226,25 @@ export default function Home() {
   const stats = useMemo(() => {
     const total = leads.length;
     const signed = leads.filter(l => l.status === 'חתם').length;
+    const irrelevant = leads.filter(l => l.status === 'לא רלוונטי').length;
+    const screened = total - leads.filter(l => l.status === 'חדש').length;
+    
+    // Relevant leads that signed (Screened and were 'relevant' statuses or 'חתם')
     const actuallyRelevant = leads.filter(l => l.wasRelevant).length;
+    
+    // Relevant leads that didn't sign (were relevant but ended as 'נגמר')
+    const relevantLost = leads.filter(l => l.wasRelevant && l.status === 'נגמר').length;
+    
+    // Immediate Irrelevant (New -> Irrelevant)
+    const immediateIrrelevant = leads.filter(l => l.status === 'לא רלוונטי' && !l.wasRelevant).length;
+
     const successRate = actuallyRelevant > 0 ? ((signed / actuallyRelevant) * 100).toFixed(1) : "0";
+    
     const callsWithPrice = recentCalls.filter(c => c.price && parseFloat(c.price) !== 0);
     const totalCost = callsWithPrice.reduce((sum, c) => sum + Math.abs(parseFloat(c.price)), 0);
     const avgCost = callsWithPrice.length > 0 ? (totalCost / callsWithPrice.length).toFixed(3) : "0.00";
-    return { total, signed, actuallyRelevant, successRate, avgCost };
+    
+    return { total, signed, irrelevant, actuallyRelevant, relevantLost, immediateIrrelevant, successRate, avgCost };
   }, [leads, recentCalls]);
 
   const formatCallDuration = (seconds: string) => { if (!seconds) return "00:00"; const s = parseInt(seconds); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
@@ -248,6 +291,24 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {/* Notifications Bar */}
+        {notifications.length > 0 && (
+          <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[32px] animate-in slide-in-from-top-4 duration-500">
+            <h3 className="text-amber-800 dark:text-amber-300 font-black flex items-center gap-3 mb-4">
+               <div className="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center animate-bounce"><Clock size={16} /></div>
+               הגיע הזמן לחזור ללקוחות הבאים:
+            </h3>
+            <div className="flex flex-wrap gap-3">
+               {notifications.map(n => (
+                 <div key={n.id} className="bg-white dark:bg-slate-900 px-5 py-2.5 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-sm flex items-center gap-3">
+                   <span className="font-black text-slate-700 dark:text-slate-200">{n.name}</span>
+                   <span className="text-xs text-amber-500 font-bold">{formatDate(n.time)}</span>
+                 </div>
+               ))}
+            </div>
+          </div>
+        )}
 
         {/* Tabs - Classic Restored Layout */}
         <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] premium-glass relative overflow-hidden group">
@@ -325,9 +386,9 @@ export default function Home() {
                             type="text" 
                             value={lead.clientName} 
                             onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} 
-                            className="font-black text-xl bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
+                            className="font-black text-2xl font-assistant bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
                           />
-                          <p className="text-xs font-mono text-slate-400" dir="ltr">{lead.phone}</p>
+                          <p className="text-xl font-mono text-slate-400" dir="ltr">{lead.phone}</p>
                         </div>
                       </div>
                     </td>
@@ -370,14 +431,17 @@ export default function Home() {
                             <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: "" })} className="hover:text-red-500"><X size={12} /></button>
                           </div>
                         ) : (
-                          <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: new Date().toISOString() })} className="text-[10px] font-black text-slate-300 hover:text-indigo-500 flex items-center gap-1.5 transition-colors">
-                            <Calendar size={12} /> קבע מעקב
+                          <button onClick={() => {
+                             const time = prompt("הכנס מועד חזרה (למשל: מחר ב-10:00 או תאריך/שעה):");
+                             if (time) handleLeadUpdate(lead.id, { followUpDate: new Date().toISOString() }); // Simple fallback for now
+                          }} className="text-[10px] font-black text-slate-300 hover:text-indigo-500 flex items-center gap-1.5 transition-colors">
+                            <Calendar size={12} /> קבע מועד חזרה
                           </button>
                         )}
                         <textarea 
                           value={lead.generalNotes || ''} 
                           onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
-                          className="w-full bg-transparent border-none outline-none text-sm font-bold placeholder:text-slate-200 dark:placeholder:text-slate-700 resize-none h-6" 
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm font-bold placeholder:text-slate-200 dark:placeholder:text-slate-700 resize-none min-h-[80px]" 
                           placeholder="הערה תמציתית..." 
                         />
                       </div>
@@ -432,16 +496,46 @@ export default function Home() {
             <div className="p-10 space-y-10 animate-in zoom-in-95 duration-500">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {[
-                  { label: 'סה"כ לידים', val: stats.total, color: 'text-indigo-600' },
-                  { label: 'אחוז הצלחה', val: stats.successRate + '%', color: 'text-emerald-500' },
-                  { label: 'עלות ממוצעת', val: stats.avgCost + '$', color: 'text-amber-500' },
-                  { label: 'חתימות בפועל', val: stats.signed, color: 'text-indigo-400' }
+                  { label: 'סה"כ לידים', val: stats.total, color: 'text-indigo-600', icon: <Phone size={24} /> },
+                  { label: 'חתימות (הצלחה)', val: stats.signed, color: 'text-emerald-500', detail: `${stats.successRate}% הצלחה`, icon: <CheckCircle size={24} /> },
+                  { label: 'עלות שיחה', val: stats.avgCost + '$', color: 'text-amber-500', detail: 'ממוצע לשיחה', icon: <DollarSign size={24} /> },
+                  { label: 'לא רלוונטיים', val: stats.irrelevant, color: 'text-red-400', detail: `${stats.immediateIrrelevant} סוננו מיד`, icon: <X size={24} /> }
                 ].map(s => (
-                  <div key={s.label} className="bg-slate-50 dark:bg-slate-800/30 p-8 rounded-[40px] text-center border dark:border-slate-800">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{s.label}</p>
-                    <p className={`text-6xl font-black ${s.color}`}>{s.val}</p>
+                  <div key={s.label} className="bg-white dark:bg-slate-800/50 p-10 rounded-[48px] border-2 border-slate-50 dark:border-slate-800 shadow-xl shadow-slate-200/20 dark:shadow-none hover:scale-105 transition-all">
+                    <div className={`w-14 h-14 rounded-3xl ${s.color.replace('text', 'bg').replace('600', '100').replace('500', '100').replace('400', '100')} flex items-center justify-center mb-6 opacity-80`}>
+                       <span className={s.color}>{s.icon}</span>
+                    </div>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
+                    <p className={`text-6xl font-black ${s.color} mb-2 tracking-tighter`}>{s.val}</p>
+                    {s.detail && <p className="text-xs font-bold text-slate-400">{s.detail}</p>}
                   </div>
                 ))}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+                 <div className="bg-indigo-600 rounded-[48px] p-10 text-white shadow-2xl shadow-indigo-500/40">
+                    <h4 className="text-2xl font-black mb-6 flex items-center gap-3"><Zap /> תובנה חכמה</h4>
+                    <p className="text-lg font-bold opacity-90 leading-relaxed">
+                       מתוך {stats.actuallyRelevant} לידים שנמצאו רלוונטיים בשיחה הראשונה, {stats.signed} כבר חתמו. 
+                       זה אומר שיש לך פוטנציאל סגירה גבוה מאוד ברגע שהליד עובר את הסינון של גילי.
+                    </p>
+                 </div>
+                 <div className="bg-slate-900 rounded-[48px] p-10 text-white border border-slate-800">
+                    <h4 className="text-2xl font-black mb-6 flex items-center gap-3"><Brain /> ניתוח רלוונטיות</h4>
+                    <div className="space-y-4 text-slate-400 font-bold">
+                       <div className="flex justify-between items-center">
+                          <span>לידים שנסגרו ללא חתימה (נגמר)</span>
+                          <span className="text-red-400">{stats.relevantLost}</span>
+                       </div>
+                       <div className="flex justify-between items-center">
+                          <span>לידים רלוונטיים בתהליך</span>
+                          <span className="text-indigo-400">{stats.actuallyRelevant - stats.signed - stats.relevantLost}</span>
+                       </div>
+                       <div className="w-full bg-slate-800 h-2 rounded-full mt-4 overflow-hidden">
+                          <div className="bg-indigo-500 h-full" style={{ width: `${(stats.signed / stats.actuallyRelevant * 100) || 0}%` }} />
+                       </div>
+                    </div>
+                 </div>
               </div>
             </div>
           )}
@@ -462,7 +556,7 @@ export default function Home() {
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20"><PhoneCall size={32} /></div>
                 <div>
-                  <h2 className="text-3xl font-black tracking-tight">{liveNotesLead.clientName || 'לקוח'}</h2>
+                  <h2 className="text-3xl font-black tracking-tight font-assistant">{liveNotesLead.clientName || 'לקוח'}</h2>
                   <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
                 </div>
               </div>
@@ -484,32 +578,43 @@ export default function Home() {
                  </div>
                ) : (
                  <>
-                   <div className="flex-1 p-10 flex flex-col">
+                   <div className="flex-1 p-10 flex flex-col transition-all duration-500">
                       <div className="flex items-center justify-between mb-6">
-                        <span className="text-[11px] font-black uppercase text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 px-4 py-1.5 rounded-full tracking-widest">תיעוד שיחה בזמן אמת</span>
+                        <div className="flex items-center gap-4">
+                           <span className="text-[11px] font-black uppercase text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 px-4 py-1.5 rounded-full tracking-widest">תיעוד שיחה בזמן אמת</span>
+                           <button 
+                             onClick={() => setShowScriptPanel(!showScriptPanel)} 
+                             className={`px-4 py-1.5 rounded-full text-[11px] font-black transition-all ${showScriptPanel ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                           >
+                             {showScriptPanel ? 'סגור תסריט' : 'פתח תסריט שיחה'}
+                           </button>
+                        </div>
                         {liveNotesLead.followUpDate && <span className="text-[10px] font-black text-amber-500 bg-amber-50 dark:bg-amber-900/10 px-4 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 flex items-center gap-2"><Clock size={12} /> מעקב מתוזמן</span>}
                       </div>
                       <textarea 
                         autoFocus 
                         value={liveNotesLead.liveCallNotes || ''} 
                         onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })}
-                        className="flex-1 bg-transparent outline-none resize-none text-2xl font-bold placeholder:text-slate-100 dark:placeholder:text-slate-800 leading-relaxed"
+                        className="flex-1 bg-transparent outline-none resize-none text-xl font-bold placeholder:text-slate-100 dark:placeholder:text-slate-800 leading-relaxed font-assistant"
                         placeholder="התחל להקליד את פרטי השיחה כאן..."
                       />
                    </div>
-                   <div className="w-[400px] border-r dark:border-slate-800 p-10 bg-slate-50 dark:bg-slate-800/10 overflow-y-auto flex flex-col gap-10">
-                      <div className="p-8 bg-white dark:bg-slate-900 rounded-[32px] border dark:border-slate-800 shadow-sm">
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><Calendar size={14} /> קביעת מועד למעקב</h4>
-                        <input 
-                          type="datetime-local" 
-                          value={liveNotesLead.followUpDate ? new Date(liveNotesLead.followUpDate).toISOString().slice(0, 16) : ""}
-                          onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })}
-                          className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border-none outline-none font-bold text-base focus:ring-2 ring-indigo-500/20"
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-8 tracking-widest flex items-center gap-2"><FileText size={18} /> תסריט שיחה מומלץ</h4>
-                        <p className="text-base leading-relaxed whitespace-pre-wrap font-bold text-slate-500 dark:text-slate-400 italic bg-white dark:bg-slate-900/30 p-8 rounded-3xl border border-dashed dark:border-slate-800">{CALL_SCRIPT}</p>
+                   
+                   <div className={`border-r dark:border-slate-800 bg-slate-50 dark:bg-slate-800/10 overflow-hidden transition-all duration-500 ${showScriptPanel ? 'w-[400px] border-r border-slate-200 dark:border-slate-800' : 'w-0'}`}>
+                      <div className={`flex flex-col gap-8 p-10 transition-opacity duration-300 ${showScriptPanel ? 'opacity-100 delay-200' : 'opacity-0'} min-w-[400px]`}>
+                        <div className="p-8 bg-white dark:bg-slate-900 rounded-[32px] border dark:border-slate-800 shadow-sm">
+                          <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><Calendar size={14} /> קביעת מועד למעקב</h4>
+                          <input 
+                            type="datetime-local" 
+                            value={liveNotesLead.followUpDate ? new Date(liveNotesLead.followUpDate).toISOString().slice(0, 16) : ""}
+                            onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })}
+                            className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border-none outline-none font-bold text-base focus:ring-2 ring-indigo-500/20"
+                          />
+                        </div>
+                        <div className="flex-1 overflow-y-auto max-h-[50vh] scrollbar-hide">
+                          <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><FileText size={18} /> תסריט שיחה מומלץ</h4>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap font-bold text-slate-600 dark:text-slate-400 italic bg-white dark:bg-slate-900/30 p-8 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">{CALL_SCRIPT}</p>
+                        </div>
                       </div>
                    </div>
                  </>
