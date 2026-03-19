@@ -294,7 +294,13 @@ export default function Home() {
 
         {/* Notifications Bar */}
         {notifications.length > 0 && (
-          <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[32px] animate-in slide-in-from-top-4 duration-500">
+          <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[32px] animate-in slide-in-from-top-4 duration-500 relative group/alert">
+            <button 
+              onClick={() => setNotifications([])} 
+              className="absolute left-6 top-6 w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center transition-all opacity-0 group-hover/alert:opacity-100"
+            >
+              <X size={16} />
+            </button>
             <h3 className="text-amber-800 dark:text-amber-300 font-black flex items-center gap-3 mb-4">
                <div className="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center animate-bounce"><Clock size={16} /></div>
                הגיע הזמן לחזור ללקוחות הבאים:
@@ -431,12 +437,15 @@ export default function Home() {
                             <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: "" })} className="hover:text-red-500"><X size={12} /></button>
                           </div>
                         ) : (
-                          <button onClick={() => {
-                             const time = prompt("הכנס מועד חזרה (למשל: מחר ב-10:00 או תאריך/שעה):");
-                             if (time) handleLeadUpdate(lead.id, { followUpDate: new Date().toISOString() }); // Simple fallback for now
-                          }} className="text-[10px] font-black text-slate-300 hover:text-indigo-500 flex items-center gap-1.5 transition-colors">
-                            <Calendar size={12} /> קבע מועד חזרה
-                          </button>
+                          <div className="relative group/callback">
+                            <Calendar size={12} className="absolute right-0 top-1.5 text-slate-300" />
+                            <input 
+                              type="datetime-local" 
+                              className="bg-transparent border-none outline-none text-[11px] font-black text-slate-400 focus:text-indigo-600 pr-5 w-full cursor-pointer hover:text-indigo-500 transition-colors"
+                              onChange={e => handleLeadUpdate(lead.id, { followUpDate: e.target.value })}
+                            />
+                            <span className="absolute right-5 inset-y-0 flex items-center text-[10px] font-black text-slate-200 pointer-events-none group-hover/callback:hidden">קבע מועד חזרה</span>
+                          </div>
                         )}
                         <textarea 
                           value={lead.generalNotes || ''} 
