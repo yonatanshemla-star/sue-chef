@@ -1,47 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { 
-  Phone, 
-  PhoneCall, 
-  UserPlus, 
-  CheckCircle, 
-  X, 
-  Search, 
-  Plus, 
-  Calendar, 
-  Clock, 
-  MessageSquare, 
-  ChevronDown, 
-  MoreVertical, 
-  Trash2, 
-  Archive, 
-  Check, 
-  RotateCcw, 
-  LayoutDashboard, 
-  TableProperties, 
-  PhoneOff, 
-  BarChart, 
-  DollarSign, 
-  RefreshCw, 
-  Sun, 
-  Moon, 
-  MonitorPlay, 
-  Loader2, 
-  Brain, 
-  ArrowUpDown, 
-  Filter, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  ClipboardList,
-  FileText,
-  Copy,
-  HelpCircle,
-  Maximize2,
-  History,
-  Star,
-  Zap
-} from 'lucide-react';
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import { legalQuestions } from '@/utils/legalQuestions';
@@ -92,21 +52,26 @@ const CALL_SCRIPT = `פתיחה
 7. משלם מס הכנסה?`;
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'followup' | 'archive' | 'analytics' | 'tree'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup'>('crm');
   const [darkMode, setDarkMode] = useState(false);
   const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
   const [loadingCalls, setLoadingCalls] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(true);
+  
+  // Live notes modal
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showScript, setShowScript] = useState(true);
+  
+  // Decision Tree state in modal
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [globalSearch, setGlobalSearch] = useState('');
   const [archiveSearch, setArchiveSearch] = useState('');
   
-  // Advanced Stage Filter (Local to CRM tab)
+  // Advanced Stage Filter (Local to Table tab)
   const [showAdvancedStageOnly, setShowAdvancedStageOnly] = useState(false);
   
   const leadsRef = useRef<Lead[]>(leads);
@@ -194,15 +159,12 @@ export default function Home() {
   }, [liveNotesLead]);
 
   const crmLeads = useMemo(() => leads
-    .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי')
+    .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי' && l.status !== 'במעקב')
     .filter(l => {
       const q = globalSearch.toLowerCase();
       const matchSearch = !q || (l.clientName?.toLowerCase().includes(q)) || (l.phone?.includes(q));
       if (!matchSearch) return false;
-
-      if (showAdvancedStageOnly) {
-        return ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
-      }
+      if (showAdvancedStageOnly) return ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
       return true;
     })
     .sort((a, b) => {
@@ -225,7 +187,11 @@ export default function Home() {
       const q = (globalSearch || archiveSearch).toLowerCase();
       return !q || (l.clientName?.toLowerCase().includes(q)) || (l.phone?.includes(q));
     })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [leads, globalSearch, archiveSearch]);
+    .sort((a, b) => {
+        if (a.status === 'חתם' && b.status !== 'חתם') return -1;
+        if (a.status !== 'חתם' && b.status === 'חתם') return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }), [leads, globalSearch, archiveSearch]);
 
   const stats = useMemo(() => {
     const total = leads.length;
@@ -240,52 +206,63 @@ export default function Home() {
 
   const formatCallDuration = (seconds: string) => { if (!seconds) return "00:00"; const s = parseInt(seconds); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
 
+  const getLeadByPhone = useCallback((phone: string) => {
+    const normalized = phone.slice(-9);
+    return leads.find(l => l.phone?.includes(normalized));
+  }, [leads]);
+
+  const cardClass = "premium-glass rounded-3xl";
+
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark text-slate-100 bg-slate-950' : 'text-slate-900 bg-slate-50'}`}>
-      <main className="max-w-[1440px] mx-auto px-4 py-10" dir="rtl">
-        {/* Integrated Header Setup */}
-        <div className="flex flex-col gap-8 mb-10">
-          <div className="flex justify-between items-center">
-            <h1 className="text-5xl font-black tracking-tight">Sue-Chef</h1>
-            <div className="flex items-center gap-4">
-              <div className="bg-white dark:bg-slate-900 px-6 py-3 rounded-2xl shadow-sm border dark:border-slate-800 flex items-center gap-4">
-                 <div>
-                    <p className="text-[10px] text-slate-400 font-black uppercase">יתרה בטוויליו</p>
-                    <p className="text-xl font-black text-emerald-500">{twilioBalance || "..."}</p>
-                 </div>
-                 <div className="w-[1px] h-8 bg-slate-100 dark:bg-slate-800" />
-                 <div className="flex gap-2">
-                    <button onClick={() => setDarkMode(!darkMode)} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400">
-                      {darkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-indigo-500" />}
-                    </button>
-                    <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400">
-                      <RefreshCw size={20} className={loadingLeads ? "animate-spin" : ""} />
-                    </button>
-                 </div>
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-hidden`}>
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10 animate-in fade-in duration-700" dir="rtl">
+        {/* Header - Classical Restored v5.1 Style */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+          <div className="flex flex-col">
+            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
+               Sue-Chef 
+               <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.1</span>
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">{crmLeads.length} לידים פעילים בטיפול שוטף</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
+              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טוויליו</p>
+                <p className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
               </div>
             </div>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border dark:border-slate-800">
-              {(['crm', 'calls', 'followup', 'archive', 'analytics', 'tree'] as const).map(tab => (
-                <button 
-                  key={tab} 
-                  onClick={() => setActiveTab(tab)} 
-                  className={`px-8 py-3 rounded-xl text-sm font-black transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-                >
-                  {tab === 'crm' ? 'CRM' : tab === 'calls' ? 'שיחות' : tab === 'followup' ? 'מעקב' : tab === 'archive' ? 'ארכיון' : tab === 'analytics' ? 'אנליטיקה' : 'עץ'}
-                </button>
-              ))}
-            </div>
             
-            <button onClick={addNewLead} className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all flex items-center gap-2">
-              <Plus size={20} /> הוסף ליד
+            <button onClick={() => setDarkMode(!darkMode)} className={`p-4 transition-all active:scale-95 hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
+              <div className="relative w-6 h-6">
+                <Sun className={`absolute inset-0 w-6 h-6 text-yellow-500 transition-transform duration-500 ${darkMode ? 'rotate-90 scale-0' : 'rotate-0 scale-100'}`} />
+                <Moon className={`absolute inset-0 w-6 h-6 text-indigo-400 transition-transform duration-500 ${darkMode ? 'rotate-0 scale-100' : '-rotate-90 scale-0'}`} />
+              </div>
+            </button>
+            
+            <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
+              <RefreshCw className={`w-6 h-6 transition-transform ${(loadingLeads) ? 'animate-spin text-indigo-500' : 'text-gray-600 dark:text-gray-300 group-hover:rotate-180 duration-500 group-hover:text-indigo-500'}`} />
             </button>
           </div>
         </div>
 
-        {/* Dynamic Controls Bar */}
+        {/* Tabs - Classic Restored Layout */}
+        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] premium-glass relative overflow-hidden group">
+          {(['crm', 'calls', 'archive', 'analytics', 'tree'] as const).map(tab => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveTab(tab)} 
+              className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-500 relative z-10 ${activeTab === tab ? 'bg-indigo-600 text-white shadow-[0_8px_20px_-4px_rgba(79,70,229,0.4)] scale-105' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              {tab === 'crm' ? 'טבלת מעקב' : tab === 'calls' ? 'שיחות אחרונות' : tab === 'archive' ? 'ארכיון' : tab === 'analytics' ? 'אנליטיקה' : 'עץ החלטות'}
+            </button>
+          ))}
+        </div>
+
+        {/* Search & Actions Bar - Merged Feel */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
           <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="relative flex-1">
@@ -302,7 +279,7 @@ export default function Home() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setActiveTab('followup')}
-                className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}
+                className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}
               >
                 <Clock size={18} /> מעקב
                 <span className={`px-2 py-0.5 rounded-lg text-[10px] ${activeTab === 'followup' ? 'bg-white text-amber-500' : 'bg-amber-500 text-white'}`}>{leads.filter(l => l.status === 'במעקב').length}</span>
@@ -310,21 +287,26 @@ export default function Home() {
               
               <button 
                 onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)}
-                className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}
+                className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}
               >
                 <Zap size={18} /> שלב מתקדם
+              </button>
+              
+              <button onClick={addNewLead} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                <Plus size={20} /> הוסף ליד
               </button>
             </div>
           </div>
         )}
 
-        {/* Content Area */}
-        <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
+        {/* Content Area - Classic Rows and Gradients */}
+        <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px] animate-in slide-in-from-bottom-4 duration-500">
           {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
             <table className="w-full text-right border-collapse">
               <thead className="bg-slate-50/50 dark:bg-slate-800/20 border-b dark:border-slate-800">
                 <tr>
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">לקוח</th>
+                  <th className="px-2 py-6 font-bold w-12 text-center"></th>
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">סטטוס</th>
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">תיעוד אחרון / מעקב</th>
                   <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">פעולות</th>
@@ -335,7 +317,7 @@ export default function Home() {
                   <tr key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5">
-                        <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-110 active:scale-95 transition-all">
+                        <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-110 active:scale-95 transition-all">
                           <Phone size={22} fill="currentColor" />
                         </button>
                         <div>
@@ -343,17 +325,38 @@ export default function Home() {
                             type="text" 
                             value={lead.clientName} 
                             onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} 
-                            className="font-black text-lg bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
+                            className="font-black text-xl bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
                           />
                           <p className="text-xs font-mono text-slate-400" dir="ltr">{lead.phone}</p>
                         </div>
                       </div>
                     </td>
+                    <td className="px-2 py-4 text-center relative">
+                       <div className="relative">
+                          <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"><MoreVertical className="w-5 h-5 text-gray-400" /></button>
+                          {openMenuId === lead.id && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+                                <button onClick={() => {
+                                  const phone = lead.phone?.replace(/^0/, '972');
+                                  const msg = encodeURIComponent(`שלום ${lead.clientName?.split(' ')[0] || 'לקוח'}, רציתי לחזור אליך בנוגע לפנייתך`);
+                                  window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+                                  setOpenMenuId(null);
+                                }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
+                                <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800"><Copy className="w-4 h-4" /> העתק מספר</button>
+                                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                                <button onClick={() => { handleLeadUpdate(lead.id, { status: 'לא רלוונטי' }); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"><Trash2 className="w-4 h-4" /> העברה לארכיון</button>
+                              </div>
+                            </>
+                          )}
+                       </div>
+                    </td>
                     <td className="px-8 py-6">
                       <select 
                         value={lead.status} 
                         onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
-                        className={`px-4 py-2.5 rounded-xl font-black text-[11px] border ring-offset-white dark:ring-offset-slate-900 focus:ring-2 ring-indigo-500/20 transition-all ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
+                        className={`px-4 py-2.5 rounded-xl font-black text-[11px] border focus:ring-2 ring-indigo-500/20 transition-all ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
                       >
                         {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                       </select>
@@ -382,7 +385,7 @@ export default function Home() {
                     <td className="px-8 py-6 text-center">
                       <button 
                         onClick={() => setLiveNotesLead(lead)}
-                        className="text-[11px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 px-6 py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all active:scale-95 shadow-sm"
+                        className="text-[11px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 px-6 py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-95"
                       >
                         תיעוד מלא
                       </button>
@@ -394,37 +397,39 @@ export default function Home() {
           )}
 
           {activeTab === 'calls' && (
-            <div className="p-8 max-w-4xl mx-auto space-y-4">
-               {recentCalls.map(call => (
+            <div className="p-8 max-w-4xl mx-auto space-y-4 animate-in fade-in duration-500">
+               {recentCalls.map(call => {
+                const lead = getLeadByPhone(call.from.slice(-10)) || getLeadByPhone(call.to.slice(-10));
+                return (
                 <div key={call.sid} className="bg-white dark:bg-slate-800/30 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex justify-between items-center hover:scale-[1.01] transition-all">
                   <div className="flex items-center gap-5">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${call.direction === 'inbound' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30'}`}>
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30">
                       {call.direction === 'inbound' ? <ArrowUpRight size={28} /> : <ArrowDownRight size={28} />}
                     </div>
                     <div>
-                      <p className="font-black text-xl">{leads.find(l => l.phone?.includes(call.from.slice(-9)))?.clientName || 'ליד לא מזוהה'}</p>
+                      <p className="font-black text-xl">{lead?.clientName || 'ליד לא מזוהה'}</p>
                       <p className="text-xs font-mono text-slate-400" dir="ltr">{call.direction==='inbound'?call.from:call.to}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                       <p className="text-xs font-black text-slate-300 uppercase">משך שיחה</p>
+                       <p className="text-xs font-black text-slate-300 uppercase tracking-widest">משך שיחה</p>
                        <p className="font-black text-lg">{formatCallDuration(call.duration)}</p>
                     </div>
                     <div className="w-[1px] h-10 bg-slate-100 dark:bg-slate-800" />
                     <div className="text-right">
-                       <p className="text-xs font-black text-slate-300 uppercase">עלות</p>
+                       <p className="text-xs font-black text-slate-300 uppercase tracking-widest">עלות</p>
                        <p className="font-black text-lg text-emerald-500">{call.price ? `${Math.abs(parseFloat(call.price)).toFixed(2)}$` : '0.00$'}</p>
                     </div>
                     <span className="text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 px-4 py-1.5 rounded-full text-slate-400">{formatDate(call.startTime)}</span>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           )}
 
           {activeTab === 'analytics' && (
-            <div className="p-10 space-y-10">
+            <div className="p-10 space-y-10 animate-in zoom-in-95 duration-500">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {[
                   { label: 'סה"כ לידים', val: stats.total, color: 'text-indigo-600' },
@@ -442,14 +447,14 @@ export default function Home() {
           )}
           
           {activeTab === 'tree' && (
-            <div className="p-8 h-full">
+            <div className="p-8 h-full animate-in fade-in duration-500">
               <LegalDecisionTree />
             </div>
           )}
         </div>
       </main>
 
-      {/* Live Notes Modal */}
+      {/* Live Notes Modal - Classic v5.1 Restoration */}
       {liveNotesLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-md">
           <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[90vh] rounded-[40px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
@@ -464,7 +469,7 @@ export default function Home() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setShowDecisionTree(!showDecisionTree)} 
-                  className={`px-8 py-3.5 rounded-2xl border font-black text-sm transition-all flex items-center gap-3 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700 shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-slate-800 hover:bg-slate-50'}`}
+                  className={`px-8 py-3.5 rounded-2xl border font-black text-sm transition-all flex items-center gap-3 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-800 hover:bg-slate-100'}`}
                 >
                   <ClipboardList size={20} /> {showDecisionTree ? 'חזרה לתיעוד' : 'עץ החלטות'}
                 </button>
@@ -493,7 +498,7 @@ export default function Home() {
                       />
                    </div>
                    <div className="w-[400px] border-r dark:border-slate-800 p-10 bg-slate-50 dark:bg-slate-800/10 overflow-y-auto flex flex-col gap-10">
-                      <div className="p-8 bg-white dark:bg-slate-900 rounded-[32px] border dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+                      <div className="p-8 bg-white dark:bg-slate-900 rounded-[32px] border dark:border-slate-800 shadow-sm">
                         <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><Calendar size={14} /> קביעת מועד למעקב</h4>
                         <input 
                           type="datetime-local" 
@@ -512,10 +517,10 @@ export default function Home() {
             </div>
             
             <div className="p-10 border-t dark:border-slate-800 bg-white dark:bg-slate-900/50 flex justify-between items-center">
-               <p className="text-xs font-black text-slate-300">מערכת Sue-Chef | אבטחת מידע ברמה גבוהה</p>
+               <p className="text-xs font-black text-slate-300 tracking-widest">מערכת Sue-Chef | אבטחת מידע ברמה גבוהה</p>
                <div className="flex gap-4">
                  <button onClick={() => copyToClipboard(liveNotesLead.liveCallNotes || '')} className="px-10 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 font-black text-sm hover:bg-slate-200 transition-all flex items-center gap-2"><Copy size={18} /> העתק תיעוד</button>
-                 <button onClick={() => setLiveNotesLead(null)} className="px-14 py-4 rounded-2xl bg-indigo-600 text-white font-black shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all">סיום ועדכון מערכת</button>
+                 <button onClick={() => setLiveNotesLead(null)} className="px-14 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"><Check size={20} /> סיום ועדכון מערכת</button>
                </div>
             </div>
           </div>
