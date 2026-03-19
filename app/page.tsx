@@ -88,7 +88,12 @@ export default function Home() {
   useEffect(() => {
     const checkNotifications = () => {
       const now = new Date();
-      const news = leads.filter(l => l.followUpDate && !isNaN(new Date(l.followUpDate).getTime()) && new Date(l.followUpDate) <= now).map(l => ({
+      const news = leads.filter(l => {
+        if (!l.followUpDate || typeof l.followUpDate !== 'string' || l.followUpDate.trim() === '') return false;
+        const timestamp = Date.parse(l.followUpDate);
+        if (isNaN(timestamp)) return false;
+        return new Date(timestamp) <= now;
+      }).map(l => ({
         id: l.id, name: l.clientName, time: l.followUpDate
       }));
       setNotifications(news);
@@ -138,6 +143,14 @@ export default function Home() {
     };
     setLeads(prev => [newLead, ...prev]);
     try { await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) }); } catch(e) { console.error(e); }
+  };
+
+  const deleteLeadItem = async (id: string) => {
+    if (!confirm('האם אתה בטוח שברצונך למחוק ליד זה לצמיתות? הפעולה לא ניתנת לביטול.')) return;
+    setLeads(prev => prev.filter(l => l.id !== id));
+    try {
+      await fetch('/api/leads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    } catch (e) { console.error(e); fetchLeads(); }
   };
 
   const fetchTwilioData = async () => {
@@ -413,7 +426,7 @@ export default function Home() {
                                 }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                                 <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800"><Copy className="w-4 h-4" /> העתק מספר</button>
                                 <div className="h-px bg-gray-100 dark:bg-gray-800" />
-                                <button onClick={() => { handleLeadUpdate(lead.id, { status: 'לא רלוונטי' }); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"><Trash2 className="w-4 h-4" /> העברה לארכיון</button>
+                                <button onClick={() => { deleteLeadItem(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"><Trash2 className="w-4 h-4" /> מחיקה לצמיתות</button>
                               </div>
                             </>
                           )}
