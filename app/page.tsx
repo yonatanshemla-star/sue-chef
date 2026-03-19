@@ -1042,9 +1042,18 @@ export default function Home() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <span className={`text-xs font-black rounded-xl px-3 py-2 border ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}>
-                              {getStatusStyle(lead.status).label}
-                            </span>
+                            <div className="relative group/select max-w-[180px]">
+                              <select 
+                                value={lead.status} 
+                                onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
+                                className={`text-[11px] font-black rounded-2xl px-4 py-3 outline-none border transition-all cursor-pointer w-full appearance-none shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border} group-hover/select:shadow-indigo-500/10`}
+                              >
+                                {Object.entries(STATUS_CONFIG).filter(([k]) => k === lead.status || !AUTO_ONLY_STATUSES.has(k)).map(([k,v]) => (
+                                  <option key={k} value={k}>{v.label}</option>
+                                ))}
+                              </select>
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50"><ChevronDown size={14} /></div>
+                            </div>
                           </td>
                           <td className="px-4 py-4">
                             <p className="text-sm font-semibold opacity-70 line-clamp-2">{lead.generalNotes || lead.liveCallNotes || 'אין הערות'}</p>
