@@ -20,6 +20,8 @@ export interface Lead {
   isSigned?: boolean;
   signedAt?: string;
   wasRelevant?: boolean;
+  disqualificationReason?: string;
+  callCount?: number;
 }
 
 export async function initDB() {
