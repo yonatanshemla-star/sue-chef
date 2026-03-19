@@ -92,7 +92,7 @@ const CALL_SCRIPT = `פתיחה
 7. משלם מס הכנסה?`;
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'followup' | 'archive' | 'analytics' | 'tree'>('crm');
   const [darkMode, setDarkMode] = useState(false);
   const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
@@ -106,8 +106,7 @@ export default function Home() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [archiveSearch, setArchiveSearch] = useState('');
   
-  // New Quick Filters
-  const [showFollowUpOnly, setShowFollowUpOnly] = useState(false);
+  // Advanced Stage Filter (Local to CRM tab)
   const [showAdvancedStageOnly, setShowAdvancedStageOnly] = useState(false);
   
   const leadsRef = useRef<Lead[]>(leads);
@@ -197,26 +196,28 @@ export default function Home() {
   const crmLeads = useMemo(() => leads
     .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי')
     .filter(l => {
-      // 1. Global Search
       const q = globalSearch.toLowerCase();
       const matchSearch = !q || (l.clientName?.toLowerCase().includes(q)) || (l.phone?.includes(q));
       if (!matchSearch) return false;
 
-      // 2. Follow-up Filter
-      if (showFollowUpOnly && !l.followUpDate) return false;
-
-      // 3. Advanced Stage Filter
       if (showAdvancedStageOnly) {
         return ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
       }
-
       return true;
     })
     .sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    }), [leads, globalSearch, sortOrder, showFollowUpOnly, showAdvancedStageOnly]);
+    }), [leads, globalSearch, sortOrder, showAdvancedStageOnly]);
+
+  const followupLeads = useMemo(() => leads
+    .filter(l => l.status === 'במעקב')
+    .filter(l => {
+        const q = globalSearch.toLowerCase();
+        return !q || (l.clientName?.toLowerCase().includes(q)) || (l.phone?.includes(q));
+    })
+    .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads, globalSearch]);
 
   const archiveLeads = useMemo(() => leads
     .filter(l => l.status === 'חתם' || l.status === 'לא רלוונטי' || l.status === 'נגמר')
@@ -242,283 +243,279 @@ export default function Home() {
   return (
     <div className={`min-h-screen ${darkMode ? 'dark text-slate-100 bg-slate-950' : 'text-slate-900 bg-slate-50'}`}>
       <main className="max-w-[1440px] mx-auto px-4 py-10" dir="rtl">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-black">Sue-Chef <span className="text-xs bg-indigo-500 text-white px-2 py-1 rounded-full">v5.3</span></h1>
-          <div className="flex items-center gap-4">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border dark:border-slate-700">
-               <p className="text-[10px] text-gray-400 font-bold uppercase">יתרה</p>
-               <p className="text-xl font-black text-emerald-600">{twilioBalance || "..."}</p>
+        {/* Integrated Header Setup */}
+        <div className="flex flex-col gap-8 mb-10">
+          <div className="flex justify-between items-center">
+            <h1 className="text-5xl font-black tracking-tight">Sue-Chef</h1>
+            <div className="flex items-center gap-4">
+              <div className="bg-white dark:bg-slate-900 px-6 py-3 rounded-2xl shadow-sm border dark:border-slate-800 flex items-center gap-4">
+                 <div>
+                    <p className="text-[10px] text-slate-400 font-black uppercase">יתרה בטוויליו</p>
+                    <p className="text-xl font-black text-emerald-500">{twilioBalance || "..."}</p>
+                 </div>
+                 <div className="w-[1px] h-8 bg-slate-100 dark:bg-slate-800" />
+                 <div className="flex gap-2">
+                    <button onClick={() => setDarkMode(!darkMode)} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400">
+                      {darkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-indigo-500" />}
+                    </button>
+                    <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400">
+                      <RefreshCw size={20} className={loadingLeads ? "animate-spin" : ""} />
+                    </button>
+                 </div>
+              </div>
             </div>
-            <button onClick={() => setDarkMode(!darkMode)} className="p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700">
-              {darkMode ? <Sun className="text-yellow-500" /> : <Moon className="text-indigo-500" />}
-            </button>
-            <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className="p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700">
-              <RefreshCw className={loadingLeads ? "animate-spin" : ""} />
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border dark:border-slate-800">
+              {(['crm', 'calls', 'followup', 'archive', 'analytics', 'tree'] as const).map(tab => (
+                <button 
+                  key={tab} 
+                  onClick={() => setActiveTab(tab)} 
+                  className={`px-8 py-3 rounded-xl text-sm font-black transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                >
+                  {tab === 'crm' ? 'CRM' : tab === 'calls' ? 'שיחות' : tab === 'followup' ? 'מעקב' : tab === 'archive' ? 'ארכיון' : tab === 'analytics' ? 'אנליטיקה' : 'עץ'}
+                </button>
+              ))}
+            </div>
+            
+            <button onClick={addNewLead} className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all flex items-center gap-2">
+              <Plus size={20} /> הוסף ליד
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 bg-white dark:bg-slate-900 p-2 rounded-3xl shadow-sm w-fit border dark:border-slate-800">
-          {(['crm', 'calls', 'archive', 'analytics', 'tree'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-              {tab === 'crm' ? 'CRM' : tab === 'calls' ? 'שיחות' : tab === 'archive' ? 'ארכיון' : tab === 'analytics' ? 'אנליטיקה' : 'עץ'}
-            </button>
-          ))}
-        </div>
-
-        {/* CRM */}
-        {activeTab === 'crm' && (
-          <div>
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-              <div className="flex items-center gap-4 w-full md:w-auto">
-                <button onClick={addNewLead} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2"><Plus size={20} /> הוסף ליד</button>
-              </div>
+        {/* Dynamic Controls Bar */}
+        {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
+          <div className="flex flex-col md:flex-row gap-4 mb-8">
+            <div className="relative flex-1">
+              <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+              <input 
+                type="text" 
+                placeholder="חיפוש מהיר של לקוח או טלפון..." 
+                value={activeTab === 'archive' ? archiveSearch : globalSearch} 
+                onChange={e => activeTab === 'archive' ? setArchiveSearch(e.target.value) : setGlobalSearch(e.target.value)} 
+                className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-6 py-4 outline-none font-bold shadow-sm focus:ring-4 ring-indigo-500/5 transition-all" 
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setActiveTab('followup')}
+                className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}
+              >
+                <Clock size={18} /> מעקב
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] ${activeTab === 'followup' ? 'bg-white text-amber-500' : 'bg-amber-500 text-white'}`}>{leads.filter(l => l.status === 'במעקב').length}</span>
+              </button>
               
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                {/* Search Bar */}
-                <div className="relative flex-1 md:w-80">
-                  <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="חיפוש לפי שם או טלפון..." 
-                    value={globalSearch} 
-                    onChange={e => setGlobalSearch(e.target.value)} 
-                    className="w-full bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl pr-12 pl-6 py-4 outline-none font-bold shadow-sm focus:ring-2 ring-indigo-500/20 transition-all" 
-                  />
-                </div>
-
-                {/* Quick Action: Follow-up */}
-                <button 
-                  onClick={() => setShowFollowUpOnly(!showFollowUpOnly)}
-                  className={`flex items-center gap-2 px-5 py-4 rounded-2xl font-black text-sm border transition-all shadow-sm ${showFollowUpOnly ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20' : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}
-                >
-                  <Calendar size={18} />
-                  <span>מעקב</span>
-                  {leads.filter(l => l.followUpDate).length > 0 && <span className={`text-[10px] px-1.5 rounded-full ${showFollowUpOnly ? 'bg-white text-amber-600' : 'bg-amber-500 text-white'}`}>{leads.filter(l => l.followUpDate).length}</span>}
-                </button>
-
-                {/* Quick Action: Advanced Stage */}
-                <button 
-                  onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)}
-                  className={`flex items-center gap-2 px-5 py-4 rounded-2xl font-black text-sm border transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 shadow-emerald-500/20' : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}
-                >
-                  <Zap size={18} />
-                  <span>שלב מתקדם</span>
-                </button>
-              </div>
+              <button 
+                onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)}
+                className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}
+              >
+                <Zap size={18} /> שלב מתקדם
+              </button>
             </div>
+          </div>
+        )}
 
-            <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden">
-              <table className="w-full text-right">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b dark:border-slate-700">
-                  <tr>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400">לקוח</th>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400">סטטוס</th>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400">מעקב / הערה תמציתית</th>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400 text-center">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-slate-800">
-                  {crmLeads.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-20 text-center text-slate-400 font-bold">לא נמצאו לידים התואמים את הסינון</td>
-                    </tr>
-                  ) : (
-                    crmLeads.map(lead => (
-                    <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
-                          <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all"><Phone size={20} /></button>
-                          <div>
-                            <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-lg bg-transparent outline-none block" />
-                            <span className="text-xs font-mono text-slate-400" dir="ltr">{lead.phone}</span>
+        {/* Content Area */}
+        <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
+          {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
+            <table className="w-full text-right border-collapse">
+              <thead className="bg-slate-50/50 dark:bg-slate-800/20 border-b dark:border-slate-800">
+                <tr>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">לקוח</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">סטטוס</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">תיעוד אחרון / מעקב</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">פעולות</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y dark:divide-slate-800">
+                {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads).map(lead => (
+                  <tr key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-5">
+                        <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-110 active:scale-95 transition-all">
+                          <Phone size={22} fill="currentColor" />
+                        </button>
+                        <div>
+                          <input 
+                            type="text" 
+                            value={lead.clientName} 
+                            onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} 
+                            className="font-black text-lg bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
+                          />
+                          <p className="text-xs font-mono text-slate-400" dir="ltr">{lead.phone}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <select 
+                        value={lead.status} 
+                        onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
+                        className={`px-4 py-2.5 rounded-xl font-black text-[11px] border ring-offset-white dark:ring-offset-slate-900 focus:ring-2 ring-indigo-500/20 transition-all ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
+                      >
+                        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col gap-2 max-w-sm">
+                        {lead.followUpDate ? (
+                          <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg w-fit border border-amber-200 dark:border-amber-800/50">
+                            <Clock size={14} className="animate-pulse" />
+                            <span className="text-xs font-black">{formatDate(lead.followUpDate)}</span>
+                            <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: "" })} className="hover:text-red-500"><X size={12} /></button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <select value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`px-4 py-2 rounded-xl font-bold text-xs border ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color}`}>
-                          {Object.entries(STATUS_CONFIG).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex flex-col gap-1">
-                          {lead.followUpDate ? (
-                            <div className="flex items-center gap-2 text-amber-600 font-black text-xs mb-1">
-                              <Calendar size={14} />
-                              <span>מעקב: {formatDate(lead.followUpDate)}</span>
-                              <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: "" })} className="hover:text-red-500"><X size={12} /></button>
-                            </div>
-                          ) : (
-                            <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: new Date().toISOString() })} className="text-[10px] text-slate-300 hover:text-indigo-500 flex items-center gap-1 w-fit mb-1"><Calendar size={10} /> קבע מעקב</button>
-                          )}
-                          <textarea value={lead.generalNotes || ''} onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} className="w-full bg-transparent border-none outline-none text-sm h-8 resize-none font-medium" placeholder="הוסף הערה..." />
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <button onClick={() => setLiveNotesLead(lead)} className="text-xs font-black text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">תיעוד מלא</button>
-                      </td>
-                    </tr>
-                   ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Calls */}
-        {activeTab === 'calls' && (
-          <div className="max-w-3xl mx-auto space-y-4">
-            {recentCalls.map(call => (
-              <div key={call.sid} className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border dark:border-slate-800 shadow-sm flex justify-between items-center transition-all hover:shadow-md">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${call.direction === 'inbound' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-                    {call.direction === 'inbound' ? <ArrowUpRight /> : <ArrowDownRight />}
-                  </div>
-                  <div>
-                    <p className="font-black text-lg">{leads.find(l => l.phone?.includes(call.from.slice(-9)))?.clientName || 'ליד לא מזוהה'}</p>
-                    <p className="text-xs font-mono text-slate-400" dir="ltr">{call.direction==='inbound'?call.from:call.to}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-mono font-bold">{formatCallDuration(call.duration)}</span>
-                  <span className="text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">{formatDate(call.startTime)}</span>
-                  {call.price && <span className="text-xs font-black text-emerald-600">{Math.abs(parseFloat(call.price)).toFixed(2)}$</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Analytics */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-8">
-            <div className="bg-white dark:bg-slate-900 p-10 rounded-[40px] border dark:border-slate-800 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                <p className="text-xs font-black text-slate-400 uppercase mb-2">סה"כ לידים</p>
-                <p className="text-5xl font-black text-indigo-600">{stats.total}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-black text-slate-400 uppercase mb-2">אחוז הצלחה</p>
-                <p className="text-5xl font-black text-emerald-600">{stats.successRate}%</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-black text-slate-400 uppercase mb-2">עלות ממוצעת</p>
-                <p className="text-5xl font-black text-amber-600">{stats.avgCost}$</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-black text-slate-400 uppercase mb-2">חתימות</p>
-                <p className="text-5xl font-black text-emerald-500">{stats.signed}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Archive */}
-        {activeTab === 'archive' && (
-           <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden">
-              <table className="w-full text-right">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b dark:border-slate-700">
-                  <tr>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400">לקוח</th>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400">סטטוס סופי</th>
-                    <th className="px-8 py-6 font-black text-xs uppercase text-slate-400">הערות</th>
+                        ) : (
+                          <button onClick={() => handleLeadUpdate(lead.id, { followUpDate: new Date().toISOString() })} className="text-[10px] font-black text-slate-300 hover:text-indigo-500 flex items-center gap-1.5 transition-colors">
+                            <Calendar size={12} /> קבע מעקב
+                          </button>
+                        )}
+                        <textarea 
+                          value={lead.generalNotes || ''} 
+                          onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
+                          className="w-full bg-transparent border-none outline-none text-sm font-bold placeholder:text-slate-200 dark:placeholder:text-slate-700 resize-none h-6" 
+                          placeholder="הערה תמציתית..." 
+                        />
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <button 
+                        onClick={() => setLiveNotesLead(lead)}
+                        className="text-[11px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 px-6 py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all active:scale-95 shadow-sm"
+                      >
+                        תיעוד מלא
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-slate-800">
-                  {archiveLeads.map(lead => (
-                    <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
-                      <td className="px-8 py-5">
-                         <p className="font-black text-lg">{lead.clientName || 'ללא שם'}</p>
-                         <p className="text-xs font-mono text-slate-400" dir="ltr">{lead.phone}</p>
-                      </td>
-                      <td className="px-8 py-5">
-                        <select value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`px-4 py-2 rounded-xl font-bold text-xs border ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color}`}>
-                          {Object.entries(STATUS_CONFIG).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-8 py-5 text-slate-500 text-sm">{lead.generalNotes || lead.liveCallNotes || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-        )}
+                ))}
+              </tbody>
+            </table>
+          )}
 
-        {/* Tree View Placeholder */}
-        {activeTab === 'tree' && (
-          <div className="bg-white dark:bg-slate-900 p-10 rounded-[40px] border dark:border-slate-800 shadow-sm min-h-[400px]">
-            <LegalDecisionTree />
-          </div>
-        )}
+          {activeTab === 'calls' && (
+            <div className="p-8 max-w-4xl mx-auto space-y-4">
+               {recentCalls.map(call => (
+                <div key={call.sid} className="bg-white dark:bg-slate-800/30 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex justify-between items-center hover:scale-[1.01] transition-all">
+                  <div className="flex items-center gap-5">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${call.direction === 'inbound' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30'}`}>
+                      {call.direction === 'inbound' ? <ArrowUpRight size={28} /> : <ArrowDownRight size={28} />}
+                    </div>
+                    <div>
+                      <p className="font-black text-xl">{leads.find(l => l.phone?.includes(call.from.slice(-9)))?.clientName || 'ליד לא מזוהה'}</p>
+                      <p className="text-xs font-mono text-slate-400" dir="ltr">{call.direction==='inbound'?call.from:call.to}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                       <p className="text-xs font-black text-slate-300 uppercase">משך שיחה</p>
+                       <p className="font-black text-lg">{formatCallDuration(call.duration)}</p>
+                    </div>
+                    <div className="w-[1px] h-10 bg-slate-100 dark:bg-slate-800" />
+                    <div className="text-right">
+                       <p className="text-xs font-black text-slate-300 uppercase">עלות</p>
+                       <p className="font-black text-lg text-emerald-500">{call.price ? `${Math.abs(parseFloat(call.price)).toFixed(2)}$` : '0.00$'}</p>
+                    </div>
+                    <span className="text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 px-4 py-1.5 rounded-full text-slate-400">{formatDate(call.startTime)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="p-10 space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                {[
+                  { label: 'סה"כ לידים', val: stats.total, color: 'text-indigo-600' },
+                  { label: 'אחוז הצלחה', val: stats.successRate + '%', color: 'text-emerald-500' },
+                  { label: 'עלות ממוצעת', val: stats.avgCost + '$', color: 'text-amber-500' },
+                  { label: 'חתימות בפועל', val: stats.signed, color: 'text-indigo-400' }
+                ].map(s => (
+                  <div key={s.label} className="bg-slate-50 dark:bg-slate-800/30 p-8 rounded-[40px] text-center border dark:border-slate-800">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{s.label}</p>
+                    <p className={`text-6xl font-black ${s.color}`}>{s.val}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'tree' && (
+            <div className="p-8 h-full">
+              <LegalDecisionTree />
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[90vh] rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative">
-            <div className="p-6 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900/50">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white"><PhoneCall /></div>
+          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[90vh] rounded-[40px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900/50">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20"><PhoneCall size={32} /></div>
                 <div>
-                   <h2 className="text-2xl font-black">שיחה עם {liveNotesLead.clientName || 'לקוח'}</h2>
-                   <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
+                  <h2 className="text-3xl font-black tracking-tight">{liveNotesLead.clientName || 'לקוח'}</h2>
+                  <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`p-3 rounded-xl border flex items-center gap-2 font-bold text-xs transition-all ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-800'}`}>
-                  <ClipboardList size={18} /> {showDecisionTree ? 'חזרה להערות' : 'עץ החלטות'}
+                <button 
+                  onClick={() => setShowDecisionTree(!showDecisionTree)} 
+                  className={`px-8 py-3.5 rounded-2xl border font-black text-sm transition-all flex items-center gap-3 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700 shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-slate-800 hover:bg-slate-50'}`}
+                >
+                  <ClipboardList size={20} /> {showDecisionTree ? 'חזרה לתיעוד' : 'עץ החלטות'}
                 </button>
-                <button onClick={() => setLiveNotesLead(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all"><X /></button>
+                <button onClick={() => setLiveNotesLead(null)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-all"><X size={28} /></button>
               </div>
             </div>
             
             <div className="flex-1 flex overflow-hidden">
                {showDecisionTree ? (
-                 <div className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-slate-950">
+                 <div className="flex-1 overflow-y-auto p-10 bg-slate-50 dark:bg-slate-950">
                     <LegalDecisionTree compact={true} onComplete={handleTreeComplete} />
                  </div>
                ) : (
                  <>
-                   <div className="flex-1 p-8 flex flex-col">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">תיעוד שיחה חופשי</h4>
-                        {liveNotesLead.followUpDate && <span className="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded-md">מעקב פעיל</span>}
+                   <div className="flex-1 p-10 flex flex-col">
+                      <div className="flex items-center justify-between mb-6">
+                        <span className="text-[11px] font-black uppercase text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 px-4 py-1.5 rounded-full tracking-widest">תיעוד שיחה בזמן אמת</span>
+                        {liveNotesLead.followUpDate && <span className="text-[10px] font-black text-amber-500 bg-amber-50 dark:bg-amber-900/10 px-4 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 flex items-center gap-2"><Clock size={12} /> מעקב מתוזמן</span>}
                       </div>
                       <textarea 
                         autoFocus 
                         value={liveNotesLead.liveCallNotes || ''} 
                         onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })}
-                        className="flex-1 bg-transparent outline-none resize-none text-lg font-bold placeholder:text-slate-200 dark:placeholder:text-slate-700 leading-relaxed"
-                        placeholder="הקלד הערות מהשיחה כאן..."
+                        className="flex-1 bg-transparent outline-none resize-none text-2xl font-bold placeholder:text-slate-100 dark:placeholder:text-slate-800 leading-relaxed"
+                        placeholder="התחל להקליד את פרטי השיחה כאן..."
                       />
                    </div>
-                   <div className="w-96 border-r dark:border-slate-800 p-8 bg-slate-50 dark:bg-slate-800/20 overflow-y-auto flex flex-col gap-6">
-                      <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border dark:border-slate-700 shadow-sm">
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">קביעת מעקב</h4>
+                   <div className="w-[400px] border-r dark:border-slate-800 p-10 bg-slate-50 dark:bg-slate-800/10 overflow-y-auto flex flex-col gap-10">
+                      <div className="p-8 bg-white dark:bg-slate-900 rounded-[32px] border dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><Calendar size={14} /> קביעת מועד למעקב</h4>
                         <input 
                           type="datetime-local" 
                           value={liveNotesLead.followUpDate ? new Date(liveNotesLead.followUpDate).toISOString().slice(0, 16) : ""}
                           onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })}
-                          className="w-full bg-slate-100 dark:bg-slate-900 p-3 rounded-xl border-none outline-none font-bold text-sm"
+                          className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border-none outline-none font-bold text-base focus:ring-2 ring-indigo-500/20"
                         />
                       </div>
                       <div>
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><FileText size={14} /> תסריט שיחה</h4>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap font-bold text-slate-600 dark:text-slate-400 opacity-80">{CALL_SCRIPT}</p>
+                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-8 tracking-widest flex items-center gap-2"><FileText size={18} /> תסריט שיחה מומלץ</h4>
+                        <p className="text-base leading-relaxed whitespace-pre-wrap font-bold text-slate-500 dark:text-slate-400 italic bg-white dark:bg-slate-900/30 p-8 rounded-3xl border border-dashed dark:border-slate-800">{CALL_SCRIPT}</p>
                       </div>
                    </div>
                  </>
                )}
             </div>
             
-            <div className="p-8 border-t dark:border-slate-800 bg-white dark:bg-slate-900/50 flex justify-between items-center">
-               <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-full">השיחה מתועדת בגרסה v5.3</span>
+            <div className="p-10 border-t dark:border-slate-800 bg-white dark:bg-slate-900/50 flex justify-between items-center">
+               <p className="text-xs font-black text-slate-300">מערכת Sue-Chef | אבטחת מידע ברמה גבוהה</p>
                <div className="flex gap-4">
-                 <button onClick={() => copyToClipboard(liveNotesLead.liveCallNotes || '')} className="px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm hover:scale-105 transition-all">העתק תיעוד</button>
-                 <button onClick={() => setLiveNotesLead(null)} className="px-10 py-3 rounded-2xl bg-indigo-600 text-white font-black shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all outline-none">סיום שיחה ועדכון</button>
+                 <button onClick={() => copyToClipboard(liveNotesLead.liveCallNotes || '')} className="px-10 py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 font-black text-sm hover:bg-slate-200 transition-all flex items-center gap-2"><Copy size={18} /> העתק תיעוד</button>
+                 <button onClick={() => setLiveNotesLead(null)} className="px-14 py-4 rounded-2xl bg-indigo-600 text-white font-black shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all">סיום ועדכון מערכת</button>
                </div>
             </div>
           </div>
