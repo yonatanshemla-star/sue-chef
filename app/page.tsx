@@ -32,7 +32,7 @@ function getStatusStyle(status: string) {
 function formatDate(d: string | null) {
   if (!d) return "-";
   const date = new Date(d);
-  if (isNaN(date.getTime())) return "-";
+  if (isNaN(date.getTime())) return d; // Return as text if not a valid date
   return new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
@@ -88,7 +88,7 @@ export default function Home() {
   useEffect(() => {
     const checkNotifications = () => {
       const now = new Date();
-      const news = leads.filter(l => l.followUpDate && new Date(l.followUpDate) <= now).map(l => ({
+      const news = leads.filter(l => l.followUpDate && !isNaN(new Date(l.followUpDate).getTime()) && new Date(l.followUpDate) <= now).map(l => ({
         id: l.id, name: l.clientName, time: l.followUpDate
       }));
       setNotifications(news);
@@ -392,9 +392,9 @@ export default function Home() {
                             type="text" 
                             value={lead.clientName} 
                             onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} 
-                            className="font-black text-2xl font-assistant bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
+                            className="font-black text-xl font-assistant bg-transparent border-none outline-none focus:text-indigo-600 transition-colors w-full"
                           />
-                          <p className="text-xl font-mono text-slate-400" dir="ltr">{lead.phone}</p>
+                          <p className="text-lg font-mono text-slate-400" dir="ltr">{lead.phone}</p>
                         </div>
                       </div>
                     </td>
@@ -440,11 +440,12 @@ export default function Home() {
                           <div className="relative group/callback">
                             <Calendar size={12} className="absolute right-0 top-1.5 text-slate-300" />
                             <input 
-                              type="datetime-local" 
-                              className="bg-transparent border-none outline-none text-[11px] font-black text-slate-400 focus:text-indigo-600 pr-5 w-full cursor-pointer hover:text-indigo-500 transition-colors"
+                              type="text" 
+                              placeholder="קבע מועד חזרה"
+                              value={lead.followUpDate || ""}
+                              className="bg-transparent border-none outline-none text-[11px] font-black text-slate-400 focus:text-indigo-600 pr-5 w-full placeholder:text-slate-200"
                               onChange={e => handleLeadUpdate(lead.id, { followUpDate: e.target.value })}
                             />
-                            <span className="absolute right-5 inset-y-0 flex items-center text-[10px] font-black text-slate-200 pointer-events-none group-hover/callback:hidden">קבע מועד חזרה</span>
                           </div>
                         )}
                         <textarea 
@@ -525,8 +526,10 @@ export default function Home() {
                  <div className="bg-indigo-600 rounded-[48px] p-10 text-white shadow-2xl shadow-indigo-500/40">
                     <h4 className="text-2xl font-black mb-6 flex items-center gap-3"><Zap /> תובנה חכמה</h4>
                     <p className="text-lg font-bold opacity-90 leading-relaxed">
-                       מתוך {stats.actuallyRelevant} לידים שנמצאו רלוונטיים בשיחה הראשונה, {stats.signed} כבר חתמו. 
-                       זה אומר שיש לך פוטנציאל סגירה גבוה מאוד ברגע שהליד עובר את הסינון של גילי.
+                       {stats.signed > 0 
+                         ? `מתוך ${stats.actuallyRelevant} לידים שנמצאו רלוונטיים, ${stats.signed} כבר חתמו. זה אומר שיחס ההמרה שלך עומד על ${stats.successRate}%.`
+                         : `יש לנו כרגע ${stats.total} לידים במערכת. ככל שנתקדם בשיחות ונסמן 'רלוונטיות', נוכל לראות כאן את סיכויי הסגירה המדויקים.`
+                       }
                     </p>
                  </div>
                  <div className="bg-slate-900 rounded-[48px] p-10 text-white border border-slate-800">
@@ -586,47 +589,55 @@ export default function Home() {
                     <LegalDecisionTree compact={true} onComplete={handleTreeComplete} />
                  </div>
                ) : (
-                 <>
-                   <div className="flex-1 p-10 flex flex-col transition-all duration-500">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                           <span className="text-[11px] font-black uppercase text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 px-4 py-1.5 rounded-full tracking-widest">תיעוד שיחה בזמן אמת</span>
-                           <button 
-                             onClick={() => setShowScriptPanel(!showScriptPanel)} 
-                             className={`px-4 py-1.5 rounded-full text-[11px] font-black transition-all ${showScriptPanel ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                           >
-                             {showScriptPanel ? 'סגור תסריט' : 'פתח תסריט שיחה'}
-                           </button>
-                        </div>
-                        {liveNotesLead.followUpDate && <span className="text-[10px] font-black text-amber-500 bg-amber-50 dark:bg-amber-900/10 px-4 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30 flex items-center gap-2"><Clock size={12} /> מעקב מתוזמן</span>}
-                      </div>
-                      <textarea 
-                        autoFocus 
-                        value={liveNotesLead.liveCallNotes || ''} 
-                        onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })}
-                        className="flex-1 bg-transparent outline-none resize-none text-xl font-bold placeholder:text-slate-100 dark:placeholder:text-slate-800 leading-relaxed font-assistant"
-                        placeholder="התחל להקליד את פרטי השיחה כאן..."
-                      />
-                   </div>
-                   
-                   <div className={`border-r dark:border-slate-800 bg-slate-50 dark:bg-slate-800/10 overflow-hidden transition-all duration-500 ${showScriptPanel ? 'w-[400px] border-r border-slate-200 dark:border-slate-800' : 'w-0'}`}>
-                      <div className={`flex flex-col gap-8 p-10 transition-opacity duration-300 ${showScriptPanel ? 'opacity-100 delay-200' : 'opacity-0'} min-w-[400px]`}>
-                        <div className="p-8 bg-white dark:bg-slate-900 rounded-[32px] border dark:border-slate-800 shadow-sm">
-                          <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><Calendar size={14} /> קביעת מועד למעקב</h4>
-                          <input 
-                            type="datetime-local" 
-                            value={liveNotesLead.followUpDate ? new Date(liveNotesLead.followUpDate).toISOString().slice(0, 16) : ""}
-                            onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })}
-                            className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border-none outline-none font-bold text-base focus:ring-2 ring-indigo-500/20"
+                 <div className="flex-1 flex flex-col md:flex-row min-h-0 divide-x divide-x-reverse dark:divide-slate-800">
+                    {/* Documentation Area */}
+                    <div className="flex-1 p-10 flex flex-col min-h-0 bg-white dark:bg-slate-900 transition-all duration-500 overflow-y-auto pr-8 custom-scrollbar">
+                       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                         <div className="flex-1 min-w-[300px] flex items-center gap-6">
+                            <button 
+                              onClick={() => setShowScriptPanel(!showScriptPanel)} 
+                              className={`px-8 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 whitespace-nowrap ${showScriptPanel ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'}`}
+                            >
+                              <FileText size={16} /> {showScriptPanel ? 'סגור תסריט' : 'פתח תסריט שיחה'}
+                            </button>
+                            
+                            <div className="flex-1 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-6 py-3 rounded-2xl border dark:border-slate-800">
+                               <Calendar size={16} className="text-indigo-500" />
+                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">מועד למעקב:</span>
+                               <input 
+                                 type="text" 
+                                 placeholder="הזן תאריך ושעה..."
+                                 value={liveNotesLead.followUpDate || ""}
+                                 onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })}
+                                 className="bg-transparent border-none outline-none font-bold text-sm text-slate-700 dark:text-slate-200 flex-1 min-w-0"
+                               />
+                            </div>
+                         </div>
+                       </div>
+                       
+                       <div className="mb-4">
+                          <label className="text-[10px] font-black uppercase text-indigo-600 mb-2 block tracking-widest">תיעוד שיחה בזמן אמת</label>
+                          <textarea 
+                            autoFocus 
+                            value={liveNotesLead.liveCallNotes || ''} 
+                            onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })}
+                            className="w-full h-[350px] md:h-[450px] bg-slate-50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/50 rounded-[40px] p-10 text-xl font-bold placeholder:text-slate-200 dark:placeholder:text-slate-800 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar"
+                            placeholder="התחל להקליד את פרטי השיחה כאן..."
                           />
-                        </div>
-                        <div className="flex-1 overflow-y-auto max-h-[50vh] scrollbar-hide">
-                          <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><FileText size={18} /> תסריט שיחה מומלץ</h4>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap font-bold text-slate-600 dark:text-slate-400 italic bg-white dark:bg-slate-900/30 p-8 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">{CALL_SCRIPT}</p>
+                       </div>
+                    </div>
+                    
+                    {showScriptPanel && (
+                      <div className="w-full md:w-[450px] bg-slate-50 dark:bg-slate-800/10 flex flex-col p-10 animate-in slide-in-from-left-4 duration-500 h-full border-r dark:border-slate-800">
+                        <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                           <h4 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-widest flex items-center gap-2"><Maximize2 size={16} /> תסריט שיחה מומלץ</h4>
+                           <p className="text-sm leading-relaxed whitespace-pre-wrap font-bold text-slate-600 dark:text-slate-400 italic bg-white dark:bg-slate-900/30 p-10 rounded-[40px] border border-dashed border-slate-200 dark:border-slate-800 shadow-sm">
+                             {CALL_SCRIPT}
+                           </p>
                         </div>
                       </div>
-                   </div>
-                 </>
+                    )}
+                 </div>
                )}
             </div>
             
