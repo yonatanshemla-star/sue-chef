@@ -269,7 +269,7 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative`} style={{ zoom: 0.85 }}>
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative`} style={{ zoom: 1.0 }}>
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10 opacity-100" dir="rtl">
         
         {/* Header */}
@@ -287,7 +287,7 @@ export default function Home() {
                 <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טוויליו</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טטוויליו</p>
                 <p className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
               </div>
             </div>
@@ -564,76 +564,98 @@ export default function Home() {
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-xl transition-all">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-7xl h-[88vh] rounded-[56px] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-indigo-600 rounded-[28px] flex items-center justify-center text-white shadow-2xl animate-pulse"><PhoneCall size={30} /></div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80 backdrop-blur-xl transition-all">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-[95vw] h-[95vh] rounded-[48px] shadow-2xl flex flex-col overflow-hidden border dark:border-slate-800">
+            {/* Header - Compact */}
+            <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10" dir="rtl">
+              <div className="flex items-center gap-4 text-right">
+                <div className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse"><PhoneCall size={24} /></div>
                 <div>
-                  <h2 className="text-3xl font-black tracking-tight mb-0.5 text-slate-900 dark:text-white">{liveNotesLead.clientName || 'לקוח בשיחה'}</h2>
-                  <p className="text-base font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
+                  <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">{liveNotesLead.clientName || 'לקוח בשיחה'}</h2>
+                  <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-8 py-3.5 rounded-3xl border font-black text-sm transition-all flex items-center gap-3 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700 shadow-lg shadow-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                  <ClipboardList size={20} /> {showDecisionTree ? 'חזרה לתיעוד' : 'עץ החלטות'}
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-6 py-2.5 rounded-2xl border font-black text-xs transition-all flex items-center gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                  <ClipboardList size={18} /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
                 </button>
-                <button onClick={() => setLiveNotesLead(null)} className="w-12 h-12 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={28} /></button>
+                <button onClick={() => setLiveNotesLead(null)} className="w-10 h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={24} /></button>
               </div>
             </div>
-            <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950/20 relative">
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden bg-white dark:bg-slate-900 relative" dir="rtl">
                {showDecisionTree ? (
-                 <div className="flex-1 overflow-y-auto p-10 custom-scrollbar"><LegalDecisionTree compact={true} onComplete={handleTreeComplete} /></div>
+                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar"><LegalDecisionTree compact={true} onComplete={handleTreeComplete} /></div>
                ) : (
-                 <div className="flex-1 grid grid-cols-[1fr,1.4fr] divide-x divide-x-reverse dark:divide-slate-800">
-                    {/* LEFT PANEL: Script and Time */}
-                    <div className="p-10 flex flex-col gap-8 bg-slate-50/50 dark:bg-slate-900/20 overflow-y-auto scrollbar-hide">
-                       <button onClick={() => setShowScriptPanel(!showScriptPanel)} className={`w-full py-5 rounded-[28px] font-black text-sm transition-all flex items-center justify-center gap-3 shadow-sm ${showScriptPanel ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 border dark:border-slate-700'}`}>
-                         <FileText size={20} /> {showScriptPanel ? 'סגור תסריט' : 'פתח תסריט שיחה'}
+                 <div className="flex-1 flex flex-row h-full">
+                    {/* RIGHT SIDE: Notes Area (Expanded) */}
+                    <div className="flex-[2] flex flex-col p-5 border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative">
+                       <div className="flex justify-between items-center mb-3">
+                         <div className="flex items-center gap-3">
+                            <label className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-2 group">
+                               תיעוד שיחה <span className="animate-pulse">●</span>
+                            </label>
+                            <span className="text-[10px] font-bold text-slate-300 italic">הטקסט נשמר אוטומטית</span>
+                         </div>
+                         <button onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} className="flex items-center gap-2 text-[10px] font-black text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-5 py-2.5 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group">
+                           <Copy size={12} className="group-hover:scale-110 transition-transform" /> העתק סיכום (Ctrl+C)
+                         </button>
+                       </div>
+                       <textarea 
+                         autoFocus 
+                         value={liveNotesLead.liveCallNotes || ''} 
+                         onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} 
+                         className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-[32px] p-8 text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" 
+                         placeholder="כתוב כאן מה הלקוח אומר..." 
+                       />
+                    </div>
+
+                    {/* LEFT SIDE: Controls (Shrunken) */}
+                    <div className="flex-[0.8] flex flex-col p-5 bg-slate-50/30 dark:bg-slate-950/20 overflow-y-auto custom-scrollbar gap-4">
+                       <button onClick={() => setShowScriptPanel(!showScriptPanel)} className={`w-full py-3.5 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-3 shadow-sm ${showScriptPanel ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 border dark:border-slate-700'}`}>
+                         <FileText size={18} /> {showScriptPanel ? 'הסתר תסריט' : 'הצג תסריט'}
                        </button>
 
                        {showScriptPanel && (
-                         <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] border dark:border-slate-800 shadow-inner">
-                            <h4 className="text-lg font-black text-indigo-500 mb-3 flex items-center gap-2 underline decoration-indigo-500/20 underline-offset-4 pointer-events-none select-none">תסריט שיחה</h4>
-                            <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
-                                1. הצגה עצמית (עו"ד גילי - משרד נזיקין)<br/>
-                                2. בירור פרטי האירוע (מתי ואיפה)<br/>
-                                3. בירור פגיעה פיזית/נפשית<br/>
-                                4. האם כבר יש ייצוג?
-                            </p>
+                         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border dark:border-slate-800 shadow-lg border-indigo-500/10">
+                            <h4 className="text-xs font-black text-indigo-500 mb-3 flex items-center gap-2 underline decoration-indigo-500/30 underline-offset-4 pointer-events-none select-none">תסריט מקוצר</h4>
+                            <div className="space-y-2 text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30 line-clamp-2">1. הצגה: עו"ד גילי - משרד נזיקין</div>
+                                <div className="p-2.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">2. פרטי אירוע: מתי ואיפה?</div>
+                                <div className="p-2.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">3. רפואי: מיון, אשפוז, צילומים?</div>
+                                <div className="p-2.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">4. ייצוג: יש עו"ד אחר בתמונה?</div>
+                            </div>
                          </div>
                        )}
 
-                       <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] border dark:border-slate-800 shadow-sm flex flex-col gap-4">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calendar size={14} /> מועד למעקב</label>
-                          <input type="text" placeholder="הזן תאריך ושעה..." value={liveNotesLead.followUpDate || ""} onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })} className="bg-slate-50 dark:bg-slate-800 px-6 py-4 rounded-2xl border-none outline-none font-black text-lg text-slate-800 dark:text-white" />
+                       <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border dark:border-slate-800 shadow-sm flex flex-col gap-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-0"><Calendar size={14} className="text-indigo-500" /> מעקב</label>
+                          <input 
+                            type="text" 
+                            placeholder="תאריך ושעה..." 
+                            value={liveNotesLead.followUpDate || ""} 
+                            onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })} 
+                            className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 rounded-xl border-none outline-none font-black text-base text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500/20" 
+                          />
                        </div>
 
-                       <div className="mt-auto opacity-50 text-[10px] items-center flex gap-2 font-black text-slate-300 uppercase select-none">
-                          <Zap size={14} /> RTL optimized v5.8 interface
+                       <div className="mt-auto opacity-20 text-[9px] items-center flex gap-2 font-black text-slate-400 uppercase tracking-tighter self-center">
+                          <Zap size={10} /> Sue-Chef v5.8 Ultra
                        </div>
-                    </div>
-
-                    {/* RIGHT PANEL: Notes Area */}
-                    <div className="p-10 bg-white dark:bg-slate-900 flex flex-col relative">
-                       <div className="flex justify-between items-center mb-6">
-                         <label className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 tracking-widest">תיעוד שיחה בזמן אמת <span className="animate-pulse">●</span></label>
-                         <button onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-indigo-500 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border dark:border-slate-700 transition-all border-dashed">
-                           <Copy size={12} /> העתק סיכום
-                         </button>
-                       </div>
-                       <textarea autoFocus value={liveNotesLead.liveCallNotes || ''} onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-700 rounded-[40px] p-10 text-lg font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/40 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" placeholder="תעד את פרטי השיחה החשובים כאן... (הטקסט יותאם אוטומטית)" />
                     </div>
                  </div>
                )}
             </div>
-            <div className="p-10 border-t dark:border-slate-800 bg-white dark:bg-slate-900/50 flex justify-between items-center px-14 z-10">
-               <div className="flex items-center gap-4 uppercase font-black text-[10px] tracking-widest text-slate-300 pointer-events-none">
-                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                 <span>Sue-Chef Secure Channel</span>
+
+            {/* Footer - Compact */}
+            <div className="p-4 border-t dark:border-slate-800 bg-white dark:bg-slate-900 z-10 flex justify-between items-center px-8" dir="rtl">
+               <div className="hidden sm:flex items-center gap-3 uppercase font-black text-[9px] tracking-widest text-slate-300 pointer-events-none">
+                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+                 <span>Secure Connection</span>
                </div>
-               <button onClick={() => setLiveNotesLead(null)} className="px-20 py-4.5 rounded-[28px] bg-indigo-600 text-white font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/30">
-                 <span className="relative z-10 flex items-center gap-4"><Check size={28} /> סיום ועדכון מערכת</span>
+               <button onClick={() => setLiveNotesLead(null)} className="px-16 py-3.5 rounded-2xl bg-indigo-600 text-white font-black shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/20">
+                 <span className="relative z-10 flex items-center gap-3 font-black"><Check size={24} /> סיום ועדכון</span>
                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                </button>
             </div>
@@ -644,7 +666,7 @@ export default function Home() {
       {/* Styles for Shimmer and custom animations */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
@@ -654,7 +676,7 @@ export default function Home() {
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(99, 102, 241, 0.3);
+          background: rgba(99, 102, 241, 0.2);
         }
       `}</style>
     </div>
