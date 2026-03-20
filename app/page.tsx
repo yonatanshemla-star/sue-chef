@@ -7,18 +7,18 @@ import LegalDecisionTree from '@/components/LegalDecisionTree';
 
 // === Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number; icon?: any }> = {
-  'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-pink-600', bg: 'bg-pink-100/80', darkBg: 'dark:bg-pink-900/60 dark:text-pink-200', border: 'border-pink-300 dark:border-pink-500', importance: 1 },
+  'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-pink-600', bg: 'bg-pink-100/80', darkBg: 'dark:bg-pink-900/60 dark:text-pink-200', border: 'border-pink-300 dark:border-pink-500', importance: 0 },
+  'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950 dark:text-green-300', border: 'border-green-300 dark:border-green-700', importance: 1 },
   'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950 dark:text-emerald-300', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
-  'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950 dark:text-green-300', border: 'border-green-300 dark:border-green-700', importance: 3 },
+  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/80 dark:text-orange-200', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 3 },
   'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950 dark:text-blue-300', border: 'border-blue-300 dark:border-blue-700', importance: 4 },
-  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-900 dark:text-gray-400', border: 'border-gray-600', importance: 5 },
-  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 3 },
-  'חדש': { label: '🆕 חדש', color: 'text-indigo-700', bg: 'bg-indigo-50', darkBg: 'dark:bg-indigo-950 dark:text-indigo-300', border: 'border-indigo-300 dark:border-indigo-700', importance: 0 },
-  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/80 dark:text-orange-200', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 1 },
-  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 0 },
-  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-900/20 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', importance: 1 },
-  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 5 },
-  'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 3 },
+  'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
+  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-900 dark:text-gray-400', border: 'border-gray-600', importance: 6 },
+  'חדש': { label: '🆕 חדש', color: 'text-indigo-700', bg: 'bg-indigo-50', darkBg: 'dark:bg-indigo-950 dark:text-indigo-300', border: 'border-indigo-300 dark:border-indigo-700', importance: 7 },
+  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-900/20 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', importance: 8 },
+  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 9 },
+  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 10 },
+  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 11 },
 };
 
 const LOST_REASONS = ["אין מענה חוזר", "אין עילה רפואית", "מתחרים/לקח עו\"ד אחר", "לא מעוניין", "טעות במספר", "אחר"];
@@ -61,6 +61,16 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Scroll Lock for modal
+  useEffect(() => {
+    if (liveNotesLead) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [liveNotesLead]);
 
   // Analytics Fetching
   const fetchAnalyticsData = async () => {
@@ -223,7 +233,14 @@ export default function Home() {
       if (showAdvancedStageOnly) return ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
       return true;
     })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [leads, globalSearch, showAdvancedStageOnly]);
+    .sort((a, b) => {
+        if (showAdvancedStageOnly) {
+            const priorityA = STATUS_CONFIG[a.status]?.importance ?? 99;
+            const priorityB = STATUS_CONFIG[b.status]?.importance ?? 99;
+            if (priorityA !== priorityB) return priorityA - priorityB;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }), [leads, globalSearch, showAdvancedStageOnly]);
 
   const followupLeads = useMemo(() => leads
     .filter(l => l.status === 'במעקב')
@@ -252,7 +269,7 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-hidden`} style={{ zoom: 0.85 }}>
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative`} style={{ zoom: 0.85 }}>
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10 opacity-100" dir="rtl">
         
         {/* Header */}
@@ -322,8 +339,8 @@ export default function Home() {
               )}
               {(activeTab === 'crm' || activeTab === 'followup') && (
                 <>
-                  <button onClick={() => setActiveTab('followup')} className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
-                    <Clock size={18} /> מעקב
+                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
+                    <Clock size={18} /> במעקב
                   </button>
                   <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
                     <Zap size={18} /> שלב מתקדם
@@ -472,21 +489,23 @@ export default function Home() {
 
                    <div className="bg-slate-100/30 dark:bg-slate-800/20 p-12 rounded-[56px] border dark:border-slate-800 shadow-inner overflow-hidden">
                      <h4 className="text-3xl font-black mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה (Funnel) <ArrowDownRight size={24} className="text-indigo-500" /></h4>
-                     <div className="space-y-10 max-w-4xl mx-auto">
+                     <div className="space-y-12 max-w-4xl mx-auto">
                         {[
-                          { label: "סה\"כ לידים", count: analyticsData.funnel?.total || 0, color: "bg-indigo-600", val: "100%" },
-                          { label: "נוצר קשר", count: analyticsData.funnel?.contacted || 0, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%" },
-                          { label: "רלוונטיים", count: analyticsData.funnel?.relevant || 0, color: "bg-indigo-400", val: (analyticsData.funnel?.rates?.contactedToRelevant || "0") + "%" },
-                          { label: "חתומים", count: analyticsData.funnel?.signed || 0, color: "bg-emerald-500", val: (analyticsData.funnel?.rates?.relevantToSigned || "0") + "%", shadow: "shadow-emerald-500/30" }
+                          { label: "נוצר קשר", count: analyticsData.funnel?.contacted || 0, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שבוצעה אליהם שיחה אחת לפחות או שסטטוסם השתנה מ'חדש'." },
+                          { label: "רלוונטיים", count: analyticsData.funnel?.relevant || 0, color: "bg-indigo-400", val: (analyticsData.funnel?.rates?.contactedToRelevant || "0") + "%", desc: "מתוך אלו שנוצר איתם קשר - אלו שסומנו כבעלי עילה משפטית/רפואית פוטנציאלית." },
+                          { label: "חתומים", count: analyticsData.funnel?.signed || 0, color: "bg-emerald-500", val: (analyticsData.funnel?.rates?.relevantToSigned || "0") + "%", shadow: "shadow-emerald-500/30", desc: "לידים שעברו את כל השלבים וחתמו על ייצוג (ההצלחות שלנו!)." }
                         ].map((step, idx) => (
                           <div key={idx} className="relative group opacity-100">
                             <div className="flex justify-between items-center mb-3 px-4">
-                               <span className="text-base font-black text-slate-600 dark:text-slate-400 tracking-tight">{step.label}</span>
+                               <div className="flex flex-col">
+                                 <span className="text-base font-black text-slate-700 dark:text-slate-200 tracking-tight">{step.label}</span>
+                                 <span className="text-xs text-slate-400 font-bold mt-1 line-clamp-1 group-hover:line-clamp-none transition-all">{step.desc}</span>
+                               </div>
                                <span className="text-lg font-black text-slate-900 dark:text-white px-4 py-1 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border dark:border-slate-700">{step.count} ({step.val})</span>
                             </div>
                             <div className="w-full h-11 bg-slate-200/50 dark:bg-slate-800 rounded-full overflow-hidden flex flex-row-reverse shadow-inner relative">
                                <div className={`${step.color} h-full transition-all duration-[1000ms] ease-out flex items-center justify-end px-8 text-xs font-black text-white ${step.shadow || 'shadow-lg'}`} style={{ width: step.val }}>
-                                  {step.count > 0 && <span className="opacity-0 group-hover:opacity-100 transition-opacity tracking-widest uppercase text-[10px]">SUCCESS</span>}
+                                  {step.count > 0 && <span className="opacity-0 group-hover:opacity-100 transition-opacity tracking-widest uppercase text-[10px]">VERIFIED</span>}
                                </div>
                             </div>
                           </div>
@@ -545,56 +564,77 @@ export default function Home() {
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-xl">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[92vh] rounded-[56px] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-10 border-b dark:border-slate-800 flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-xl transition-all">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-7xl h-[88vh] rounded-[56px] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-indigo-600 rounded-[32px] flex items-center justify-center text-white shadow-2xl animate-pulse"><PhoneCall size={36} /></div>
+                <div className="w-16 h-16 bg-indigo-600 rounded-[28px] flex items-center justify-center text-white shadow-2xl animate-pulse"><PhoneCall size={30} /></div>
                 <div>
-                  <h2 className="text-4xl font-black tracking-tight mb-1">{liveNotesLead.clientName || 'לקוח בשיחה'}</h2>
-                  <p className="text-lg font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
+                  <h2 className="text-3xl font-black tracking-tight mb-0.5 text-slate-900 dark:text-white">{liveNotesLead.clientName || 'לקוח בשיחה'}</h2>
+                  <p className="text-base font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-10 py-4 rounded-3xl border font-black text-sm transition-all flex items-center gap-3 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                  <ClipboardList size={22} /> {showDecisionTree ? 'חזרה לתיעוד' : 'עץ החלטות'}
+                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-8 py-3.5 rounded-3xl border font-black text-sm transition-all flex items-center gap-3 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700 shadow-lg shadow-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                  <ClipboardList size={20} /> {showDecisionTree ? 'חזרה לתיעוד' : 'עץ החלטות'}
                 </button>
-                <button onClick={() => setLiveNotesLead(null)} className="w-14 h-14 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={32} /></button>
+                <button onClick={() => setLiveNotesLead(null)} className="w-12 h-12 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={28} /></button>
               </div>
             </div>
-            <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950/20">
+            <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950/20 relative">
                {showDecisionTree ? (
-                 <div className="flex-1 overflow-y-auto p-12 custom-scrollbar"><LegalDecisionTree compact={true} onComplete={handleTreeComplete} /></div>
+                 <div className="flex-1 overflow-y-auto p-10 custom-scrollbar"><LegalDecisionTree compact={true} onComplete={handleTreeComplete} /></div>
                ) : (
-                 <div className="flex-1 flex flex-col md:flex-row min-h-0 divide-x divide-x-reverse dark:divide-slate-800">
-                    <div className="flex-1 p-12 flex flex-col min-h-0 bg-white dark:bg-slate-900 transition-all duration-700 overflow-y-auto scrollbar-hide">
-                       <div className="flex items-center justify-between mb-10 flex-wrap gap-6">
-                         <div className="flex-1 min-w-[350px] flex items-center gap-8 text-right">
-                            <button onClick={() => setShowScriptPanel(!showScriptPanel)} className={`px-10 py-4 rounded-3xl font-black text-sm transition-all flex items-center gap-3 ${showScriptPanel ? 'bg-indigo-600 text-white shadow-indigo-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:text-slate-400'}`}>
-                              <FileText size={20} /> {showScriptPanel ? 'סגור תסריט' : 'פתח תסריט שיחה'}
-                            </button>
-                            <div className="flex-1 flex items-center gap-4 bg-slate-50 dark:bg-slate-800 px-8 py-4 rounded-3xl border dark:border-slate-700 shadow-inner">
-                               <Calendar size={20} className="text-indigo-500" />
-                               <span className="text-xs font-black text-slate-400 uppercase">מועד למעקב:</span>
-                               <input type="text" placeholder="הזן תאריך ושעה..." value={liveNotesLead.followUpDate || ""} onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })} className="bg-transparent border-none outline-none font-black text-lg text-slate-800 dark:text-white flex-1 min-w-0" />
-                            </div>
+                 <div className="flex-1 grid grid-cols-[1fr,1.4fr] divide-x divide-x-reverse dark:divide-slate-800">
+                    {/* LEFT PANEL: Script and Time */}
+                    <div className="p-10 flex flex-col gap-8 bg-slate-50/50 dark:bg-slate-900/20 overflow-y-auto scrollbar-hide">
+                       <button onClick={() => setShowScriptPanel(!showScriptPanel)} className={`w-full py-5 rounded-[28px] font-black text-sm transition-all flex items-center justify-center gap-3 shadow-sm ${showScriptPanel ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 border dark:border-slate-700'}`}>
+                         <FileText size={20} /> {showScriptPanel ? 'סגור תסריט' : 'פתח תסריט שיחה'}
+                       </button>
+
+                       {showScriptPanel && (
+                         <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] border dark:border-slate-800 shadow-inner">
+                            <h4 className="text-lg font-black text-indigo-500 mb-3 flex items-center gap-2 underline decoration-indigo-500/20 underline-offset-4 pointer-events-none select-none">תסריט שיחה</h4>
+                            <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
+                                1. הצגה עצמית (עו"ד גילי - משרד נזיקין)<br/>
+                                2. בירור פרטי האירוע (מתי ואיפה)<br/>
+                                3. בירור פגיעה פיזית/נפשית<br/>
+                                4. האם כבר יש ייצוג?
+                            </p>
                          </div>
+                       )}
+
+                       <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] border dark:border-slate-800 shadow-sm flex flex-col gap-4">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calendar size={14} /> מועד למעקב</label>
+                          <input type="text" placeholder="הזן תאריך ושעה..." value={liveNotesLead.followUpDate || ""} onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })} className="bg-slate-50 dark:bg-slate-800 px-6 py-4 rounded-2xl border-none outline-none font-black text-lg text-slate-800 dark:text-white" />
                        </div>
-                       <div className="mb-6 flex-1 flex flex-col min-h-[400px]">
-                          <label className="text-xs font-black uppercase text-indigo-600 mb-4 block tracking-widest px-2">תיעוד שיחה בזמן אמת <span className="animate-pulse">●</span></label>
-                          <textarea autoFocus value={liveNotesLead.liveCallNotes || ''} onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} className="flex-1 bg-slate-50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/50 rounded-[48px] p-12 text-2xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/40 focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" placeholder="תעד את פרטי השיחה החשובים כאן..." />
+
+                       <div className="mt-auto opacity-50 text-[10px] items-center flex gap-2 font-black text-slate-300 uppercase select-none">
+                          <Zap size={14} /> RTL optimized v5.8 interface
                        </div>
+                    </div>
+
+                    {/* RIGHT PANEL: Notes Area */}
+                    <div className="p-10 bg-white dark:bg-slate-900 flex flex-col relative">
+                       <div className="flex justify-between items-center mb-6">
+                         <label className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 tracking-widest">תיעוד שיחה בזמן אמת <span className="animate-pulse">●</span></label>
+                         <button onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-indigo-500 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border dark:border-slate-700 transition-all border-dashed">
+                           <Copy size={12} /> העתק סיכום
+                         </button>
+                       </div>
+                       <textarea autoFocus value={liveNotesLead.liveCallNotes || ''} onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-700 rounded-[40px] p-10 text-lg font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/40 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" placeholder="תעד את פרטי השיחה החשובים כאן... (הטקסט יותאם אוטומטית)" />
                     </div>
                  </div>
                )}
             </div>
-            <div className="p-12 border-t dark:border-slate-800 bg-white dark:bg-slate-900/50 flex justify-between items-center px-16">
-               <div className="flex items-center gap-4 uppercase font-black text-xs tracking-widest text-slate-300">
+            <div className="p-10 border-t dark:border-slate-800 bg-white dark:bg-slate-900/50 flex justify-between items-center px-14 z-10">
+               <div className="flex items-center gap-4 uppercase font-black text-[10px] tracking-widest text-slate-300 pointer-events-none">
                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                 <span>Sue-Chef Secure CRM Channel</span>
+                 <span>Sue-Chef Secure Channel</span>
                </div>
-               <button onClick={() => setLiveNotesLead(null)} className="px-20 py-5 rounded-[28px] bg-indigo-600 text-white font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 font-assistant text-xl group overflow-hidden relative">
+               <button onClick={() => setLiveNotesLead(null)} className="px-20 py-4.5 rounded-[28px] bg-indigo-600 text-white font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/30">
                  <span className="relative z-10 flex items-center gap-4"><Check size={28} /> סיום ועדכון מערכת</span>
+                 <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                </button>
             </div>
           </div>

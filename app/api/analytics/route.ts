@@ -3,34 +3,25 @@ import { sql } from '@vercel/postgres';
 
 export async function GET() {
   try {
-    // 1. Funnel Calculation (Steps 1-4)
-    // Step 1: Total Leads
-    const totalLeadsRes = await sql`SELECT count(*) FROM leads`;
-    const totalLeads = parseInt(totalLeadsRes.rows[0].count);
-
-    // Step 2: Contacted (callCount > 0 OR status is not 'חדש')
-    const contactedRes = await sql`
-      SELECT count(*) FROM leads 
-      WHERE (data->>'callCount')::int > 0 
-      OR (data->>'status') != 'חדש'
+    // Combined Query for Funnel and Effort Metrics
+    const statsRes = await sql`
+      SELECT 
+        count(*) as total,
+        count(*) FILTER (WHERE (data->>'callCount')::int > 0 OR (data->>'status') != 'חדש') as contacted,
+        count(*) FILTER (WHERE (data->'wasRelevant')::boolean = true) as relevant,
+        count(*) FILTER (WHERE (data->>'status') = 'חתם') as signed,
+        AVG((data->>'callCount')::int) FILTER (WHERE (data->>'status') = 'חתם') as avg_calls
+      FROM leads
     `;
-    const contactedLeads = parseInt(contactedRes.rows[0].count);
+    
+    const stats = statsRes.rows[0];
+    const totalLeads = parseInt(stats.total);
+    const contactedLeads = parseInt(stats.contacted);
+    const relevantLeads = parseInt(stats.relevant);
+    const signedLeads = parseInt(stats.signed);
+    const avgCallsPerSigned = parseFloat(stats.avg_calls || "0").toFixed(1);
 
-    // Step 3: Relevant (wasRelevant is true)
-    const relevantRes = await sql`
-      SELECT count(*) FROM leads 
-      WHERE (data->'wasRelevant')::boolean = true
-    `;
-    const relevantLeads = parseInt(relevantRes.rows[0].count);
-
-    // Step 4: Signed (status is 'חתם')
-    const signedRes = await sql`
-      SELECT count(*) FROM leads 
-      WHERE (data->>'status') = 'חתם'
-    `;
-    const signedLeads = parseInt(signedRes.rows[0].count);
-
-    // 2. Disqualification Reasons Analysis
+    // 2. Disqualification Reasons Analysis (Keep separate for clarity/grouping)
     const disqualificationRes = await sql`
       SELECT data->>'disqualificationReason' as reason, count(*) as count
       FROM leads 
@@ -42,14 +33,6 @@ export async function GET() {
       reason: r.reason,
       count: parseInt(r.count)
     }));
-
-    // 3. Effort vs Value (Avg. calls to get 'Signed')
-    const effortRes = await sql`
-      SELECT AVG((data->>'callCount')::int) as avg_calls 
-      FROM leads 
-      WHERE (data->>'status') = 'חתם'
-    `;
-    const avgCallsPerSigned = parseFloat(effortRes.rows[0].avg_calls || "0").toFixed(1);
 
     return NextResponse.json({
       success: true,
