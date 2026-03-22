@@ -228,43 +228,36 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-    // Global Paste Handler for OCR
+  // Global Paste Handler for OCR
   useEffect(() => {
     const handlePaste = async (e: any) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
 
-      console.log("Sue-Chef Debug: Paste detected. Items:", items.length);
+      console.log("Sue-Chef Debug: Paste event triggered");
 
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf("image") !== -1) {
           const blob = items[i].getAsFile();
           if (!blob) continue;
 
-          console.log("Sue-Chef Debug: Image found in clipboard!");
+          console.log("Sue-Chef Debug: Image detected in clipboard!");
           
-          // Find target: currently open lead OR first empty lead OR newest lead
           const targetLead = liveNotesLead || leads.find(l => !l.clientName && !l.phone) || leads[0];
-          
-          if (!targetLead) {
-            console.warn("Sue-Chef Debug: No target lead found for OCR");
-            return;
-          }
-
-          console.log("Sue-Chef Debug: Processing OCR for lead:", targetLead.clientName || targetLead.id);
+          if (!targetLead) return;
 
           const reader = new FileReader();
           reader.onload = async (event) => {
             const base64 = event.target?.result;
             try {
-              console.log("Sue-Chef Debug: Sending to /api/vision...");
+              console.log("Sue-Chef Debug: Sending image to /api/vision...");
               const res = await fetch('/api/vision', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ imageBase64: base64 })
               });
               const result = await res.json();
-              console.log("Sue-Chef Debug: Vision Result:", result);
+              console.log("Sue-Chef Debug: Vision Results:", result);
               if (result.success && result.data) {
                 handleLeadUpdate(targetLead.id, { 
                   clientName: result.data.name || targetLead.clientName,
@@ -280,8 +273,12 @@ export default function Home() {
       }
     };
 
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
+    window.addEventListener('paste', handlePaste, true);
+    document.addEventListener('paste', handlePaste, true);
+    return () => {
+      window.removeEventListener('paste', handlePaste, true);
+      document.removeEventListener('paste', handlePaste, true);
+    };
   }, [leads, liveNotesLead]);
 
   const getLeadByPhone = useCallback((phone: string) => {
