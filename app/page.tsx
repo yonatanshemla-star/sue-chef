@@ -229,16 +229,19 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  // v5.1 Precision OCR Handler
+  // v5.1 Precision OCR Handler - Refined for v5.9.2
   const handlePaste = useCallback(async (e: React.ClipboardEvent, leadId: string) => {
     const items = e.clipboardData?.items;
     const files = e.clipboardData?.files;
     let imageBlob: File | null = null;
 
+    console.log("Sue-Chef Debug: Paste triggered for lead", leadId);
+
     if (items) {
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf("image") !== -1) {
           imageBlob = items[i].getAsFile();
+          console.log("Sue-Chef Debug: Found image in items");
           break;
         }
       }
@@ -248,6 +251,7 @@ export default function Home() {
       for (let i = 0; i < files.length; i++) {
         if (files[i].type.indexOf("image") !== -1) {
           imageBlob = files[i];
+          console.log("Sue-Chef Debug: Found image in files");
           break;
         }
       }
@@ -258,6 +262,7 @@ export default function Home() {
       const reader = new FileReader();
       reader.onload = async (event) => {
         const base64 = event.target?.result as string;
+        console.log("Sue-Chef Debug: Image converted to Base64, length:", base64.length);
         try {
           const res = await fetch('/api/vision', {
             method: 'POST',
@@ -265,14 +270,25 @@ export default function Home() {
             body: JSON.stringify({ imageBase64: base64 })
           });
           const result = await res.json();
+          console.log("Sue-Chef Debug: Vision API Response:", result);
+
           if (result.success && result.data) {
-            handleLeadUpdate(leadId, { 
-              clientName: result.data.name || '',
-              phone: result.data.phone || '' 
-            });
+            const updates: any = {};
+            if (result.data.name && result.data.name !== "null") updates.clientName = result.data.name;
+            if (result.data.phone && result.data.phone !== "null") updates.phone = result.data.phone;
+            
+            if (Object.keys(updates).length > 0) {
+              console.log("Sue-Chef Debug: Updating lead with:", updates);
+              handleLeadUpdate(leadId, updates);
+            } else {
+              console.warn("Sue-Chef Debug: No data extracted from image");
+              // alert("לא הצלחתי למצוא שם או טלפון בתמונה הזאת.");
+            }
+          } else {
+            console.error("Sue-Chef Debug: API Error:", result.error);
           }
         } catch (err) {
-          console.error("OCR failed", err);
+          console.error("Sue-Chef Debug: OCR Fetch failed:", err);
         } finally {
           setProcessingImageId(null);
         }

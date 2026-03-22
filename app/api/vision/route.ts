@@ -22,14 +22,16 @@ export async function POST(req: Request) {
     const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|webp|gif|bmp);base64,/, "");
 
     const prompt = `הסתכל על התמונה הזאת. היא מכילה שם של אדם ומספר טלפון.
-חלץ את השם ואת מספר הטלפון שמופיעים בתמונה.
-הטקסט בעברית. מספר הטלפון הוא מספר ישראלי שמתחיל ב-0 (כמו 050, 052, 053, 054, 058, 072 וכו').
-החזר רק אובייקט JSON עם שני מפתחות: "name" ו-"phone".
-דוגמה:
-{"name": "חיים שושן", "phone": "0505305707"}`;
+חלץ את השם המלא (בעברית) ואת מספר הטלפון (ספרות בלבד) המופיעים בתמונה.
+חשוב: חפש את השם והטלפון בכל מקום בתמונה, גם אם הם קטנים.
+אם מצאת חצי שם או חצי מספר, רשום מה שמצאת.
+החזר אך ורק אובייקט JSON תקין בפורמט:
+{"name": "שם הלקוח", "phone": "05XXXXXXXX"}
+אם לא מצאת כלום, החזר:
+{"name": null, "phone": null}`;
 
-    // Use direct Gemini API call (same approach as webhook - more reliable)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // Use gemini-1.5-flash: wider support and very stable for OCR
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
