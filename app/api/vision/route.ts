@@ -15,11 +15,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "GEMINI_API_KEY not found" }, { status: 500 });
     }
 
-    // Clean base64 string and detect mime type
+    // Clean base64 string and detect mime type (Robust)
     let mimeType = "image/png";
-    const mimeMatch = imageBase64.match(/^data:image\/(png|jpeg|webp|gif|bmp);base64,/);
-    if (mimeMatch) mimeType = `image/${mimeMatch[1]}`;
-    const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|webp|gif|bmp);base64,/, "");
+    let base64Data = imageBase64;
+    if (imageBase64.startsWith("data:")) {
+      const parts = imageBase64.split(",");
+      if (parts.length === 2) {
+        let mimeStr = parts[0].replace("data:", "").replace(";base64", "");
+        if (mimeStr) mimeType = mimeStr;
+        base64Data = parts[1];
+      }
+    }
 
     const prompt = `הסתכל על התמונה הזאת. היא מכילה שם של אדם ומספר טלפון.
 חלץ את השם המלא (בעברית) ואת מספר הטלפון (ספרות בלבד) המופיעים בתמונה.

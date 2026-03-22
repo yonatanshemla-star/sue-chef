@@ -272,6 +272,13 @@ export default function Home() {
           const result = await res.json();
           console.log("Sue-Chef Debug: Vision API Response:", result);
 
+          if (!result.success) {
+            console.error("Sue-Chef Debug: API Error:", result.error);
+            alert("❗ שגיאת שרת: " + JSON.stringify(result.error));
+            setProcessingImageId(null);
+            return;
+          }
+
           if (result.success && result.data) {
             const updates: any = {};
             if (result.data.name && result.data.name !== "null") updates.clientName = result.data.name;
@@ -282,13 +289,12 @@ export default function Home() {
               handleLeadUpdate(leadId, updates);
             } else {
               console.warn("Sue-Chef Debug: No data extracted from image");
-              // alert("לא הצלחתי למצוא שם או טלפון בתמונה הזאת.");
+              alert("⚠️ התמונה נסרקה הועברה ל-AI, אבל לא זוהה שם או טלפון בוודאות. \nפלט מערכת: " + JSON.stringify(result.data));
             }
-          } else {
-            console.error("Sue-Chef Debug: API Error:", result.error);
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Sue-Chef Debug: OCR Fetch failed:", err);
+          alert("❌ שגיאת תקשורת עם השרת: " + err.message);
         } finally {
           setProcessingImageId(null);
         }
