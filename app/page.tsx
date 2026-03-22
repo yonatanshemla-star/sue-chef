@@ -121,7 +121,8 @@ export default function Home() {
   };
 
   const handleLeadUpdate = async (id: string, updates: Partial<Lead>) => {
-    if (updates.status === 'לא רלוונטי' || updates.status === 'נגמר') {
+    // Only 'נגמר' triggers the disqualification survey now. 'לא רלוונטי' stays in CRM.
+    if (updates.status === 'נגמר') {
         setPendingDisqualification({ id, action: 'fail', targetStatus: updates.status });
         return;
     }
@@ -156,6 +157,14 @@ export default function Home() {
     }
     setPendingDisqualification(null);
     if (activeTab === 'analytics') fetchAnalyticsData();
+  };
+
+  const deleteLeadDirectly = async (id: string) => {
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק ליד זה?")) return;
+    setLeads(prev => prev.filter(l => l.id !== id));
+    try {
+      await fetch('/api/leads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reason: "Direct Deletion" }) });
+    } catch (e) { console.error(e); fetchLeads(); }
   };
 
   const initiateCall = async (lead: Lead) => {
@@ -219,6 +228,51 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
+  // Global Paste Handler for OCR
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const blob = items[i].getAsFile();
+          if (!blob) continue;
+
+          // Find the lead to update (the one with the latest createdAt or the first empty one)
+          const targetLead = leads.find(l => !l.clientName && !l.phone) || leads[0];
+          if (!targetLead) return;
+
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const base64 = event.target?.result as string;
+            // Show a quick loading state if possible, but for now just fetch
+            try {
+              const res = await fetch('/api/vision', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageBase64: base64 })
+              });
+              const result = await res.json();
+              if (result.success && result.data) {
+                handleLeadUpdate(targetLead.id, { 
+                  clientName: result.data.name || targetLead.clientName,
+                  phone: result.data.phone || targetLead.phone 
+                });
+              }
+            } catch (err) {
+              console.error("OCR failed", err);
+            }
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [leads]);
+
   const getLeadByPhone = useCallback((phone: string) => {
     if (!phone) return null;
     const normalized = phone.slice(-9);
@@ -226,7 +280,7 @@ export default function Home() {
   }, [leads]);
 
   const crmLeads = useMemo(() => leads
-    .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'לא רלוונטי' && l.status !== 'במעקב')
+    .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'במעקב')
     .filter(l => {
       const q = globalSearch.toLowerCase();
       if (q && !(l.clientName?.toLowerCase().includes(q) || l.phone?.includes(q))) return false;
@@ -247,7 +301,7 @@ export default function Home() {
     .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads]);
 
   const archiveLeads = useMemo(() => leads
-    .filter(l => l.status === 'חתם' || l.status === 'לא רלוונטי' || l.status === 'נגמר')
+    .filter(l => l.status === 'חתם' || l.status === 'נגמר')
     .sort((a, b) => {
         if (a.status === 'חתם' && b.status !== 'חתם') return -1;
         if (a.status !== 'חתם' && b.status === 'חתם') return 1;
@@ -376,9 +430,9 @@ export default function Home() {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5 text-slate-900 dark:text-white">
                         <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-md group border border-indigo-400/20"><Phone size={22} className="group-hover:rotate-12 transition-all" fill="currentColor" /></button>
-                        <div>
-                          <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent border-none outline-none w-full focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors text-slate-900 dark:text-white" />
-                          <p className="text-lg font-mono text-slate-400 tracking-tight" dir="ltr">{lead.phone}</p>
+                        <div className="flex flex-col gap-1 w-full">
+                          <input type="text" placeholder="הכנס שם..." value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent border-none outline-none w-full focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors text-slate-900 dark:text-white" />
+                          <input type="text" placeholder="הכנס טלפון..." value={lead.phone || ""} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="text-lg font-mono text-slate-400 tracking-tight bg-transparent border-none outline-none w-full focus:text-indigo-500 transition-all" dir="ltr" />
                         </div>
                       </div>
                     </td>
@@ -388,13 +442,14 @@ export default function Home() {
                          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden" dir="rtl">
                            <button onClick={() => {
                              const phone = lead.phone?.replace(/^0/, '972');
-                             const msg = encodeURIComponent(`שלום ${lead.clientName?.split(' ')[0] || 'לקוח'}, רציתי לחזור אליך בנוגע לפנייתך`);
+                             const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
+                              const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`);
                              window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
                              setOpenMenuId(null);
                            }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 text-emerald-600 transition-colors"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                            <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"><Copy className="w-4 h-4" /> העתק מספר</button>
                            <div className="h-px bg-gray-100 dark:bg-gray-800" />
-                           <button onClick={() => { setPendingDisqualification({ id: lead.id, action: 'delete' }); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors"><Trash2 className="w-4 h-4" /> מחיקה</button>
+                           <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors"><Trash2 className="w-4 h-4" /> מחיקה</button>
                          </div>
                        )}
                     </td>
