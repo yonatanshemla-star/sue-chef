@@ -258,7 +258,7 @@ export default function Home() {
     }
 
     if (updates.status) {
-      const isRelevant = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
+      const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
       if (isRelevant) updates.wasRelevant = true;
       if (updates.status === 'חתם') {
         updates.isSigned = true;
@@ -369,6 +369,7 @@ export default function Home() {
     if (!items) return;
     for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf("image") !== -1) {
+<<<<<<< HEAD
             e.preventDefault(); // Stop native pasting of an image file object
             const blob = items[i].getAsFile();
             if (!blob) continue;
@@ -404,6 +405,60 @@ export default function Home() {
                 alert('שגיאה בניתוח התמונה');
             } finally {
                 setProcessingImageId(null);
+=======
+          imageBlob = items[i].getAsFile();
+          console.log("Sue-Chef Debug: Found image in items");
+          break;
+        }
+      }
+    }
+
+    if (!imageBlob && files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].type.indexOf("image") !== -1) {
+          imageBlob = files[i];
+          console.log("Sue-Chef Debug: Found image in files");
+          break;
+        }
+      }
+    }
+
+    if (imageBlob) {
+      e.preventDefault();
+      e.stopPropagation();
+      setProcessingImageId(leadId);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        console.log("Sue-Chef Debug: Image converted to Base64, length:", base64.length);
+        try {
+          const res = await fetch('/api/vision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64 })
+          });
+          const result = await res.json();
+          console.log("Sue-Chef Debug: Vision API Response:", result);
+
+          if (!result.success) {
+            console.error("Sue-Chef Debug: API Error:", result.error);
+            alert("❗ שגיאת שרת: " + JSON.stringify(result.error));
+            setProcessingImageId(null);
+            return;
+          }
+
+          if (result.success && result.data) {
+            const updates: any = {};
+            if (result.data.name && result.data.name !== "null") updates.clientName = result.data.name;
+            if (result.data.phone && result.data.phone !== "null") updates.phone = result.data.phone;
+            
+            if (Object.keys(updates).length > 0) {
+              console.log("Sue-Chef Debug: Updating lead with:", updates);
+              handleLeadUpdate(leadId, updates);
+            } else {
+              console.warn("Sue-Chef Debug: No data extracted from image");
+              alert("⚠️ התמונה נסרקה הועברה ל-AI, אבל לא זוהה שם או טלפון בוודאות. \nפלט מערכת: " + JSON.stringify(result.data));
+>>>>>>> 8e49f92 (Sue-Chef v5.9.5: Final fixes before 5.1 test)
             }
             break;
         }
