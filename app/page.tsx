@@ -1,4 +1,6 @@
 "use client";
+// Force Vercel Redeploy - v5.9.5-final-restored
+
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users } from "lucide-react";
@@ -229,77 +231,51 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  // v5.1 Precision OCR Handler - Refined for v5.9.2
-  const handlePaste = useCallback(async (e: React.ClipboardEvent, leadId: string) => {
+  // === Image Paste Handler (Restored Tesseract.js approach) ===
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>, leadId: string) => {
+    e.stopPropagation(); // Prevent duplicate events bubbling up
     const items = e.clipboardData?.items;
-    const files = e.clipboardData?.files;
-    let imageBlob: File | null = null;
-
-    console.log("Sue-Chef Debug: Paste triggered for lead", leadId);
-
-    if (items) {
-      for (let i = 0; i < items.length; i++) {
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf("image") !== -1) {
-          imageBlob = items[i].getAsFile();
-          console.log("Sue-Chef Debug: Found image in items");
-          break;
-        }
-      }
-    }
-
-    if (!imageBlob && files && files.length > 0) {
-      for (let i = 0; i < files.length; i++) {
-        if (files[i].type.indexOf("image") !== -1) {
-          imageBlob = files[i];
-          console.log("Sue-Chef Debug: Found image in files");
-          break;
-        }
-      }
-    }
-
-    if (imageBlob) {
-      setProcessingImageId(leadId);
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        console.log("Sue-Chef Debug: Image converted to Base64, length:", base64.length);
-        try {
-          const res = await fetch('/api/vision', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: base64 })
-          });
-          const result = await res.json();
-          console.log("Sue-Chef Debug: Vision API Response:", result);
-
-          if (!result.success) {
-            console.error("Sue-Chef Debug: API Error:", result.error);
-            alert("❗ שגיאת שרת: " + JSON.stringify(result.error));
-            setProcessingImageId(null);
-            return;
-          }
-
-          if (result.success && result.data) {
-            const updates: any = {};
-            if (result.data.name && result.data.name !== "null") updates.clientName = result.data.name;
-            if (result.data.phone && result.data.phone !== "null") updates.phone = result.data.phone;
-            
-            if (Object.keys(updates).length > 0) {
-              console.log("Sue-Chef Debug: Updating lead with:", updates);
-              handleLeadUpdate(leadId, updates);
-            } else {
-              console.warn("Sue-Chef Debug: No data extracted from image");
-              alert("⚠️ התמונה נסרקה הועברה ל-AI, אבל לא זוהה שם או טלפון בוודאות. \nפלט מערכת: " + JSON.stringify(result.data));
+            e.preventDefault(); // Stop native pasting of an image file object
+            const blob = items[i].getAsFile();
+            if (!blob) continue;
+            setProcessingImageId(leadId);
+            try {
+                const Tesseract = (window as any).Tesseract || await new Promise<any>((resolve, reject) => {
+                    if ((window as any).Tesseract) { resolve((window as any).Tesseract); return; }
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                    script.onload = () => resolve((window as any).Tesseract);
+                    script.onerror = () => reject(new Error('Failed to load Tesseract.js'));
+                    document.head.appendChild(script);
+                });
+                const result = await Tesseract.recognize(blob, 'heb+eng');
+                const text = result.data.text.trim();
+                if (!text) {
+                    alert('לא זיהינו טקסט בתמונה. נסה תמונה ברורה יותר.');
+                    setProcessingImageId(null);
+                    return;
+                }
+                const phoneMatch = text.match(/0[2-9]\d[-.\s]?\d{3}[-.\s]?\d{4}|0[2-9]\d{8}/) || text.match(/\d{9,10}/);
+                const phone = phoneMatch ? phoneMatch[0].replace(/[-.\s]/g, '') : '';
+                let name = text;
+                if (phone) name = name.replace(phoneMatch[0], '');
+                name = name.replace(/[\d\n\r\t|]/g, ' ').replace(/\s+/g, ' ').trim();
+                const updates: Partial<Lead> = {};
+                if (name) updates.clientName = name;
+                if (phone) updates.phone = phone;
+                if (Object.keys(updates).length > 0) handleLeadUpdate(leadId, updates);
+                else alert('לא הצלחנו לחלץ שם או טלפון מהתמונה.');
+            } catch (err) {
+                console.error('OCR Error:', err);
+                alert('שגיאה בניתוח התמונה');
+            } finally {
+                setProcessingImageId(null);
             }
-          }
-        } catch (err: any) {
-          console.error("Sue-Chef Debug: OCR Fetch failed:", err);
-          alert("❌ שגיאת תקשורת עם השרת: " + err.message);
-        } finally {
-          setProcessingImageId(null);
+            break;
         }
-      };
-      reader.readAsDataURL(imageBlob);
     }
   }, [handleLeadUpdate]);
 
@@ -444,73 +420,85 @@ export default function Home() {
         <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
           {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
             <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
-              <thead className="bg-slate-50/50 dark:bg-slate-800/20 border-b dark:border-slate-800">
+            <table className="w-full text-sm text-right border-collapse">
+              <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
                 <tr>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">לקוח</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">פעולות</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">סטטוס</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">תיעוד אחרון / מעקב</th>
-                  <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">פתיחה</th>
+                  <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
+                  <th className="px-2 py-6 font-bold w-12 text-center"></th>
+                  <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[180px]">סטטוס טיפול</th>
+                  <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[220px]">הערות ומעקב</th>
+                  <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 text-center">מסך שיחה</th>
                 </tr>
               </thead>
-              <tbody className="divide-y dark:divide-slate-800 opacity-100">
+              <tbody className="divide-y divide-indigo-500/5 opacity-100">
                 {(Array.isArray(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) ? (activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) : []).map((lead, idx) => (
-                  <tr key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-5 text-slate-900 dark:text-white">
-                        <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-md group border border-indigo-400/20"><Phone size={22} className="group-hover:rotate-12 transition-all" fill="currentColor" /></button>
-<div 
-                          className={`flex flex-col gap-1 w-full p-2 rounded-2xl transition-all border-2 border-dashed ${processingImageId === lead.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent hover:border-indigo-200'}`}
-                          onPaste={(e) => handlePaste(e, lead.id)}
-                        >
+                  <tr 
+                    key={lead.id} 
+                    className="group hover:bg-white/60 dark:hover:bg-white/5 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 fill-mode-both"
+                    style={{ animationDelay: `${idx * 50}ms`, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
+                  >
+                    <td className="px-8 py-5">
+                      <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
+                        <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 active:scale-90 transition-all hover:scale-110"><Phone className="w-6 h-6" /></button>
+                        <div className="flex flex-col flex-1 gap-1">
                           {processingImageId === lead.id ? (
                             <div className="flex items-center gap-3 py-2 text-indigo-600 font-black animate-pulse">
-                              <Loader2 className="animate-spin" size={18} />
-                              סורק תמונה...
+                              <Loader2 className="animate-spin w-5 h-5" />
+                              סורק תמונה מקומית...
                             </div>
                           ) : (
                             <>
-                              <input type="text" placeholder="הכנס שם..." value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent border-none outline-none w-full focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors text-slate-900 dark:text-white" />
-                              <input type="text" placeholder="הכנס טלפון..." value={lead.phone || ""} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="text-lg font-mono text-slate-400 tracking-tight bg-transparent border-none outline-none w-full focus:text-indigo-500 transition-all" dir="ltr" />
+                              <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors" placeholder="שם הלקוח..." />
+                              <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
                             </>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-2 py-4 text-center relative">
-                       <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all"><MoreVertical className="w-5 text-gray-400" /></button>
-                       {openMenuId === lead.id && (
-                         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden" dir="rtl">
-                           <button onClick={() => {
-                             const phone = lead.phone?.replace(/^0/, '972');
-                             const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
-                              const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`);
-                             window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
-                             setOpenMenuId(null);
-                           }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 text-emerald-600 transition-colors"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
-                           <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"><Copy className="w-4 h-4" /> העתק מספר</button>
-                           <div className="h-px bg-gray-100 dark:bg-gray-800" />
-                           <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors"><Trash2 className="w-4 h-4" /> מחיקה</button>
-                         </div>
-                       )}
+                       <div className="relative">
+                          <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"><MoreVertical className="w-5 h-5 text-gray-400" /></button>
+                          {openMenuId === lead.id && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+                                <button onClick={() => {
+                                  const phone = lead.phone?.replace(/^0/, '972');
+                                  const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
+                                  const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`);
+                                  window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+                                  setOpenMenuId(null);
+                                }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 transition-colors"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
+                                <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"><Copy className="w-4 h-4" /> העתק מספר</button>
+                                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                                <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors"><Trash2 className="w-4 h-4" /> מחק ליד</button>
+                              </div>
+                            </>
+                          )}
+                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <select value={lead.status} onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} className={`px-4 py-2.5 rounded-xl font-black text-[11px] border transition-all cursor-pointer ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${lead.status === 'חדש' ? 'animate-pulse ring-4 ring-indigo-500/10' : ''}`}>
-                        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex flex-col gap-2">
-                        <div className="relative group/time">
-                          <Clock size={12} className="absolute right-0 top-1.5 text-slate-300 group-hover/time:text-indigo-400 transition-colors" />
-                          <input type="text" placeholder="קבע מועד למעקב" value={lead.followUpDate || ""} onChange={e => handleLeadUpdate(lead.id, { followUpDate: e.target.value })} className="bg-transparent border-none outline-none text-[11px] font-black text-slate-400 pr-5 w-full focus:text-slate-800 dark:focus:text-white" />
-                        </div>
-                        <textarea value={lead.generalNotes || ''} onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-800/10 border dark:border-slate-800/10 rounded-xl p-3 text-xs font-bold resize-none h-16 focus:bg-white dark:focus:bg-slate-800 transition-all outline-none text-slate-800 dark:text-slate-100" placeholder="הערות..." />
+                    <td className="px-6 py-5">
+                      <div className="relative group/select">
+                        <select 
+                          value={lead.status} 
+                          onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
+                          className={`text-[11px] font-black rounded-2xl px-4 py-3 outline-none border transition-all cursor-pointer w-full appearance-none shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border} group-hover/select:shadow-indigo-500/10`}
+                        >
+                          {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </select>
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50"><ChevronDown size={14} /></div>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-center">
-                      <button onClick={() => setLiveNotesLead(lead)} className="text-[11px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 px-6 py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white hover:scale-105 active:scale-95 transition-all shadow-sm">תיעוד מלא</button>
+                    <td className="px-6 py-5">
+                      <textarea 
+                        value={lead.generalNotes || ''} 
+                        onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
+                        className="w-full text-sm font-bold bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none h-20 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-4 focus:ring-indigo-500/10 shadow-sm" 
+                        placeholder="הערות למעקב..." 
+                      />
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                       <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
                     </td>
                   </tr>
                 ))}
