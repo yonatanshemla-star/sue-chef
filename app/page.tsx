@@ -228,95 +228,57 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  const leadsRef = useRef(leads);
-  const liveNotesLeadRef = useRef(liveNotesLead);
-  
-  useEffect(() => {
-    leadsRef.current = leads;
-    liveNotesLeadRef.current = liveNotesLead;
-  }, [leads, liveNotesLead]);
+  // v5.1 Precision OCR Handler
+  const handlePaste = useCallback(async (e: React.ClipboardEvent, leadId: string) => {
+    const items = e.clipboardData?.items;
+    const files = e.clipboardData?.files;
+    let imageBlob: File | null = null;
 
-  // Global Persistent Paste Handler for OCR
-  useEffect(() => {
-    console.log("Sue-Chef Debug: OCR Global Listener Registered");
-    
-    const handlePaste = async (e: any) => {
-      const clipboardData = e.clipboardData || (window as any).clipboardData;
-      if (!clipboardData) return;
-
-      console.log("Sue-Chef Debug: Global Paste Event Detected");
-
-      const items = clipboardData.items;
-      const files = clipboardData.files;
-      
-      let imageBlob: File | null = null;
-
-      // Check items first
-      if (items) {
-        for (let i = 0; i < items.length; i++) {
-          if (items[i].type.indexOf("image") !== -1) {
-            imageBlob = items[i].getAsFile();
-            console.log("Sue-Chef Debug: Image found in items");
-            break;
-          }
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          imageBlob = items[i].getAsFile();
+          break;
         }
       }
+    }
 
-      // Check files if no image yet
-      if (!imageBlob && files && files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          if (files[i].type.indexOf("image") !== -1) {
-            imageBlob = files[i];
-            console.log("Sue-Chef Debug: Image found in files");
-            break;
-          }
+    if (!imageBlob && files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].type.indexOf("image") !== -1) {
+          imageBlob = files[i];
+          break;
         }
       }
+    }
 
-      if (imageBlob) {
-        // e.preventDefault(); // Prevent default only if we found an image
-        console.log("Sue-Chef Debug: Processing image...");
-
-        const targetLead = liveNotesLeadRef.current || leadsRef.current.find(l => !l.clientName && !l.phone) || leadsRef.current[0];
-        if (!targetLead) {
-          console.warn("Sue-Chef Debug: No target lead for OCR");
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const base64 = event.target?.result as string;
-          try {
-            console.log("Sue-Chef Debug: Fetching /api/vision for lead:", targetLead.id);
-            const res = await fetch('/api/vision', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ imageBase64: base64 })
+    if (imageBlob) {
+      setProcessingImageId(leadId);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const res = await fetch('/api/vision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64 })
+          });
+          const result = await res.json();
+          if (result.success && result.data) {
+            handleLeadUpdate(leadId, { 
+              clientName: result.data.name || '',
+              phone: result.data.phone || '' 
             });
-            const result = await res.json();
-            console.log("Sue-Chef Debug: OCR Result:", result);
-            if (result.success && result.data) {
-              handleLeadUpdate(targetLead.id, { 
-                clientName: result.data.name || targetLead.clientName,
-                phone: result.data.phone || targetLead.phone 
-              });
-            }
-          } catch (err) {
-            console.error("Sue-Chef Debug: OCR Failure:", err);
           }
-        };
-        reader.readAsDataURL(imageBlob);
-      }
-    };
-
-    window.addEventListener('paste', handlePaste, true);
-    document.addEventListener('paste', handlePaste, true);
-    
-    return () => {
-      window.removeEventListener('paste', handlePaste, true);
-      document.removeEventListener('paste', handlePaste, true);
-    };
-  }, []); // Only once on mount!
+        } catch (err) {
+          console.error("OCR failed", err);
+        } finally {
+          setProcessingImageId(null);
+        }
+      };
+      reader.readAsDataURL(imageBlob);
+    }
+  }, [handleLeadUpdate]);
 
   const getLeadByPhone = useCallback((phone: string) => {
     if (!phone) return null;
@@ -475,9 +437,21 @@ export default function Home() {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5 text-slate-900 dark:text-white">
                         <button onClick={() => initiateCall(lead)} className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-md group border border-indigo-400/20"><Phone size={22} className="group-hover:rotate-12 transition-all" fill="currentColor" /></button>
-                        <div className="flex flex-col gap-1 w-full">
-                          <input type="text" placeholder="הכנס שם..." value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} onPaste={(e) => { if (e.clipboardData.files.length > 0) { console.log("Input paste: Image detected"); } }} className="font-black text-xl bg-transparent border-none outline-none w-full focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors text-slate-900 dark:text-white" />
-                          <input type="text" placeholder="הכנס טלפון..." value={lead.phone || ""} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} onPaste={(e) => { if (e.clipboardData.files.length > 0) { console.log("Input paste: Image detected"); } }} className="text-lg font-mono text-slate-400 tracking-tight bg-transparent border-none outline-none w-full focus:text-indigo-500 transition-all" dir="ltr" />
+<div 
+                          className={`flex flex-col gap-1 w-full p-2 rounded-2xl transition-all border-2 border-dashed ${processingImageId === lead.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent hover:border-indigo-200'}`}
+                          onPaste={(e) => handlePaste(e, lead.id)}
+                        >
+                          {processingImageId === lead.id ? (
+                            <div className="flex items-center gap-3 py-2 text-indigo-600 font-black animate-pulse">
+                              <Loader2 className="animate-spin" size={18} />
+                              סורק תמונה...
+                            </div>
+                          ) : (
+                            <>
+                              <input type="text" placeholder="הכנס שם..." value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent border-none outline-none w-full focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors text-slate-900 dark:text-white" />
+                              <input type="text" placeholder="הכנס טלפון..." value={lead.phone || ""} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="text-lg font-mono text-slate-400 tracking-tight bg-transparent border-none outline-none w-full focus:text-indigo-500 transition-all" dir="ltr" />
+                            </>
+                          )}
                         </div>
                       </div>
                     </td>
