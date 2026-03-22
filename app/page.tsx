@@ -42,6 +42,7 @@ export default function Home() {
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
   const [loadingCalls, setLoadingCalls] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [processingImageId, setProcessingImageId] = useState<string | null>(null);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
