@@ -36,8 +36,8 @@ export async function POST(req: Request) {
 אם לא מצאת כלום, החזר:
 {"name": null, "phone": null}`;
 
-    // Use gemini-1.5-flash: wider support and very stable for OCR
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Use gemini-2.0-flash: the original model that worked correctly before
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
