@@ -230,7 +230,7 @@ export default function Home() {
 
     // Global Paste Handler for OCR
   useEffect(() => {
-    const handlePaste = async (e) => {
+    const handlePaste = async (e: any) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
 
