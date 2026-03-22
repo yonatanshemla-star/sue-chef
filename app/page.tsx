@@ -228,58 +228,95 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  // Global Paste Handler for OCR
+  const leadsRef = useRef(leads);
+  const liveNotesLeadRef = useRef(liveNotesLead);
+  
   useEffect(() => {
+    leadsRef.current = leads;
+    liveNotesLeadRef.current = liveNotesLead;
+  }, [leads, liveNotesLead]);
+
+  // Global Persistent Paste Handler for OCR
+  useEffect(() => {
+    console.log("Sue-Chef Debug: OCR Global Listener Registered");
+    
     const handlePaste = async (e: any) => {
-      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-      if (!items) return;
+      const clipboardData = e.clipboardData || (window as any).clipboardData;
+      if (!clipboardData) return;
 
-      console.log("Sue-Chef Debug: Paste event triggered");
+      console.log("Sue-Chef Debug: Global Paste Event Detected");
 
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1) {
-          const blob = items[i].getAsFile();
-          if (!blob) continue;
+      const items = clipboardData.items;
+      const files = clipboardData.files;
+      
+      let imageBlob: File | null = null;
 
-          console.log("Sue-Chef Debug: Image detected in clipboard!");
-          
-          const targetLead = liveNotesLead || leads.find(l => !l.clientName && !l.phone) || leads[0];
-          if (!targetLead) return;
-
-          const reader = new FileReader();
-          reader.onload = async (event) => {
-            const base64 = event.target?.result;
-            try {
-              console.log("Sue-Chef Debug: Sending image to /api/vision...");
-              const res = await fetch('/api/vision', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageBase64: base64 })
-              });
-              const result = await res.json();
-              console.log("Sue-Chef Debug: Vision Results:", result);
-              if (result.success && result.data) {
-                handleLeadUpdate(targetLead.id, { 
-                  clientName: result.data.name || targetLead.clientName,
-                  phone: result.data.phone || targetLead.phone 
-                });
-              }
-            } catch (err) {
-              console.error("Sue-Chef Debug: OCR failed", err);
-            }
-          };
-          reader.readAsDataURL(blob);
+      // Check items first
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            imageBlob = items[i].getAsFile();
+            console.log("Sue-Chef Debug: Image found in items");
+            break;
+          }
         }
+      }
+
+      // Check files if no image yet
+      if (!imageBlob && files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          if (files[i].type.indexOf("image") !== -1) {
+            imageBlob = files[i];
+            console.log("Sue-Chef Debug: Image found in files");
+            break;
+          }
+        }
+      }
+
+      if (imageBlob) {
+        // e.preventDefault(); // Prevent default only if we found an image
+        console.log("Sue-Chef Debug: Processing image...");
+
+        const targetLead = liveNotesLeadRef.current || leadsRef.current.find(l => !l.clientName && !l.phone) || leadsRef.current[0];
+        if (!targetLead) {
+          console.warn("Sue-Chef Debug: No target lead for OCR");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const base64 = event.target?.result as string;
+          try {
+            console.log("Sue-Chef Debug: Fetching /api/vision for lead:", targetLead.id);
+            const res = await fetch('/api/vision', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageBase64: base64 })
+            });
+            const result = await res.json();
+            console.log("Sue-Chef Debug: OCR Result:", result);
+            if (result.success && result.data) {
+              handleLeadUpdate(targetLead.id, { 
+                clientName: result.data.name || targetLead.clientName,
+                phone: result.data.phone || targetLead.phone 
+              });
+            }
+          } catch (err) {
+            console.error("Sue-Chef Debug: OCR Failure:", err);
+          }
+        };
+        reader.readAsDataURL(imageBlob);
       }
     };
 
     window.addEventListener('paste', handlePaste, true);
     document.addEventListener('paste', handlePaste, true);
+    
     return () => {
       window.removeEventListener('paste', handlePaste, true);
       document.removeEventListener('paste', handlePaste, true);
     };
-  }, [leads, liveNotesLead]);
+  }, []); // Only once on mount!
 
   const getLeadByPhone = useCallback((phone: string) => {
     if (!phone) return null;
