@@ -288,10 +288,15 @@ export default function Home() {
   const crmLeads = useMemo(() => leads
     .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'במעקב')
     .filter(l => {
-      const q = globalSearch.toLowerCase();
-      if (q && !(l.clientName?.toLowerCase().includes(q) || l.phone?.includes(q))) return false;
-      if (showAdvancedStageOnly) return ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
-      return true;
+      const q = globalSearch.toLowerCase().trim();
+      if (!q) return true;
+      const nameMatch = l.clientName?.toLowerCase().includes(q);
+      const phoneMatch = l.phone?.includes(q);
+      if (showAdvancedStageOnly) {
+         const isAdvanced = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
+         if (!isAdvanced) return false;
+      }
+      return nameMatch || phoneMatch;
     })
     .sort((a, b) => {
         if (showAdvancedStageOnly) {
@@ -308,11 +313,18 @@ export default function Home() {
 
   const archiveLeads = useMemo(() => leads
     .filter(l => l.status === 'חתם' || l.status === 'נגמר')
+    .filter(l => {
+      const q = globalSearch.toLowerCase().trim();
+      if (!q) return true;
+      const nameMatch = l.clientName?.toLowerCase().includes(q);
+      const phoneMatch = l.phone?.includes(q);
+      return nameMatch || phoneMatch;
+    })
     .sort((a, b) => {
         if (a.status === 'חתם' && b.status !== 'חתם') return -1;
         if (a.status !== 'חתם' && b.status === 'חתם') return 1;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    }), [leads]);
+    }), [leads, globalSearch]);
 
   const cardClass = "premium-glass rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:hover:shadow-indigo-500/10";
 
@@ -696,37 +708,73 @@ export default function Home() {
                        />
                     </div>
 
-                    {/* LEFT SIDE: Controls (Shrunken) */}
-                    <div className="flex-[0.8] flex flex-col p-5 bg-slate-50/30 dark:bg-slate-950/20 overflow-y-auto custom-scrollbar gap-4">
-                       <button onClick={() => setShowScriptPanel(!showScriptPanel)} className={`w-full py-3.5 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-3 shadow-sm ${showScriptPanel ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 border dark:border-slate-700'}`}>
-                         <FileText size={18} /> {showScriptPanel ? 'הסתר תסריט' : 'הצג תסריט'}
-                       </button>
+                    {/* LEFT SIDE: New Permanent Script (Expanded) */}
+                    <div className="flex-[1.2] flex flex-col p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar border-r dark:border-slate-800">
+                       <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10">
+                          <h4 className="text-xl font-black text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
+                            <FileText size={24} /> תסריט שיחה מלא
+                          </h4>
+                          
+                          <div className="space-y-8 text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-assistant" dir="rtl">
+                            <section>
+                              <h5 className="text-indigo-500 font-black text-lg mb-2">פתיחה</h5>
+                              <p className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
+                                אהלן, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות, ורציתי לשוחח איתך כדי להבין איך נוכל לעזור. יש לך כמה דקות לדבר?
+                              </p>
+                            </section>
 
-                       {showScriptPanel && (
-                         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border dark:border-slate-800 shadow-lg border-indigo-500/10">
-                            <h4 className="text-xs font-black text-indigo-500 mb-3 flex items-center gap-2 underline decoration-indigo-500/30 underline-offset-4 pointer-events-none select-none">תסריט מקוצר</h4>
-                            <div className="space-y-2 text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
-                                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-900/30 line-clamp-2">1. הצגה: עו"ד גילי - משרד נזיקין</div>
-                                <div className="p-2.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">2. פרטי אירוע: מתי ואיפה?</div>
-                                <div className="p-2.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">3. רפואי: מיון, אשפוז, צילומים?</div>
-                                <div className="p-2.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">4. ייצוג: יש עו"ד אחר בתמונה?</div>
-                            </div>
-                         </div>
-                       )}
+                            <section>
+                              <h5 className="text-indigo-500 font-black text-lg mb-2">בירור כוונה</h5>
+                              <p>אני רק רוצה לוודא – אתה עדיין מעוניין שנבדוק עבורך האם נוכל לסייע?</p>
+                            </section>
 
-                       <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border dark:border-slate-800 shadow-sm flex flex-col gap-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-0"><Calendar size={14} className="text-indigo-500" /> מעקב</label>
-                          <input 
-                            type="text" 
-                            placeholder="תאריך ושעה..." 
-                            value={liveNotesLead.followUpDate || ""} 
-                            onChange={e => handleLeadUpdate(liveNotesLead.id, { followUpDate: e.target.value })} 
-                            className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 rounded-xl border-none outline-none font-black text-base text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500/20" 
-                          />
+                            <section className="space-y-4">
+                              <h5 className="text-indigo-500 font-black text-lg mb-2">שאלות סינון</h5>
+                              <div className="space-y-4">
+                                <div className="flex gap-3">
+                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
+                                  <p>מה שמך המלא ומה הגיל שלך?</p>
+                                </div>
+                                <div className="flex gap-3">
+                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
+                                  <p>יש לך כרגע הכנסות? אם כן – מאיפה הן מגיעות (קצבה, עבודה, פנסיה וכו') ומה הסכום בערך?</p>
+                                </div>
+                                <div className="flex gap-3">
+                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
+                                  <div>
+                                    <p>תוכל לפרט קצת על המצב הרפואי שלך? ממה אתה סובל כיום, מה יש באבחנות, ומה הכי משפיע על התפקוד היומיומי?</p>
+                                    <p className="text-[10px] text-slate-400 mt-2 italic">(אם מספר כמה בעיות – תגיד: "אוקיי, חשוב לי להבין כל דבר בנפרד כדי להעביר לעו"ד בצורה מדויקת).</p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-3">
+                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
+                                  <p>יש לך כרגע קצבאות כלשהן? אם כן – מאיפה? אם זו קצבה מביטוח לאומי – אתה יודע מה דרגת הנכות שקיבלת?</p>
+                                </div>
+                                <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
+                                  <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
+                                    <p>האם יש קושי בפעולות יומיומיות (לבוש, רחצה, תפקוד בסיסי)? תשאלו רק אם אתה שומע תיאור שמעיד על מצב תפקודי קשה.</p>
+                                  </div>
+                                </div>
+                                <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
+                                  <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">6</span>
+                                    <p>האם יש לך ביטוח סיעודי בקופת חולים?</p>
+                                  </div>
+                                </div>
+                                <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
+                                  <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">7</span>
+                                    <p>משלם מס הכנסה? אם כן, כמה?</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </section>
+                          </div>
                        </div>
 
-                       <div className="mt-auto opacity-20 text-[9px] items-center flex gap-2 font-black text-slate-400 uppercase tracking-tighter self-center">
-                          <Zap size={10} /> Sue-Chef v5.8 Ultra
+                       <div className="mt-8 opacity-20 text-[9px] items-center flex gap-2 font-black text-slate-400 uppercase tracking-tighter self-center">
+                          <Zap size={10} /> Sue-Chef v5.9 Master
                        </div>
                     </div>
                  </div>
