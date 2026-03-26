@@ -7,6 +7,35 @@ import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TablePro
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
+// -- Simple CountUp Component --
+function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | string, suffix?: string, prefix?: string }) {
+  const [count, setCount] = useState(0);
+  const target = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.]/g, '')) : value;
+  
+  useEffect(() => {
+    if (!target) { setCount(0); return; }
+    const duration = 1500;
+    const steps = 30;
+    const stepTime = Math.abs(Math.floor(duration / steps));
+    let curr = 0;
+    const valStep = target / steps;
+    
+    const timer = setInterval(() => {
+      curr += valStep;
+      if (curr >= target) {
+         setCount(target);
+         clearInterval(timer);
+      } else {
+         setCount(curr);
+      }
+    }, stepTime);
+    return () => clearInterval(timer);
+  }, [target]);
+
+  const displayVal = target % 1 !== 0 ? count.toFixed(1) : Math.floor(count);
+  return <span>{prefix}{displayVal}{suffix}</span>;
+}
+
 // === Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number; icon?: any }> = {
   'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-600 dark:text-white', border: 'border-pink-700', importance: 0 },
@@ -60,6 +89,7 @@ export default function Home() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [showAdvancedStageOnly, setShowAdvancedStageOnly] = useState(false);
   const [notifications, setNotifications] = useState<{id: string, name: string, time: string}[]>([]);
+  const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -92,7 +122,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (activeTab === 'analytics') fetchAnalyticsData();
+    if (activeTab === 'analytics') {
+      fetchAnalyticsData();
+      const timer = setInterval(() => setCurrentInsightIndex(p => (p + 1) % 3), 6000);
+      return () => clearInterval(timer);
+    }
   }, [activeTab]);
 
   // Notifications
@@ -571,14 +605,14 @@ export default function Home() {
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                      {[
                        { icon: Users, label: 'סה"כ לידים', value: analyticsData.funnel?.total || 0, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/10', border: 'border-indigo-100 dark:border-indigo-900/30' },
-                       { icon: CheckCircle, label: 'חתימות', value: analyticsData.funnel?.signed || 0, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-100 dark:border-emerald-900/30', sub: `${analyticsData.funnel?.rates?.totalToSigned || 0}% המרה` },
-                       { icon: Zap, label: 'ממוצע שיחות לסגירה', value: analyticsData.effortMetrics?.avgCallsPerSigned || 0, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-100 dark:border-amber-900/30' },
-                       { icon: TrendingUp, label: 'המרה מרלוונטיות', value: `${analyticsData.funnel?.rates?.relevantToSigned || 0}%`, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/10', border: 'border-purple-100 dark:border-purple-900/30' }
+                       { icon: CheckCircle, label: 'חתימות', value: analyticsData.funnel?.signed || 0, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-100 dark:border-emerald-900/30', sub: `${analyticsData.funnel?.total > 0 ? ((analyticsData.funnel.signed / analyticsData.funnel.total)*100).toFixed(1) : 0}% המרה כוללת` },
+                       { icon: Zap, label: 'ממוצע שיחות לסגירה', value: analyticsData.insights?.avgCallsPerSigned || 0, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-100 dark:border-amber-900/30' },
+                       { icon: TrendingUp, label: 'איכות הלידים (רלוונטיות)', value: analyticsData.insights?.leadQualityRatio || 0, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/10', border: 'border-purple-100 dark:border-purple-900/30', isPercent: true }
                      ].map((kpi, idx) => (
                        <div key={idx} className={`${kpi.bg} p-10 rounded-[40px] border ${kpi.border} transition-all duration-500 transform hover:-translate-y-2 hover:shadow-2xl opacity-100`}>
                           <kpi.icon className={kpi.color + " mb-6"} size={32} />
                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">{kpi.label}</p>
-                          <p className={`text-5xl font-black ${kpi.color}`}>{kpi.value || "0"}</p>
+                          <p className={`text-5xl font-black ${kpi.color}`}><SimpleCountUp value={kpi.value || 0} suffix={kpi.isPercent ? "%" : ""} /></p>
                           {kpi.sub && <p className="text-xs font-bold text-emerald-500 mt-4 flex items-center gap-1"><ArrowUpRight size={14} /> {kpi.sub}</p>}
                        </div>
                      ))}
@@ -588,23 +622,25 @@ export default function Home() {
                      <h4 className="text-3xl font-black mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה (Funnel) <ArrowDownRight size={24} className="text-indigo-500" /></h4>
                      <div className="space-y-12 max-w-4xl mx-auto">
                         {[
-                          { label: "נוצר קשר", count: analyticsData.funnel?.contacted || 0, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שבוצעה אליהם שיחה אחת לפחות או שסטטוסם השתנה מ'חדש'." },
-                          { label: "רלוונטיים", count: analyticsData.funnel?.relevant || 0, color: "bg-indigo-400", val: (analyticsData.funnel?.rates?.contactedToRelevant || "0") + "%", desc: "מתוך אלו שנוצר איתם קשר - אלו שסומנו כבעלי עילה משפטית/רפואית פוטנציאלית." },
-                          { label: "חתומים", count: analyticsData.funnel?.signed || 0, color: "bg-emerald-500", val: (analyticsData.funnel?.rates?.relevantToSigned || "0") + "%", shadow: "shadow-emerald-500/30", desc: "לידים שעברו את כל השלבים וחתמו על ייצוג (ההצלחות שלנו!)." }
+                          { label: "סה״כ לידים", count: analyticsData.funnel?.total || 0, drop: 0, color: "bg-indigo-600", val: "100%", desc: "כלל הלידים במערכת הממתינים לטיפול." },
+                          { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שעברו את המסנן הראשוני (צלצלו אליהם והם ענו)." },
+                          { label: "רלוונטיות (בבדיקה/המשך טיפול)", count: analyticsData.funnel?.relevant || 0, drop: analyticsData.funnel?.contacted > 0 ? (100 - (analyticsData.funnel.relevant / analyticsData.funnel.contacted * 100)) : 0, dropVal: analyticsData.funnel?.contacted - analyticsData.funnel?.relevant, color: "bg-indigo-400", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.relevant / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שסומנו כבעלי עילה והועברו הלאה במערכת." },
+                          { label: "חתומים", count: analyticsData.funnel?.signed || 0, drop: analyticsData.funnel?.relevant > 0 ? (100 - (analyticsData.funnel.signed / analyticsData.funnel.relevant * 100)) : 0, dropVal: analyticsData.funnel?.relevant - analyticsData.funnel?.signed, color: "bg-emerald-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.signed / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", shadow: "shadow-emerald-500/30", desc: "מטופלים שהמרו והפכו לייצוג רשמי." }
                         ].map((step, idx) => (
-                          <div key={idx} className="relative group opacity-100">
-                            <div className="flex justify-between items-center mb-3 px-4">
+                          <div key={idx} className="relative group opacity-100 mt-8">
+                             {idx > 0 && <div className="absolute -top-10 right-4 text-[10px] font-black bg-red-50 dark:bg-red-900/10 text-red-500 px-3 py-1 rounded-full z-10 shadow-sm border border-red-100 dark:border-red-900/30 flex items-center gap-1"><ArrowDownRight size={12}/> נשרו {step.drop.toFixed(1)}% ({step.dropVal} אבדו בשלב הקודם)</div>}
+                             <div className="flex justify-between items-center mb-3 px-4 relative z-20">
                                <div className="flex flex-col">
                                  <span className="text-base font-black text-slate-700 dark:text-slate-200 tracking-tight">{step.label}</span>
                                  <span className="text-xs text-slate-400 font-bold mt-1 line-clamp-1 group-hover:line-clamp-none transition-all">{step.desc}</span>
                                </div>
                                <span className="text-lg font-black text-slate-900 dark:text-white px-4 py-1 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border dark:border-slate-700">{step.count} ({step.val})</span>
-                            </div>
-                            <div className="w-full h-11 bg-slate-200/50 dark:bg-slate-800 rounded-full overflow-hidden flex flex-row-reverse shadow-inner relative">
+                             </div>
+                             <div className="w-full h-11 bg-slate-200/50 dark:bg-slate-800 rounded-full overflow-hidden flex flex-row-reverse shadow-inner relative z-20">
                                <div className={`${step.color} h-full transition-all duration-[1000ms] ease-out flex items-center justify-end px-8 text-xs font-black text-white ${step.shadow || 'shadow-lg'}`} style={{ width: step.val }}>
                                   {step.count > 0 && <span className="opacity-0 group-hover:opacity-100 transition-opacity tracking-widest uppercase text-[10px]">VERIFIED</span>}
                                </div>
-                            </div>
+                             </div>
                           </div>
                         ))}
                      </div>
@@ -624,13 +660,45 @@ export default function Home() {
                             )) : <div className="flex flex-col items-center justify-center py-12 opacity-20"><HelpCircle size={48} /><p className="font-bold mt-4">אין נתונים</p></div>}
                          </div>
                       </div>
-                      <div className="bg-indigo-600 rounded-[56px] p-16 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden">
-                         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-[120px] rounded-full translate-x-32 -translate-y-32" />
-                         <h4 className="text-3xl font-black mb-8 flex items-center gap-5"><Zap size={36} /> מדד המאמץ</h4>
-                         <p className="text-2xl font-bold opacity-90 leading-relaxed font-assistant">
-                            המערכת מנתחת את מספר השיחות הממוצע לסגירה. 
-                            נדרשות <span className="text-6xl font-black text-amber-400 underline underline-offset-[16px] decoration-8 decoration-white/20 mx-2">{analyticsData.effortMetrics?.avgCallsPerSigned || "0"}</span> שיחות כדי להחתים לקוח. 
-                         </p>
+                      <div className="bg-indigo-600 rounded-[56px] p-12 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden group">
+                         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-[120px] rounded-full translate-x-32 -translate-y-32 transition-transform duration-1000 group-hover:scale-110" />
+                         
+                         <div className="flex justify-between items-center mb-8 relative z-10">
+                            <h4 className="text-xl font-black flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[11px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
+                            <div className="flex gap-2">
+                               {[0, 1, 2].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${currentInsightIndex === i ? 'bg-white w-6' : 'bg-white/30'}`} />)}
+                            </div>
+                         </div>
+
+                         <div className="relative h-48 z-10 w-full">
+                            {currentInsightIndex === 0 && (
+                               <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
+                                   <Zap size={48} className="text-amber-400 mb-6 opacity-80" />
+                                   <p className="text-3xl font-black opacity-90 leading-tight font-assistant">
+                                      {analyticsData.insights?.quickSignedRate || 0}% מהחוזים נחתמים ב-<span className="text-amber-400">3 השיחות הראשונות</span>. נדרשות בממוצע {analyticsData.insights?.avgCallsPerSigned || 0} שיחות לסגירה.
+                                   </p>
+                                   <p className="mt-4 text-indigo-200 font-bold text-sm">מסקנה: השקעת מאמץ מעבר ל-4 צלצולים מפחיתה דרסטית את סיכויי ההמרה.</p>
+                               </div>
+                            )}
+                            {currentInsightIndex === 1 && (
+                               <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
+                                   <Star size={48} className="text-emerald-400 mb-6 opacity-80" />
+                                   <p className="text-3xl font-black opacity-90 leading-tight font-assistant">
+                                      מדד איכות הלידים שלך: <span className="text-emerald-400">{analyticsData.insights?.leadQualityRatio || 0}%</span> מאלו שענו באמת עברו את הסינון שלך והוגדרו כרלוונטיים.
+                                   </p>
+                                   <p className="mt-4 text-indigo-200 font-bold text-sm">מסקנה: זהו אחוז הלידים הבשלים שהתקדמו לבדיקה מתוך הסך הכל הכללי עמו הושג קשר.</p>
+                               </div>
+                            )}
+                            {currentInsightIndex === 2 && (
+                               <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
+                                   <PhoneOff size={48} className="text-red-400 mb-6 opacity-80" />
+                                   <p className="text-3xl font-black opacity-90 leading-tight font-assistant">
+                                      לידים שנפסלו על 'אין מענה' קיבלו בממוצע רק <span className="text-red-400">{analyticsData.insights?.avgCallsNoAnswer || 0}</span> צלצולים בלבד.
+                                   </p>
+                                   <p className="mt-4 text-indigo-200 font-bold text-sm">מסקנה: ייתכן ואנחנו ממהרים מדי לפסול. מומלץ להגדיל מספר ניסיונות לפני פסילה סופית.</p>
+                               </div>
+                            )}
+                         </div>
                       </div>
                    </div>
                  </>
