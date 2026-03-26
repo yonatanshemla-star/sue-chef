@@ -423,11 +423,11 @@ export default function Home() {
         )}
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] premium-glass">
+        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] bg-indigo-600 shadow-xl shadow-indigo-500/20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
           {(['crm', 'calls', 'archive', 'analytics', 'tree'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all relative group overflow-hidden ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-500 hover:bg-slate-100/50'}`}>
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab ? 'bg-white text-indigo-700 shadow-lg scale-105' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
               <span className="relative z-10">{tab === 'crm' ? 'טבלת מעקב' : tab === 'calls' ? 'שיחות אחרונות' : tab === 'archive' ? 'ארכיון' : tab === 'analytics' ? 'אנליטיקה' : 'עץ החלטות'}</span>
-              {activeTab === tab && <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </button>
           ))}
         </div>
@@ -619,11 +619,10 @@ export default function Home() {
                    </div>
 
                    <div className="bg-slate-100/30 dark:bg-slate-800/20 p-12 rounded-[56px] border dark:border-slate-800 shadow-inner overflow-hidden">
-                     <h4 className="text-3xl font-black mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה (Funnel) <ArrowDownRight size={24} className="text-indigo-500" /></h4>
+                     <h4 className="text-3xl font-black mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה <ArrowDownRight size={24} className="text-indigo-500" /></h4>
                      <div className="space-y-12 max-w-4xl mx-auto">
                         {[
-                          { label: "סה״כ לידים", count: analyticsData.funnel?.total || 0, drop: 0, color: "bg-indigo-600", val: "100%", desc: "כלל הלידים במערכת הממתינים לטיפול." },
-                          { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שעברו את המסנן הראשוני (צלצלו אליהם והם ענו)." },
+                          { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שענו לטלפון או שסטטוסם התקדם מעבר ל'חדש'." },
                           { label: "רלוונטיות (בבדיקה/המשך טיפול)", count: analyticsData.funnel?.relevant || 0, drop: analyticsData.funnel?.contacted > 0 ? (100 - (analyticsData.funnel.relevant / analyticsData.funnel.contacted * 100)) : 0, dropVal: analyticsData.funnel?.contacted - analyticsData.funnel?.relevant, color: "bg-indigo-400", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.relevant / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שסומנו כבעלי עילה והועברו הלאה במערכת." },
                           { label: "חתומים", count: analyticsData.funnel?.signed || 0, drop: analyticsData.funnel?.relevant > 0 ? (100 - (analyticsData.funnel.signed / analyticsData.funnel.relevant * 100)) : 0, dropVal: analyticsData.funnel?.relevant - analyticsData.funnel?.signed, color: "bg-emerald-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.signed / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", shadow: "shadow-emerald-500/30", desc: "מטופלים שהמרו והפכו לייצוג רשמי." }
                         ].map((step, idx) => (
@@ -666,7 +665,9 @@ export default function Home() {
                          <div className="flex justify-between items-center mb-8 relative z-10">
                             <h4 className="text-xl font-black flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[11px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
                             <div className="flex gap-2">
-                               {[0, 1, 2].map(i => <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${currentInsightIndex === i ? 'bg-white w-6' : 'bg-white/30'}`} />)}
+                               <button onClick={() => setCurrentInsightIndex(p => (p + 2) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-[225deg]" /></button>
+                               {[0, 1, 2].map(i => <button key={i} onClick={() => setCurrentInsightIndex(i)} className={`h-2 rounded-full transition-all duration-500 cursor-pointer hover:bg-white/60 ${currentInsightIndex === i ? 'bg-white w-6' : 'bg-white/30 w-2'}`} />)}
+                               <button onClick={() => setCurrentInsightIndex(p => (p + 1) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-45" /></button>
                             </div>
                          </div>
 

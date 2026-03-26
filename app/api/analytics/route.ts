@@ -6,12 +6,12 @@ export async function GET() {
     const statsRes = await sql`
       SELECT 
         count(*) as total,
-        count(*) FILTER (WHERE COALESCE((data->>'callCount')::int, 0) > 0 OR (data->>'status') != 'חדש') as contacted,
+        count(*) FILTER (WHERE data->>'status' NOT IN ('חדש', 'לא ענה', 'אין מענה חוזר', 'מספר שגוי') OR (data->>'callCount')::int > 0 AND data->>'status' NOT IN ('חדש', 'לא ענה')) as contacted,
         count(*) FILTER (WHERE data->>'status' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'במעקב', 'חתם')) as relevant,
         count(*) FILTER (WHERE (data->>'status') = 'חתם') as signed,
-        count(*) FILTER (WHERE (data->>'status') = 'חתם' AND COALESCE((data->>'callCount')::int, 0) <= 3) as quick_signed,
-        AVG(COALESCE((data->>'callCount')::int, 0)) FILTER (WHERE (data->>'status') = 'חתם') as avg_calls_to_sign,
-        AVG(COALESCE((data->>'callCount')::int, 0)) FILTER (WHERE (data->>'disqualificationReason') = 'אין מענה חוזר') as avg_calls_no_answer
+        count(*) FILTER (WHERE (data->>'status') = 'חתם' AND (data->>'callCount')::int > 0 AND (data->>'callCount')::int <= 3) as quick_signed,
+        AVG((data->>'callCount')::int) FILTER (WHERE (data->>'status') = 'חתם' AND (data->>'callCount')::int > 0) as avg_calls_to_sign,
+        AVG((data->>'callCount')::int) FILTER (WHERE (data->>'disqualificationReason') = 'אין מענה חוזר' AND (data->>'callCount')::int > 0) as avg_calls_no_answer
       FROM leads
     `;
     
