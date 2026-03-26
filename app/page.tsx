@@ -379,33 +379,32 @@ export default function Home() {
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10 opacity-100" dir="rtl">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 bg-indigo-600 p-6 rounded-[28px] shadow-xl shadow-indigo-500/20 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-72 h-72 bg-white/5 blur-[100px] rounded-full -translate-x-20 -translate-y-20" />
-          <div className="flex flex-col relative z-10">
-            <h1 className="text-4xl font-black tracking-tight text-white flex items-center gap-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+          <div className="flex flex-col">
+            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
                Sue-Chef 
-               <span className="text-[10px] bg-white/15 text-white/90 px-2.5 py-1 rounded-full border border-white/20 font-black tracking-widest uppercase">v5.9</span>
+               <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.9</span>
             </h1>
-            <p className="text-sm text-indigo-200 mt-2 font-medium">מערכת ניהול לידים מתקדמת</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium opacity-70">מערכת ניהול לידים מתקדמת</p>
           </div>
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="flex items-center gap-3 px-5 py-3.5 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-emerald-300" />
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
+              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider">יתרת טטוויליו</p>
-                <p className="text-xl font-black leading-none text-emerald-300" dir="ltr">{twilioBalance || "..."}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טטוויליו</p>
+                <p className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
               </div>
             </div>
-            <button onClick={() => setDarkMode(!darkMode)} className="p-4 transition-all active:scale-95 group bg-white/10 hover:bg-white/20 rounded-2xl border border-white/10">
+            <button onClick={() => setDarkMode(!darkMode)} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
               <div className="relative w-6 h-6">
-                <Sun className={`absolute inset-0 w-6 h-6 text-amber-300 transition-all duration-700 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-                <Moon className={`absolute inset-0 w-6 h-6 text-indigo-200 transition-all duration-700 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
+                <Sun className={`absolute inset-0 w-6 h-6 text-yellow-500 transition-all duration-700 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                <Moon className={`absolute inset-0 w-6 h-6 text-indigo-400 transition-all duration-700 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
               </div>
             </button>
-            <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className="p-4 transition-all active:scale-95 group bg-white/10 hover:bg-white/20 rounded-2xl border border-white/10">
-              <RefreshCw className={`w-6 h-6 ${(loadingLeads || loadingCalls) ? 'animate-spin text-white' : 'text-indigo-200'}`} />
+            <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
+              <RefreshCw className={`w-6 h-6 ${(loadingLeads || loadingCalls) ? 'animate-spin text-indigo-500' : 'text-gray-600'}`} />
             </button>
           </div>
         </div>
@@ -426,9 +425,9 @@ export default function Home() {
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] bg-indigo-600 shadow-xl shadow-indigo-500/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
-          {(['crm', 'calls', 'archive', 'analytics', 'tree'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab ? 'bg-white text-indigo-700 shadow-lg scale-105' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-              <span className="relative z-10">{tab === 'crm' ? 'טבלת מעקב' : tab === 'calls' ? 'שיחות אחרונות' : tab === 'archive' ? 'ארכיון' : tab === 'analytics' ? 'אנליטיקה' : 'עץ החלטות'}</span>
+          {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600'}, {id: 'analytics', label: 'אנליטיקה', accent: 'text-emerald-600'}, {id: 'tree', label: 'עץ החלטות', accent: 'text-purple-600'}] as const).map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white ${tab.accent} shadow-lg scale-105` : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
+              <span className="relative z-10">{tab.label}</span>
             </button>
           ))}
         </div>
