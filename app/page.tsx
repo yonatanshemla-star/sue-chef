@@ -91,6 +91,99 @@ export default function Home() {
   const [notifications, setNotifications] = useState<{id: string, name: string, time: string}[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
 
+  // Secret Profit Tracker
+  const [showSecretPanel, setShowSecretPanel] = useState(false);
+  const [titleClickCount, setTitleClickCount] = useState(0);
+  const [titleClickTimer, setTitleClickTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isWorking, setIsWorking] = useState(false);
+  const [workStartTime, setWorkStartTime] = useState<number | null>(null);
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [weeklyData, setWeeklyData] = useState<any>(null);
+  const [loadingWeekly, setLoadingWeekly] = useState(false);
+
+  // Get current week key (Sunday date string)
+  const getWeekKey = () => {
+    const now = new Date();
+    const day = now.getDay();
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - day);
+    return sunday.toISOString().split('T')[0];
+  };
+
+  // Get total hours worked this week from localStorage
+  const getWeeklyHours = (): number => {
+    const weekKey = getWeekKey();
+    const stored = localStorage.getItem(`workSessions_${weekKey}`);
+    const sessions: {start: number, end: number}[] = stored ? JSON.parse(stored) : [];
+    let totalMs = sessions.reduce((acc, s) => acc + (s.end - s.start), 0);
+    // If currently working, add live time
+    if (isWorking && workStartTime) {
+      totalMs += Date.now() - workStartTime;
+    }
+    return totalMs / (1000 * 60 * 60); // hours
+  };
+
+  // Toggle work timer
+  const toggleWorkTimer = () => {
+    if (isWorking && workStartTime) {
+      // Stop working - save session
+      const weekKey = getWeekKey();
+      const stored = localStorage.getItem(`workSessions_${weekKey}`);
+      const sessions: {start: number, end: number}[] = stored ? JSON.parse(stored) : [];
+      sessions.push({ start: workStartTime, end: Date.now() });
+      localStorage.setItem(`workSessions_${weekKey}`, JSON.stringify(sessions));
+      setWorkStartTime(null);
+      setIsWorking(false);
+    } else {
+      // Start working
+      setWorkStartTime(Date.now());
+      setIsWorking(true);
+    }
+  };
+
+  // Restore work timer state on mount
+  useEffect(() => {
+    const savedStart = localStorage.getItem('currentWorkStart');
+    if (savedStart) {
+      setWorkStartTime(parseInt(savedStart));
+      setIsWorking(true);
+    }
+  }, []);
+
+  // Persist current work start
+  useEffect(() => {
+    if (workStartTime) {
+      localStorage.setItem('currentWorkStart', workStartTime.toString());
+    } else {
+      localStorage.removeItem('currentWorkStart');
+    }
+  }, [workStartTime]);
+
+  // Triple-click handler
+  const handleTitleClick = () => {
+    const newCount = titleClickCount + 1;
+    setTitleClickCount(newCount);
+    if (titleClickTimer) clearTimeout(titleClickTimer);
+    if (newCount >= 3) {
+      setShowSecretPanel(!showSecretPanel);
+      setTitleClickCount(0);
+      return;
+    }
+    const timer = setTimeout(() => setTitleClickCount(0), 600);
+    setTitleClickTimer(timer);
+  };
+
+  // Fetch weekly profit data
+  const fetchWeeklyProfit = async () => {
+    setLoadingWeekly(true);
+    try {
+      const res = await fetch('/api/weekly-profit');
+      const json = await res.json();
+      if (json.success) setWeeklyData(json.data);
+    } catch (e) { console.error(e); }
+    setLoadingWeekly(false);
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -381,12 +474,27 @@ export default function Home() {
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
+            <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3 cursor-default select-none">
                Sue-Chef 
                <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.9</span>
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium opacity-70">מערכת ניהול לידים מתקדמת</p>
           </div>
+
+          {/* Secret Profit Tracker Panel */}
+          {showSecretPanel && (
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+              <button onClick={toggleWorkTimer} className={`px-5 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-lg ${isWorking ? 'bg-red-500 text-white shadow-red-500/20 animate-pulse' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
+                <Clock size={16} /> {isWorking ? 'עוצר עבודה' : 'מתחיל עבודה'}
+              </button>
+              <button onClick={() => { fetchWeeklyProfit(); setShowWeeklyReport(true); }} className="px-5 py-3 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
+                <TrendingUp size={16} /> רווח שבועי
+              </button>
+              <button onClick={() => setShowSecretPanel(false)} className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
+                <X size={16} />
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
               <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
@@ -866,6 +974,69 @@ export default function Home() {
       )}
 
       {/* Styles for Shimmer and custom animations */}
+      {/* Weekly Profit Report Modal */}
+      {showWeeklyReport && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-lg" onClick={() => setShowWeeklyReport(false)}>
+          <div className="bg-indigo-600 w-full max-w-lg rounded-[48px] shadow-2xl p-10 relative overflow-hidden text-white" dir="rtl" onClick={e => e.stopPropagation()}>
+            <div className="absolute top-0 left-0 w-72 h-72 bg-white/5 blur-[100px] rounded-full -translate-x-20 -translate-y-20" />
+            <button onClick={() => setShowWeeklyReport(false)} className="absolute left-6 top-6 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all z-20">
+              <X size={16} />
+            </button>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center"><DollarSign size={24} /></div>
+                <div>
+                  <h3 className="text-2xl font-black">דוח רווח שבועי</h3>
+                  <p className="text-indigo-200 text-xs font-bold">ראשון - חמישי</p>
+                </div>
+              </div>
+              
+              {loadingWeekly ? (
+                <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin" size={32} /></div>
+              ) : weeklyData ? (
+                <div className="mt-8 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/10 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">שעות עבודה השבוע</p>
+                      <p className="text-3xl font-black text-amber-400">{getWeeklyHours().toFixed(1)}<span className="text-lg mr-1">שעות</span></p>
+                    </div>
+                    <div className="bg-white/10 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">חתימות השבוע</p>
+                      <p className="text-3xl font-black text-emerald-400">{weeklyData.signedThisWeek}</p>
+                    </div>
+                    <div className="bg-white/10 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">הכנסה ברוטו</p>
+                      <p className="text-3xl font-black text-emerald-400">₪{weeklyData.grossRevenue.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white/10 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">עלות Twilio</p>
+                      <p className="text-3xl font-black text-red-400">₪{weeklyData.twilioCostNIS.toFixed(0)}</p>
+                      <p className="text-[10px] text-indigo-300 mt-1">${weeklyData.twilioCostUSD}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/15 rounded-3xl p-6 border border-white/10 mt-6">
+                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">רווח נקי</p>
+                    <p className={`text-5xl font-black ${weeklyData.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>₪{weeklyData.netProfit.toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="bg-white/10 rounded-2xl p-5">
+                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">כסף לשעה</p>
+                    <p className="text-4xl font-black text-amber-400">
+                      ₪{getWeeklyHours() > 0 ? (weeklyData.netProfit / getWeeklyHours()).toFixed(0) : '0'}
+                      <span className="text-lg mr-1 text-indigo-200">/שעה</span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center py-12 text-indigo-200">שגיאה בטעינת הנתונים</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
