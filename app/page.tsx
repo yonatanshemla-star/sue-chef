@@ -258,7 +258,7 @@ export default function Home() {
     }
 
     if (updates.status) {
-      const isRelevant = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
+      const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
       if (isRelevant) updates.wasRelevant = true;
       if (updates.status === 'חתם') {
         updates.isSigned = true;
