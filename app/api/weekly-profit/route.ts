@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { sql } from '@vercel/postgres';
 
-function getWeekBounds() {
+function getWeekBounds(offset: number = 0) {
   const now = new Date();
-  const day = now.getDay(); // 0=Sunday
-  // Start of week = last Sunday (or today if Sunday)
-  const sundayOffset = day; // days since Sunday
+  const day = now.getDay();
+  const sundayOffset = day;
   const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - sundayOffset);
+  weekStart.setDate(now.getDate() - sundayOffset + (offset * 7));
   weekStart.setHours(0, 0, 0, 0);
   
-  // End of week = Thursday 23:59:59
   const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 4); // Thursday
+  weekEnd.setDate(weekStart.getDate() + 4);
   weekEnd.setHours(23, 59, 59, 999);
   
   return { weekStart, weekEnd };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { weekStart, weekEnd } = getWeekBounds();
+    const offset = parseInt(request.nextUrl.searchParams.get('offset') || '0');
+    const { weekStart, weekEnd } = getWeekBounds(offset);
     const weekStartISO = weekStart.toISOString();
     const weekEndISO = weekEnd.toISOString();
 

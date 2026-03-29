@@ -100,24 +100,24 @@ export default function Home() {
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [weeklyData, setWeeklyData] = useState<any>(null);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // Get current week key (Sunday date string)
-  const getWeekKey = () => {
+  const getWeekKey = (offset: number = 0) => {
     const now = new Date();
     const day = now.getDay();
     const sunday = new Date(now);
-    sunday.setDate(now.getDate() - day);
+    sunday.setDate(now.getDate() - day + (offset * 7));
     return sunday.toISOString().split('T')[0];
   };
 
   // Get total hours worked this week from localStorage
-  const getWeeklyHours = (): number => {
-    const weekKey = getWeekKey();
+  const getWeeklyHours = (offset: number = 0): number => {
+    const weekKey = getWeekKey(offset);
     const stored = localStorage.getItem(`workSessions_${weekKey}`);
     const sessions: {start: number, end: number}[] = stored ? JSON.parse(stored) : [];
     let totalMs = sessions.reduce((acc, s) => acc + (s.end - s.start), 0);
-    // If currently working, add live time
-    if (isWorking && workStartTime) {
+    if (offset === 0 && isWorking && workStartTime) {
       totalMs += Date.now() - workStartTime;
     }
     return totalMs / (1000 * 60 * 60); // hours
@@ -174,10 +174,10 @@ export default function Home() {
   };
 
   // Fetch weekly profit data
-  const fetchWeeklyProfit = async () => {
+  const fetchWeeklyProfit = async (offset: number = 0) => {
     setLoadingWeekly(true);
     try {
-      const res = await fetch('/api/weekly-profit');
+      const res = await fetch(`/api/weekly-profit?offset=${offset}`);
       const json = await res.json();
       if (json.success) setWeeklyData(json.data);
     } catch (e) { console.error(e); }
@@ -487,7 +487,7 @@ export default function Home() {
               <button onClick={toggleWorkTimer} className={`px-5 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-lg ${isWorking ? 'bg-red-500 text-white shadow-red-500/20 animate-pulse' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
                 <Clock size={16} /> {isWorking ? 'עוצר עבודה' : 'מתחיל עבודה'}
               </button>
-              <button onClick={() => { fetchWeeklyProfit(); setShowWeeklyReport(true); }} className="px-5 py-3 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
+              <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="px-5 py-3 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
                 <TrendingUp size={16} /> רווח שבועי
               </button>
               <button onClick={() => setShowSecretPanel(false)} className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
@@ -984,13 +984,20 @@ export default function Home() {
             </button>
             
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center"><DollarSign size={24} /></div>
-                <div>
-                  <h3 className="text-2xl font-black">דוח רווח שבועי</h3>
-                  <p className="text-indigo-200 text-xs font-bold">ראשון - חמישי</p>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center"><DollarSign size={24} /></div>
+                  <div>
+                    <h3 className="text-2xl font-black">דוח רווח שבועי</h3>
+                    <p className="text-indigo-200 text-xs font-bold">{weekOffset === 0 ? 'השבוע הנוכחי' : `${Math.abs(weekOffset)} שבועות אחורה`}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { const next = weekOffset - 1; setWeekOffset(next); fetchWeeklyProfit(next); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={16} className="rotate-[225deg]" /></button>
+                  <button disabled={weekOffset >= 0} onClick={() => { const next = weekOffset + 1; setWeekOffset(next); fetchWeeklyProfit(next); }} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${weekOffset >= 0 ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-white/10 hover:bg-white/20'}`}><ArrowUpRight size={16} className="rotate-45" /></button>
                 </div>
               </div>
+              {weeklyData && <p className="text-xs text-indigo-200 font-mono mb-4 bg-white/5 inline-block px-3 py-1 rounded-full" dir="ltr">{new Date(weeklyData.weekStart).toLocaleDateString('he-IL')} - {new Date(weeklyData.weekEnd).toLocaleDateString('he-IL')}</p>}
               
               {loadingWeekly ? (
                 <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin" size={32} /></div>
@@ -999,7 +1006,7 @@ export default function Home() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white/10 rounded-2xl p-4">
                       <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">שעות עבודה השבוע</p>
-                      <p className="text-3xl font-black text-amber-400">{getWeeklyHours().toFixed(1)}<span className="text-lg mr-1">שעות</span></p>
+                      <p className="text-3xl font-black text-amber-400">{getWeeklyHours(weekOffset).toFixed(1)}<span className="text-lg mr-1">שעות</span></p>
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4">
                       <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">חתימות השבוע</p>
@@ -1024,7 +1031,7 @@ export default function Home() {
                   <div className="bg-white/10 rounded-2xl p-5">
                     <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">כסף לשעה</p>
                     <p className="text-4xl font-black text-amber-400">
-                      ₪{getWeeklyHours() > 0 ? (weeklyData.netProfit / getWeeklyHours()).toFixed(0) : '0'}
+                      ₪{getWeeklyHours(weekOffset) > 0 ? (weeklyData.netProfit / getWeeklyHours(weekOffset)).toFixed(0) : '0'}
                       <span className="text-lg mr-1 text-indigo-200">/שעה</span>
                     </p>
                   </div>
