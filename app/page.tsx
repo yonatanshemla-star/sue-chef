@@ -260,6 +260,10 @@ export default function Home() {
     if (updates.status) {
       const isRelevant = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
       if (isRelevant) updates.wasRelevant = true;
+      if (updates.status === 'חתם') {
+        updates.isSigned = true;
+        updates.signedAt = new Date().toISOString();
+      }
     }
     
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
@@ -773,9 +777,9 @@ export default function Home() {
                          <div className="flex justify-between items-center mb-8 relative z-10">
                             <h4 className="text-xl font-black flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[11px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
                             <div className="flex gap-2">
-                               <button onClick={() => setCurrentInsightIndex(p => (p + 2) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-[225deg]" /></button>
+                               <button onClick={() => setCurrentInsightIndex(p => (p + 1) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-[225deg]" /></button>
                                {[0, 1, 2].map(i => <button key={i} onClick={() => setCurrentInsightIndex(i)} className={`h-2 rounded-full transition-all duration-500 cursor-pointer hover:bg-white/60 ${currentInsightIndex === i ? 'bg-white w-6' : 'bg-white/30 w-2'}`} />)}
-                               <button onClick={() => setCurrentInsightIndex(p => (p + 1) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-45" /></button>
+                               <button onClick={() => setCurrentInsightIndex(p => (p + 2) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-45" /></button>
                             </div>
                          </div>
 
@@ -993,8 +997,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { const next = weekOffset - 1; setWeekOffset(next); fetchWeeklyProfit(next); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={16} className="rotate-[225deg]" /></button>
-                  <button disabled={weekOffset >= 0} onClick={() => { const next = weekOffset + 1; setWeekOffset(next); fetchWeeklyProfit(next); }} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${weekOffset >= 0 ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-white/10 hover:bg-white/20'}`}><ArrowUpRight size={16} className="rotate-45" /></button>
+                  <button onClick={() => { const next = weekOffset + 1; if (next <= 0) { setWeekOffset(next); fetchWeeklyProfit(next); }}} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${weekOffset >= 0 ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-white/10 hover:bg-white/20'}`}><ArrowUpRight size={16} className="rotate-[225deg]" /></button>
+                  <button onClick={() => { const next = weekOffset - 1; setWeekOffset(next); fetchWeeklyProfit(next); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={16} className="rotate-45" /></button>
                 </div>
               </div>
               {weeklyData && <p className="text-xs text-indigo-200 font-mono mb-4 bg-white/5 inline-block px-3 py-1 rounded-full" dir="ltr">{new Date(weeklyData.weekStart).toLocaleDateString('he-IL')} - {new Date(weeklyData.weekEnd).toLocaleDateString('he-IL')}</p>}

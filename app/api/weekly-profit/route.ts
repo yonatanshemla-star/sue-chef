@@ -25,13 +25,13 @@ export async function GET(request: NextRequest) {
     const weekEndISO = weekEnd.toISOString();
 
     // 1. Count leads signed this week
+    // Use signedAt if available, otherwise fall back to lastContacted, then created_at
     const signedRes = await sql`
       SELECT count(*) as count
       FROM leads 
       WHERE (data->>'status') = 'חתם'
-        AND (data->>'signedAt') IS NOT NULL
-        AND (data->>'signedAt') >= ${weekStartISO}
-        AND (data->>'signedAt') <= ${weekEndISO}
+        AND COALESCE(data->>'signedAt', data->>'lastContacted', created_at::text) >= ${weekStartISO}
+        AND COALESCE(data->>'signedAt', data->>'lastContacted', created_at::text) <= ${weekEndISO}
     `;
     const signedThisWeek = parseInt(signedRes.rows[0]?.count) || 0;
 
