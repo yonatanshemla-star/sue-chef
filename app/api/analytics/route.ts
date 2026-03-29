@@ -7,7 +7,7 @@ export async function GET() {
       SELECT 
         count(*) as total,
         count(*) FILTER (WHERE data->>'status' NOT IN ('חדש', 'לא ענה', 'אין מענה חוזר', 'מספר שגוי') OR (data->>'callCount')::int > 0 AND data->>'status' NOT IN ('חדש', 'לא ענה')) as contacted,
-        count(*) FILTER (WHERE data->>'status' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'במעקב', 'חתם')) as relevant,
+        count(*) FILTER (WHERE (data->>'status' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם')) OR (data->>'wasRelevant' = 'true')) as relevant,
         count(*) FILTER (WHERE (data->>'status') = 'חתם') as signed,
         count(*) FILTER (WHERE (data->>'status') = 'חתם' AND (data->>'callCount')::int > 0 AND (data->>'callCount')::int <= 3) as quick_signed,
         AVG((data->>'callCount')::int) FILTER (WHERE (data->>'status') = 'חתם' AND (data->>'callCount')::int > 0) as avg_calls_to_sign,
