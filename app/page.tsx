@@ -536,7 +536,7 @@ export default function Home() {
         )}
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] bg-indigo-600 shadow-xl shadow-indigo-500/20 relative overflow-hidden">
+        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-md">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
           {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600'}, {id: 'analytics', label: 'אנליטיקה', accent: 'text-emerald-600'}, {id: 'tree', label: 'עץ החלטות', accent: 'text-purple-600'}] as const).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white ${tab.accent} shadow-lg scale-105` : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
