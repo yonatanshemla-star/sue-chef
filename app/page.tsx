@@ -551,7 +551,7 @@ export default function Home() {
             {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
             <div className="flex gap-4">
               {activeTab !== 'archive' && (
-                <button onClick={addNewLead} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 relative group overflow-hidden">
+                <button onClick={addNewLead} className="bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-2 relative group overflow-hidden backdrop-blur-sm">
                   <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> הוסף ליד
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
@@ -598,7 +598,7 @@ export default function Home() {
                   >
                     <td className="px-8 py-5">
                       <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
-                        <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 active:scale-90 transition-all hover:scale-110"><Phone className="w-6 h-6" /></button>
+                        <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 dark:from-slate-800 dark:to-indigo-950 dark:border dark:border-indigo-500/30 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 dark:shadow-none active:scale-90 transition-all hover:scale-110 backdrop-blur-sm"><Phone className="w-6 h-6" /></button>
                         <div className="flex flex-col flex-1 gap-1">
                           {processingImageId === lead.id ? (
                             <div className="flex items-center gap-3 py-2 text-indigo-600 font-black animate-pulse">
