@@ -22,6 +22,7 @@ export interface Lead {
   wasRelevant?: boolean;
   disqualificationReason?: string;
   callCount?: number;
+  statusHistory?: { from: string; to: string; timestamp: string }[];
 }
 
 export async function initDB() {

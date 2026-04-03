@@ -52,7 +52,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-white', bg: 'bg-red-600', darkBg: 'dark:bg-red-600 dark:text-white', border: 'border-red-700 shadow-md', importance: 11 },
 };
 
-const LOST_REASONS = ["אין מענה חוזר", "אין עילה רפואית", "מתחרים/לקח עו\"ד אחר", "לא מעוניין", "טעות במספר", "אחר"];
+const LOST_REASONS = ["אין מענה חוזר", "אין עילה רפואית", "מתחרים/לקח עו\"ד אחר", "לא מעוניין", "בגלל מחיר", "טעות במספר", "אחר"];
 
 function getStatusStyle(status: string) {
   return STATUS_CONFIG[status] || STATUS_CONFIG['אחר'];
@@ -84,6 +84,7 @@ export default function Home() {
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [pendingDisqualification, setPendingDisqualification] = useState<{ id: string, action: 'delete' | 'fail', targetStatus?: string } | null>(null);
+  const [historyLead, setHistoryLead] = useState<Lead | null>(null);
   
   // Sorting/Search
   const [globalSearch, setGlobalSearch] = useState('');
@@ -264,10 +265,17 @@ export default function Home() {
         updates.isSigned = true;
         updates.signedAt = new Date().toISOString();
       }
+      // Track status history
+      const currentLead = leads.find(l => l.id === id);
+      if (currentLead && currentLead.status !== updates.status) {
+        const history = currentLead.statusHistory || [];
+        updates.statusHistory = [...history, { from: currentLead.status, to: updates.status, timestamp: new Date().toISOString() }];
+      }
     }
     
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
     if (liveNotesLead?.id === id) setLiveNotesLead(prev => prev ? { ...prev, ...updates } : null);
+    if (historyLead?.id === id) setHistoryLead(prev => prev ? { ...prev, ...updates } : null);
     try {
       await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...updates }) });
     } catch (e) { console.error(e); fetchLeads(); }
@@ -657,7 +665,15 @@ export default function Home() {
                       />
                     </td>
                     <td className="px-6 py-5 text-center">
-                       <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
+                       <div className="flex items-center justify-center gap-2">
+                         <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
+                         <button onClick={() => setHistoryLead(lead)} className="inline-flex items-center gap-2 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-900/20 px-4 py-3 rounded-2xl border border-amber-200/60 dark:border-amber-700/30 transition-all hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 shadow-sm active:scale-95" title="היסטוריית ליד"><History className="w-4 h-4" /></button>
+                       </div>
+                       {activeTab === 'archive' && lead.status === 'נגמר' && lead.disqualificationReason && (
+                         <div className="mt-2 text-[10px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/30 inline-block">
+                           ❌ {lead.disqualificationReason}
+                         </div>
+                       )}
                     </td>
                   </tr>
                 ))}
@@ -973,6 +989,102 @@ export default function Home() {
                  <span className="relative z-10 flex items-center gap-3 font-black"><Check size={24} /> סיום ועדכון</span>
                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lead History Modal */}
+      {historyLead && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md" onClick={() => setHistoryLead(null)}>
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg max-h-[80vh] rounded-[48px] shadow-2xl overflow-hidden border dark:border-slate-800" dir="rtl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="p-8 pb-4 border-b dark:border-slate-800 bg-gradient-to-l from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-900">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-3xl flex items-center justify-center text-amber-600">
+                    <History size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{historyLead.clientName || 'ליד'}</h3>
+                    <p className="text-sm font-mono text-slate-400" dir="ltr">{historyLead.phone || '---'}</p>
+                  </div>
+                </div>
+                <button onClick={() => setHistoryLead(null)} className="w-10 h-10 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center text-slate-400 hover:text-red-500 transition-all"><X size={20} /></button>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="p-8 overflow-y-auto max-h-[55vh] custom-scrollbar">
+              <div className="relative pr-6 border-r-2 border-indigo-100 dark:border-indigo-900/30 space-y-6">
+                {/* Created */}
+                <div className="relative">
+                  <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white dark:border-slate-900 shadow-md" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">נוצר</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatDate(historyLead.createdAt)}</p>
+                  <p className="text-xs text-slate-400">מקור: {historyLead.source}</p>
+                </div>
+
+                {/* Status changes */}
+                {(historyLead.statusHistory || []).map((entry, idx) => (
+                  <div key={idx} className="relative animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${idx * 80}ms` }}>
+                    <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-amber-400 border-4 border-white dark:border-slate-900 shadow-md" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">{formatDate(entry.timestamp)}</p>
+                    <div className="flex items-center gap-2 text-sm font-bold">
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${getStatusStyle(entry.from).bg} ${getStatusStyle(entry.from).color}`}>{STATUS_CONFIG[entry.from]?.label || entry.from}</span>
+                      <ArrowRight size={14} className="text-slate-300 flex-shrink-0" />
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${getStatusStyle(entry.to).bg} ${getStatusStyle(entry.to).color}`}>{STATUS_CONFIG[entry.to]?.label || entry.to}</span>
+                    </div>
+                    {entry.to === 'נגמר' && historyLead.disqualificationReason && idx === (historyLead.statusHistory || []).length - 1 && (
+                      <p className="text-xs text-red-500 font-bold mt-1">סיבה: {historyLead.disqualificationReason}</p>
+                    )}
+                  </div>
+                ))}
+
+                {/* Calls */}
+                {(historyLead.callCount || 0) > 0 && (
+                  <div className="relative">
+                    <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white dark:border-slate-900 shadow-md" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">שיחות</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">בוצעו {historyLead.callCount} שיחות</p>
+                    {historyLead.lastContacted && <p className="text-xs text-slate-400">שיחה אחרונה: {formatDate(historyLead.lastContacted)}</p>}
+                  </div>
+                )}
+
+                {/* Twilio calls for this lead */}
+                {recentCalls.filter(c => {
+                  if (!historyLead.phone) return false;
+                  const norm = historyLead.phone.slice(-9);
+                  return (c.from || '').includes(norm) || (c.to || '').includes(norm);
+                }).map((call, idx) => (
+                  <div key={call.sid} className="relative animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${idx * 60}ms` }}>
+                    <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-blue-400 border-4 border-white dark:border-slate-900 shadow-md" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">{formatDate(call.startTime)}</p>
+                    <div className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
+                      <Phone size={14} className="text-blue-500" />
+                      <span>{call.direction === 'inbound' ? 'שיחה נכנסת' : 'שיחה יוצאת'}</span>
+                      <span className="text-xs text-slate-400">({formatCallDuration(call.duration)})</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Signed? */}
+                {historyLead.isSigned && (
+                  <div className="relative">
+                    <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-yellow-400 border-4 border-white dark:border-slate-900 shadow-md" />
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1">חתימה 🏆</p>
+                    <p className="text-sm font-bold text-emerald-600">{formatDate(historyLead.signedAt || null)}</p>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!(historyLead.statusHistory || []).length && !(historyLead.callCount || 0) && !historyLead.isSigned && (
+                  <div className="text-center py-8 text-slate-300">
+                    <Clock size={32} className="mx-auto mb-3 opacity-30" />
+                    <p className="font-bold text-sm">אין היסטוריה עדיין</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
