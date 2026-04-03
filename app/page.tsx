@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
@@ -102,6 +102,26 @@ export default function Home() {
   const [weeklyData, setWeeklyData] = useState<any>(null);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [switchPassword, setSwitchPassword] = useState("");
+  const [switchLoading, setSwitchLoading] = useState(false);
+  const [switchError, setSwitchError] = useState("");
+
+  const handleSwitchRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSwitchError("");
+    setSwitchLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: switchPassword }) });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.role === 'lawyer' ? "/lawyer" : "/";
+      } else {
+        setSwitchError("סיסמה שגויה");
+      }
+    } catch (err) { setSwitchError("שגיאת תקשורת"); }
+    finally { setSwitchLoading(false); }
+  };
 
   // Get current week key (Sunday date string)
   const getWeekKey = (offset: number = 0) => {
@@ -502,6 +522,9 @@ export default function Home() {
               </button>
               <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="px-5 py-3 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
                 <TrendingUp size={16} /> רווח שבועי
+              </button>
+              <button onClick={() => setShowSwitchModal(true)} className="px-5 py-3 rounded-2xl font-black text-sm bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 transition-all">
+                <Briefcase size={16} /> מעבר לדשבורד עו"ד
               </button>
               <button onClick={() => setShowSecretPanel(false)} className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
                 <X size={16} />
@@ -1157,6 +1180,25 @@ export default function Home() {
                 <p className="text-center py-12 text-indigo-200">שגיאה בטעינת הנתונים</p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Switch Role Modal */}
+      {showSwitchModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm p-10 rounded-[48px] shadow-2xl border dark:border-white/5" dir="rtl">
+            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-3xl flex items-center justify-center text-emerald-600 mb-6 mx-auto"><Lock className="w-8 h-8" /></div>
+            <h3 className="text-2xl font-black mb-2 text-center">מעבר לדשבורד עו"ד</h3>
+            <p className="text-sm font-bold text-slate-400 mb-8 text-center">הזן סיסמת גישה</p>
+            <form onSubmit={handleSwitchRole} className="space-y-4">
+              <input type="password" value={switchPassword} onChange={e => setSwitchPassword(e.target.value)} autoFocus placeholder="סיסמה..." className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl px-6 py-4 text-center text-lg font-black outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all" dir="ltr" />
+              {switchError && <p className="text-xs font-black text-red-500 text-center">{switchError}</p>}
+              <button type="submit" disabled={switchLoading || !switchPassword} className="w-full bg-emerald-600 text-white rounded-2xl py-4 font-black text-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center">
+                {switchLoading ? <Loader2 className="animate-spin" /> : "כניסה"}
+              </button>
+              <button type="button" onClick={() => { setShowSwitchModal(false); setSwitchError(""); setSwitchPassword(""); }} className="w-full py-2 text-xs font-black text-slate-400 hover:text-slate-600 transition-colors">ביטול</button>
+            </form>
           </div>
         </div>
       )}

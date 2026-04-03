@@ -20,6 +20,28 @@ export default function LawyerDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  
+  // Switch Role Logic
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [switchPassword, setSwitchPassword] = useState("");
+  const [switchLoading, setSwitchLoading] = useState(false);
+  const [switchError, setSwitchError] = useState("");
+
+  const handleSwitchRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSwitchError("");
+    setSwitchLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: switchPassword }) });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.role === 'lawyer' ? "/lawyer" : "/";
+      } else {
+        setSwitchError("סיסמה שגויה");
+      }
+    } catch (err) { setSwitchError("שגיאת תקשורת"); }
+    finally { setSwitchLoading(false); }
+  };
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -120,6 +142,9 @@ export default function LawyerDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button onClick={() => setShowSwitchModal(true)} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow-md transition-all text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-2">
+              <RefreshCw className="w-5 h-5" /> חיוג מחדש / חזרה ל-CRM
+            </button>
             <button onClick={() => setDarkMode(!darkMode)} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
               <div className="relative w-5 h-5">
                 <Sun className={`absolute inset-0 w-5 h-5 text-yellow-500 transition-all duration-500 ${darkMode ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`} />
@@ -312,6 +337,25 @@ export default function LawyerDashboard() {
           </p>
         </div>
       </main>
+
+      {/* Switch Role Modal */}
+      {showSwitchModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-900/90 backdrop-blur-xl">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm p-10 rounded-[48px] shadow-2xl border dark:border-white/5" dir="rtl">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-3xl flex items-center justify-center text-blue-600 mb-6 mx-auto"><Briefcase className="w-8 h-8" /></div>
+            <h3 className="text-2xl font-black mb-2 text-center">חזרה לניהול CRM</h3>
+            <p className="text-sm font-bold text-slate-400 mb-8 text-center">הזן סיסמת יונתן לכניסה</p>
+            <form onSubmit={handleSwitchRole} className="space-y-4">
+              <input type="password" value={switchPassword} onChange={e => setSwitchPassword(e.target.value)} autoFocus placeholder="סיסמה..." className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl px-6 py-4 text-center text-lg font-black outline-none focus:ring-4 focus:ring-blue-500/10 transition-all" dir="ltr" />
+              {switchError && <p className="text-xs font-black text-red-500 text-center">{switchError}</p>}
+              <button type="submit" disabled={switchLoading || !switchPassword} className="w-full bg-blue-600 text-white rounded-2xl py-4 font-black text-lg shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center">
+                {switchLoading ? <Loader2 className="animate-spin" /> : "כניסה"}
+              </button>
+              <button type="button" onClick={() => { setShowSwitchModal(false); setSwitchError(""); setSwitchPassword(""); }} className="w-full py-2 text-xs font-black text-slate-400 hover:text-slate-600 transition-colors">ביטול</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
