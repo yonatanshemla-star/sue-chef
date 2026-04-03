@@ -842,17 +842,17 @@ export default function Home() {
 
       {/* Disqualification Selector Modal */}
       {pendingDisqualification && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md p-10 rounded-[48px] shadow-2xl" dir="rtl">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-3xl flex items-center justify-center text-red-600 mb-6 mx-auto"><AlertTriangle size={32} /></div>
-            <h3 className="text-3xl font-black mb-2 text-center text-slate-900 dark:text-white">מדוע הליד נפסל?</h3>
-            <p className="text-sm font-bold text-slate-400 mb-10 text-center">בחר סיבה לסיום הטיפול</p>
-            <div className="grid grid-cols-1 gap-3">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm p-6 rounded-3xl shadow-2xl" dir="rtl">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center text-red-600 mb-4 mx-auto"><AlertTriangle size={24} /></div>
+            <h3 className="text-xl font-black mb-1 text-center text-slate-900 dark:text-white">מדוע הליד נפסל?</h3>
+            <p className="text-xs font-bold text-slate-400 mb-5 text-center">בחר סיבה לסיום הטיפול</p>
+            <div className="grid grid-cols-1 gap-2">
                {LOST_REASONS.map((reason, idx) => (
-                 <button key={reason} onClick={() => finalizeDisqualification(reason)} className="w-full text-right px-8 py-5 rounded-3xl border dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-900/10 font-black text-sm transition-all hover:border-red-500 hover:text-red-600 text-slate-700 dark:text-slate-200">{reason}</button>
+                 <button key={reason} onClick={() => finalizeDisqualification(reason)} className="w-full text-right px-5 py-3 rounded-2xl border dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-900/10 font-black text-sm transition-all hover:border-red-500 hover:text-red-600 text-slate-700 dark:text-slate-200">{reason}</button>
                ))}
             </div>
-            <button onClick={() => setPendingDisqualification(null)} className="w-full mt-8 py-4 text-xs font-black text-slate-300 hover:text-slate-500 transition-colors uppercase">ביטול</button>
+            <button onClick={() => setPendingDisqualification(null)} className="w-full mt-5 py-3 text-xs font-black text-slate-300 hover:text-slate-500 transition-colors uppercase">ביטול</button>
           </div>
         </div>
       )}
