@@ -23,6 +23,9 @@ export interface Lead {
   disqualificationReason?: string;
   callCount?: number;
   statusHistory?: { from: string; to: string; timestamp: string }[];
+  lawyerNotes?: string;
+  caseStatus?: string;
+  profit?: number;
 }
 
 export async function initDB() {

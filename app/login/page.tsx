@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Lock, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +23,12 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Force hard refresh to ensure middleware picks up the new cookie
-        window.location.href = "/";
+        // Navigate based on role
+        if (data.role === 'lawyer') {
+          window.location.href = "/lawyer";
+        } else {
+          window.location.href = "/";
+        }
       } else {
         setError(data.error || "סיסמה שגויה");
       }
@@ -53,7 +55,7 @@ export default function LoginPage() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-black tracking-tight text-white mb-2">Sue-Chef</h1>
-            <p className="text-gray-400 font-medium">הזן סיסמת גישה למערכת ניהול הלידים</p>
+            <p className="text-gray-400 font-medium">הזן סיסמת גישה למערכת</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -62,7 +64,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="סיסמה סודית..."
+                placeholder="סיסמה..."
                 className="w-full bg-[#151822] border border-gray-800 text-white placeholder-gray-500 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-sans text-lg tracking-widest text-center"
                 autoFocus
                 dir="ltr"

@@ -3,27 +3,36 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { password } = await request.json();
-    const correctPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = (process.env.ADMIN_PASSWORD || 'admin123').toUpperCase();
+    const lawyerPassword = (process.env.LAWYER_PASSWORD || '').toUpperCase();
+    const inputPassword = (password || '').toUpperCase();
 
-    if (password !== correctPassword) {
+    let role: 'admin' | 'lawyer' | null = null;
+
+    if (inputPassword === adminPassword) {
+      role = 'admin';
+    } else if (lawyerPassword && inputPassword === lawyerPassword) {
+      role = 'lawyer';
+    }
+
+    if (!role) {
       return NextResponse.json(
         { success: false, error: 'סיסמה שגויה' },
         { status: 401 }
       );
     }
 
-    // Create the response object
-    const response = NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true, role });
 
-    // Set the auth cookie (expires in 30 days)
+    // Set the auth cookie with role (expires in 30 days)
     response.cookies.set({
       name: 'sue_chef_auth',
-      value: 'authenticated',
+      value: role,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
     });
 
     return response;
