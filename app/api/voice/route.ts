@@ -49,8 +49,8 @@ export async function POST(req: Request) {
          twiml += `    <Number>${toValue}</Number>\n`;
          twiml += `  </Dial>\n`;
      } else if (!isOutbound) {
-         twiml += `  <Dial timeout="20" action="/api/twilio/voicemail">\n`;
-         twiml += `    <Client>dashboard_user</Client>\n`;
+         // ADD callerId so Israeli networks don't block the forwarded call as spoofed
+         twiml += `  <Dial callerId="${callerId}" timeout="20" action="/api/twilio/voicemail">\n`;
          if (process.env.MY_PHONE_NUMBER) {
             twiml += `    <Number>${process.env.MY_PHONE_NUMBER}</Number>\n`;
          }
