@@ -690,20 +690,20 @@ export default function Home() {
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
           <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 items-center">
             {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
-            <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar">
+            <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start">
               {activeTab !== 'archive' && (
-                <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-6 md:px-8 py-3.5 md:py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-2 relative group overflow-hidden backdrop-blur-sm">
-                  <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> הוסף ליד
+                <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                  <Plus size={16} className="md:w-[20px] md:h-[20px] group-hover:rotate-90 transition-transform duration-300" /> <span className="hidden sm:inline">הוסף ליד</span><span className="sm:hidden">הוסף</span>
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
               {(activeTab === 'crm' || activeTab === 'followup') && (
                 <>
-                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-6 md:px-8 py-3.5 md:py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
-                    <Clock size={16} className="md:w-[18px] md:h-[18px]" /> במעקב
+                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
+                    <Clock size={14} className="md:w-[18px] md:h-[18px]" /> במעקב
                   </button>
-                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-6 md:px-8 py-3.5 md:py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
-                    <Zap size={16} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
+                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
+                    <Zap size={14} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
                   </button>
                 </>
               )}
@@ -843,9 +843,9 @@ export default function Home() {
                   {/* Top: Name & Phone & Call */}
                   <div className="flex items-center gap-4 pl-12" onPaste={(e) => handlePaste(e, lead.id)}>
                     <button onClick={() => initiateCall(lead)} className="flex-shrink-0 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-6 h-6" /></button>
-                    <div className="flex flex-col flex-1">
-                      <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600" placeholder="שם הלקוח..." />
-                      <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base" placeholder="05..." dir="ltr" />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 w-full truncate" placeholder="שם הלקוח..." />
+                      <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base w-full text-right" placeholder="05..." dir="ltr" style={{ direction: 'rtl', textAlign: 'right' }} />
                     </div>
                   </div>
 
