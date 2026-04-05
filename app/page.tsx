@@ -38,6 +38,7 @@ function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | st
 
 // === Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number; icon?: any }> = {
+  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-500 dark:text-white', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: -1 },
   'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-600 dark:text-white', border: 'border-pink-700', importance: 0 },
   'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950 dark:text-green-300', border: 'border-green-300 dark:border-green-700', importance: 1 },
   'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950 dark:text-emerald-300', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
@@ -106,8 +107,10 @@ export default function Home() {
   const [switchPassword, setSwitchPassword] = useState("");
   const [switchLoading, setSwitchLoading] = useState(false);
   const [switchError, setSwitchError] = useState("");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleSwitchRole = async (e: React.FormEvent) => {
+    if (e) e.preventDefault();
     e.preventDefault();
     setSwitchError("");
     setSwitchLoading(true);
@@ -259,11 +262,39 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [leads]);
   
+  // Track which leads were recently modified locally to prevent auto-refresh from overwriting
+  const localModifiedRef = useRef<Map<string, number>>(new Map());
+
   const fetchLeads = async () => {
     try {
       const res = await fetch("/api/leads");
       const data = await res.json();
-      if (data.success) setLeads(data.leads || []);
+      if (data.success) {
+        const serverLeads: Lead[] = data.leads || [];
+        // Smart merge: keep locally-modified leads for 10 seconds after edit
+        setLeads(prev => {
+          if (prev.length === 0) return serverLeads; // First load, take server data
+          const now = Date.now();
+          const merged = serverLeads.map(serverLead => {
+            const lastModified = localModifiedRef.current.get(serverLead.id);
+            if (lastModified && (now - lastModified) < 10000) {
+              // This lead was edited locally within the last 10 seconds - keep local version
+              const localLead = prev.find(l => l.id === serverLead.id);
+              return localLead || serverLead;
+            }
+            return serverLead;
+          });
+          // Also keep any locally-added leads that aren't on the server yet
+          const serverIds = new Set(serverLeads.map(l => l.id));
+          const localOnly = prev.filter(l => !serverIds.has(l.id) && localModifiedRef.current.has(l.id));
+          return [...localOnly, ...merged];
+        });
+        // Clean up old entries from the modified map
+        const now = Date.now();
+        localModifiedRef.current.forEach((time, id) => {
+          if (now - time > 15000) localModifiedRef.current.delete(id);
+        });
+      }
     } catch (e) { 
       console.error("Leads fetch fail", e); 
     } finally { 
@@ -279,7 +310,7 @@ export default function Home() {
     }
 
     if (updates.status) {
-      const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם'].includes(updates.status);
+      const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(updates.status);
       if (isRelevant) updates.wasRelevant = true;
       if (updates.status === 'חתם') {
         updates.isSigned = true;
@@ -294,6 +325,7 @@ export default function Home() {
     }
     
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    localModifiedRef.current.set(id, Date.now()); // Mark as locally modified
     if (liveNotesLead?.id === id) setLiveNotesLead(prev => prev ? { ...prev, ...updates } : null);
     if (historyLead?.id === id) setHistoryLead(prev => prev ? { ...prev, ...updates } : null);
     try {
@@ -453,7 +485,7 @@ export default function Home() {
       const nameMatch = l.clientName?.toLowerCase().includes(q);
       const phoneMatch = l.phone?.includes(q);
       if (showAdvancedStageOnly) {
-         const isAdvanced = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה'].includes(l.status);
+         const isAdvanced = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'רלוונטי - לעקוב'].includes(l.status);
          if (!isAdvanced) return false;
       }
       return nameMatch || phoneMatch;
@@ -501,77 +533,88 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} flex flex-row-reverse`} style={{ zoom: 0.85 }}>
-      {/* Sidebar Navigation */}
-      <aside className="w-72 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-l dark:border-slate-800 sticky top-0 h-screen z-50 flex flex-col p-6 shadow-2xl transition-all duration-500 overflow-hidden" dir="rtl">
-        <div className="mb-12 flex flex-col items-center">
-          <h1 onClick={handleTitleClick} className="text-3xl font-black tracking-tight text-indigo-600 dark:text-indigo-400 cursor-default select-none transition-all hover:scale-105 active:scale-95">
-             Sue-Chef
-          </h1>
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase mt-2">Leads Terminal</p>
-        </div>
-
-        <nav className="flex-1 space-y-3">
-          {[
-            { id: 'crm', label: 'ניהול לידים (CRM)', icon: TableProperties, color: 'text-indigo-500', bg: 'bg-indigo-50/50 dark:bg-indigo-900/10' },
-            { id: 'lawyer', label: 'דשבורד עו"ד', icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50/50 dark:bg-emerald-900/10', action: () => setShowSwitchModal(true) },
-            { id: 'analytics', label: 'אנליטיקה', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
-            { id: 'tree', label: 'עץ החלטות', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-50/50 dark:bg-purple-900/10' },
-            { id: 'calls', label: 'שיחות אחרונות', icon: PhoneCall, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
-            { id: 'archive', label: 'ארכיון', icon: History, color: 'text-rose-500', bg: 'bg-rose-50/50 dark:bg-rose-900/10' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.action) item.action();
-                else setActiveTab(item.id as any);
-              }}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-3xl font-black text-sm transition-all duration-300 group ${
-                activeTab === item.id 
-                  ? `${item.bg} ${item.color} shadow-sm translate-x-1` 
-                  : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-600 dark:hover:text-slate-300'
-              }`}
-            >
-              <item.icon className={`${activeTab === item.id ? item.color : 'text-slate-300 dark:text-slate-700'} group-hover:scale-110 transition-transform duration-300`} size={22} />
-              <span className="flex-1 text-right">{item.label}</span>
-              {activeTab === item.id && <div className={`w-1.5 h-6 rounded-full ${item.color.replace('text-', 'bg-')}`} />}
-            </button>
-          ))}
-        </nav>
-
-        <div className="mt-auto pt-8 border-t dark:border-slate-800 space-y-4">
-          <div className={`p-5 rounded-3xl ${cardClass} flex flex-col gap-3 group`}>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרה</p>
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-x-hidden`} style={{ zoom: 0.85 }}>
+      {/* Sidebar Drawer (Slides from Right) */}
+      <div 
+        className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isDrawerOpen ? 'bg-slate-950/40 backdrop-blur-sm pointer-events-auto' : 'bg-transparent pointer-events-none opacity-0'}`}
+        onClick={() => setIsDrawerOpen(false)}
+      />
+      <aside 
+        className={`fixed top-0 right-0 h-full w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l dark:border-slate-800 z-[110] shadow-2xl transition-transform duration-500 transform ${isDrawerOpen ? 'translate-x-0' : 'translate-x-[100%]'}`}
+        dir="rtl"
+      >
+        <div className="p-8 flex flex-col h-full">
+          <div className="mb-10 flex items-center justify-between">
+            <div className="flex flex-col">
+              <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">תפריט Sue-Chef</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">ניהול מתקדם</p>
             </div>
-            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform origin-right" dir="ltr">{twilioBalance || "..."}</p>
+            <button onClick={() => setIsDrawerOpen(false)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-all shadow-sm">
+               <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={() => setDarkMode(!darkMode)} className={`flex-1 p-4 flex items-center justify-center transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
-              {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-indigo-400" />}
-            </button>
-            <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`flex-1 p-4 flex items-center justify-center transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
-              <RefreshCw className={`w-5 h-5 ${(loadingLeads || loadingCalls) ? 'animate-spin text-indigo-500' : 'text-gray-400'}`} />
-            </button>
+          <nav className="space-y-4">
+            {[
+              { id: 'lawyer', label: 'דשבורד עו"ד', icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10', action: () => { setShowSwitchModal(true); setIsDrawerOpen(false); } },
+              { id: 'analytics', label: 'אנליטיקה', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' },
+              { id: 'tree', label: 'עץ החלטות', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/10' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.action) item.action();
+                  else { setActiveTab(item.id as any); setIsDrawerOpen(false); }
+                }}
+                className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-base transition-all duration-300 group hover:scale-[1.02] border border-transparent hover:border-slate-100 dark:hover:border-slate-800 ${
+                  activeTab === item.id 
+                    ? `${item.bg} ${item.color} shadow-[0_10px_30px_rgba(0,0,0,0.05)]` 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-indigo-600 dark:hover:text-indigo-400'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center transition-all duration-300 group-hover:rotate-12`}>
+                   <item.icon className={item.color} size={24} />
+                </div>
+                <span className="flex-1 text-right">{item.label}</span>
+                <ChevronRight className={`w-5 h-5 transition-transform ${activeTab === item.id ? 'translate-x-1' : 'opacity-0'}`} />
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-10 border-t dark:border-slate-800 flex items-center justify-between">
+             <div className="flex flex-col">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Version</p>
+                <p className="text-xs font-black text-indigo-500">v5.9.5-drawer</p>
+             </div>
+             <div className="flex gap-2">
+                <button onClick={() => setDarkMode(!darkMode)} className={`w-10 h-10 border rounded-xl flex items-center justify-center transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500`}>
+                  {darkMode ? <Sun size={18}/> : <Moon size={18}/>}
+                </button>
+                <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`w-10 h-10 border rounded-xl flex items-center justify-center transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500`}>
+                   <RefreshCw size={18} className={(loadingLeads || loadingCalls) ? 'animate-spin' : ''}/>
+                </button>
+             </div>
           </div>
         </div>
       </aside>
 
-      <div className="flex-1 max-h-screen overflow-y-auto custom-scrollbar">
-        <main className="max-w-[1280px] mx-auto px-6 lg:px-12 py-10 font-sans relative z-10 opacity-100" dir="rtl">
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10 opacity-100" dir="rtl">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-          <div className="flex flex-col">
-            <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3 cursor-default select-none">
-               Sue-Chef 
-               <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.9</span>
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium opacity-70">מערכת ניהול לידים מתקדמת</p>
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsDrawerOpen(true)}
+              className="w-14 h-14 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border dark:border-slate-800 flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-500 transition-all shadow-sm active:scale-95"
+            >
+              <MoreVertical size={24} />
+            </button>
+            <div className="flex flex-col">
+              <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3 cursor-default select-none">
+                Sue-Chef 
+                <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.9.5</span>
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium opacity-70">מערכת ניהול לידים מתקדמת</p>
+            </div>
           </div>
 
           {/* Secret Profit Tracker Panel (Counter + Profit Only) */}
@@ -633,7 +676,15 @@ export default function Home() {
           </div>
         )}
 
-        {/* Main Sections are now in Sidebar. Tabs removed from here. */}
+        {/* Tabs - Restored to the center! */}
+        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit mx-auto rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-xl">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
+          {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600'}] as const).map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
+              <span className="relative z-10">{tab.label}</span>
+            </button>
+          ))}
+        </div>
 
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
@@ -920,7 +971,6 @@ export default function Home() {
           
           {activeTab === 'tree' && <div className="p-8 h-full"><LegalDecisionTree /></div>}
         </div>
-      </main>
 
       {/* Disqualification Selector Modal */}
       {pendingDisqualification && (
@@ -948,8 +998,8 @@ export default function Home() {
               <div className="flex items-center gap-4 text-right">
                 <div className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse"><PhoneCall size={24} /></div>
                 <div>
-                  <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">{liveNotesLead.clientName || 'לקוח בשיחה'}</h2>
-                  <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead.phone}</p>
+                  <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">{liveNotesLead?.clientName || 'לקוח בשיחה'}</h2>
+                  <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead?.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -1273,11 +1323,8 @@ export default function Home() {
           background: rgba(99, 102, 241, 0.1);
           border-radius: 10px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(99, 102, 241, 0.2);
-        }
       `}</style>
-      </div>
+      </main>
     </div>
   );
 }
