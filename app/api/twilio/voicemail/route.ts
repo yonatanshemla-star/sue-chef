@@ -7,8 +7,9 @@ export async function POST(req: Request) {
      
      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="he-IL" voice="Google.he-IL-Standard-A">שלום, כרגע אין באפשרותנו לענות. אנא השאירו הודעה ונחזור אליכם בהקדם.</Say>
-  <Say language="he-IL" voice="Google.he-IL-Standard-A">לא התקבלה הודעה, להתראות.</Say>
+  <Say language="he-IL">שלום, הגעתם למשרד. כרגע אין באפשרותנו לענות. אנא השאירו הודעה לאחר הצפצוף, ונחזור אליכם בהקדם.</Say>
+  <Record action="/api/webhook" maxLength="120" playBeep="true" />
+  <Say language="he-IL">תודה ולהתראות.</Say>
 </Response>`;
 
      return new NextResponse(twiml, {

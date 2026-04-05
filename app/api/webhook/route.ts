@@ -25,9 +25,17 @@ export async function POST(req: Request) {
     };
 
     await saveLead(newLead as any);
-    return NextResponse.json({ success: true, leadId: newLead.id });
+    
+    // Twilio MUST receive TwiML XML when the Action URL runs
+    return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`, {
+        status: 200,
+        headers: { 'Content-Type': 'application/xml' }
+    });
   } catch (error: any) {
     console.error('Webhook error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say language="he-IL">שגיאה במערכת להשארת הודעות.</Say></Response>`, {
+        status: 200,
+        headers: { 'Content-Type': 'application/xml' }
+    });
   }
 }
