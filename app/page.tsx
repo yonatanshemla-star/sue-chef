@@ -214,13 +214,13 @@ export default function Home() {
 
   // Scroll Lock for modal
   useEffect(() => {
-    if (liveNotesLead) {
+    if (liveNotesLead || isDrawerOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
     }
     return () => { document.body.style.overflow = 'auto'; };
-  }, [liveNotesLead]);
+  }, [liveNotesLead, isDrawerOpen]);
 
   // Analytics Fetching
   const fetchAnalyticsData = async () => {
@@ -556,9 +556,9 @@ export default function Home() {
 
           <nav className="space-y-4">
             {[
-              { id: 'lawyer', label: 'דשבורד עו"ד', icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10', action: () => { setShowSwitchModal(true); setIsDrawerOpen(false); } },
               { id: 'analytics', label: 'אנליטיקה', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' },
               { id: 'tree', label: 'עץ החלטות', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/10' },
+              { id: 'lawyer', label: 'דשבורד עו"ד', icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10', action: () => { setShowSwitchModal(true); setIsDrawerOpen(false); } },
             ].map((item) => (
               <button
                 key={item.id}
