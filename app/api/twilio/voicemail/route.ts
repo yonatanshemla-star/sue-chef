@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-     // The TwiML to say the fallback message. 
-     // Using a <Say> block with language set to Hebrew (he-IL).
+     const formData = await req.formData();
+     const dialCallStatus = formData.get('DialCallStatus');
+
+     // If the call was answered and finished normally, do not go to voicemail
+     if (dialCallStatus === 'completed') {
+         return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`, {
+             status: 200,
+             headers: { 'Content-Type': 'text/xml' }
+         });
+     }
      
      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
