@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
@@ -677,7 +677,7 @@ export default function Home() {
         )}
 
         {/* Tabs - Restored to the center! */}
-        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit mx-auto rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-xl">
+        <div className="hidden md:flex flex-wrap gap-2 mb-10 p-2 w-fit mx-auto rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-xl">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
           {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600'}] as const).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
@@ -688,22 +688,22 @@ export default function Home() {
 
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
-          <div className="flex flex-col md:flex-row gap-4 mb-8 items-center">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 items-center">
             {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
-            <div className="flex gap-4">
+            <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar">
               {activeTab !== 'archive' && (
-                <button onClick={addNewLead} className="bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-2 relative group overflow-hidden backdrop-blur-sm">
+                <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-6 md:px-8 py-3.5 md:py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-2 relative group overflow-hidden backdrop-blur-sm">
                   <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> הוסף ליד
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
               {(activeTab === 'crm' || activeTab === 'followup') && (
                 <>
-                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
-                    <Clock size={18} /> במעקב
+                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-6 md:px-8 py-3.5 md:py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
+                    <Clock size={16} className="md:w-[18px] md:h-[18px]" /> במעקב
                   </button>
-                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`px-8 py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
-                    <Zap size={18} /> שלב מתקדם
+                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-6 md:px-8 py-3.5 md:py-4 rounded-2xl font-black text-sm border flex items-center gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
+                    <Zap size={16} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
                   </button>
                 </>
               )}
@@ -720,7 +720,7 @@ export default function Home() {
         <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
           {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
             <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right border-collapse">
+            <table className="hidden md:table w-full text-sm text-right border-collapse">
               <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
                 <tr>
                   <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
@@ -812,6 +812,78 @@ export default function Home() {
                 ))}
               </tbody>
             </table>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden flex flex-col gap-4 p-4 overflow-y-auto pb-6">
+              {(Array.isArray(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) ? (activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) : []).map((lead) => (
+                <div key={`mob-${lead.id}`} className="bg-slate-50 dark:bg-slate-800/80 rounded-[32px] p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-5 relative">
+                  
+                  {/* Menu Button */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl transition-all shadow-sm bg-white/50"><MoreVertical className="w-5 h-5 text-slate-500" /></button>
+                    {openMenuId === lead.id && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                        <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-2xl z-30 overflow-hidden" dir="rtl">
+                          <button onClick={() => {
+                            const phone = lead.phone?.replace(/^0/, '972');
+                            const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
+                            const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`);
+                            window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+                            setOpenMenuId(null);
+                          }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-emerald-600 hover:bg-emerald-50"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
+                          <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-100"><Copy className="w-4 h-4" /> העתק מספר</button>
+                          <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                          <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /> מחק ליד</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Top: Name & Phone & Call */}
+                  <div className="flex items-center gap-4 pl-12" onPaste={(e) => handlePaste(e, lead.id)}>
+                    <button onClick={() => initiateCall(lead)} className="flex-shrink-0 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-6 h-6" /></button>
+                    <div className="flex flex-col flex-1">
+                      <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600" placeholder="שם הלקוח..." />
+                      <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base" placeholder="05..." dir="ltr" />
+                    </div>
+                  </div>
+
+                  {/* Middle: Notes */}
+                  <textarea 
+                    value={lead.generalNotes || ''} 
+                    onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
+                    className="w-full text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 resize-none outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-inner" 
+                    placeholder="הערות למעקב..." 
+                  />
+
+                  {/* Bottom: Status & Modals */}
+                  <div className="flex flex-col gap-3">
+                    <div className="relative group/select w-full">
+                      <select 
+                        value={lead.status} 
+                        onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
+                        className={`text-sm font-black rounded-xl px-4 py-3 outline-none border transition-all cursor-pointer w-full appearance-none shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
+                      >
+                        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50"><ChevronDown size={18} /></div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                       <button onClick={() => setLiveNotesLead(lead)} className="flex-1 inline-flex justify-center items-center gap-2 text-xs font-black text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/30 px-4 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-indigo-200 dark:border-indigo-800"><Maximize2 className="w-4 h-4" /> פתח תיק נתונים</button>
+                       <button onClick={() => setHistoryLead(lead)} className="inline-flex justify-center items-center text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-5 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-amber-200 dark:border-amber-800"><History className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+
+                  {activeTab === 'archive' && lead.status === 'נגמר' && lead.disqualificationReason && (
+                    <div className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl mt-1 text-center">
+                      ❌ {lead.disqualificationReason}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
             </div>
           )}
 
@@ -861,7 +933,7 @@ export default function Home() {
           )}
 
           {activeTab === 'analytics' && (
-            <div className="p-10 space-y-12 min-h-[500px]">
+            <div className="p-4 md:p-10 space-y-12 min-h-[500px]">
                {loadingAnalytics ? <div className="flex flex-col items-center justify-center h-96 gap-6"><Loader2 className="animate-spin text-indigo-500" size={64} /><p className="font-black text-slate-400 text-xl animate-pulse tracking-wide">מחשב מדדים דטרמיניסטיים...</p></div> : analyticsData ? (
                  <>
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -871,7 +943,7 @@ export default function Home() {
                        { icon: Zap, label: 'ממוצע שיחות לסגירה', value: analyticsData.insights?.avgCallsPerSigned || 0, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-100 dark:border-amber-900/30' },
                        { icon: TrendingUp, label: 'איכות הלידים (רלוונטיות)', value: analyticsData.insights?.leadQualityRatio || 0, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/10', border: 'border-purple-100 dark:border-purple-900/30', isPercent: true }
                      ].map((kpi, idx) => (
-                       <div key={idx} className={`${kpi.bg} p-10 rounded-[40px] border ${kpi.border} transition-all duration-500 transform hover:-translate-y-2 hover:shadow-2xl opacity-100`}>
+                       <div key={idx} className={`${kpi.bg} p-6 md:p-10 rounded-3xl md:rounded-[40px] border ${kpi.border} transition-all duration-500 transform hover:-translate-y-2 hover:shadow-2xl opacity-100`}>
                           <kpi.icon className={kpi.color + " mb-6"} size={32} />
                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">{kpi.label}</p>
                           <p className={`text-5xl font-black ${kpi.color}`}><SimpleCountUp value={kpi.value || 0} suffix={kpi.isPercent ? "%" : ""} /></p>
@@ -880,8 +952,8 @@ export default function Home() {
                      ))}
                    </div>
 
-                   <div className="bg-slate-100/30 dark:bg-slate-800/20 p-12 rounded-[56px] border dark:border-slate-800 shadow-inner overflow-hidden">
-                     <h4 className="text-3xl font-black mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה <ArrowDownRight size={24} className="text-indigo-500" /></h4>
+                   <div className="bg-slate-100/30 dark:bg-slate-800/20 p-6 md:p-12 rounded-3xl md:rounded-[56px] border dark:border-slate-800 shadow-inner overflow-hidden">
+                     <h4 className="text-2xl md:text-3xl font-black mb-8 md:mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה <ArrowDownRight size={24} className="text-indigo-500" /></h4>
                      <div className="space-y-12 max-w-4xl mx-auto">
                         {[
                           { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שענו לטלפון או שסטטוסם התקדם מעבר ל'חדש'." },
@@ -908,8 +980,8 @@ export default function Home() {
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-16 pb-12">
-                      <div className="bg-white dark:bg-slate-900 p-12 rounded-[56px] border dark:border-slate-800 shadow-xl group">
-                         <h4 className="text-3xl font-black mb-10 flex items-center gap-4 text-slate-900 dark:text-white">סיבות פסילה <AlertTriangle className="text-red-500" /></h4>
+                      <div className="bg-white dark:bg-slate-900 p-6 md:p-12 rounded-3xl md:rounded-[56px] border dark:border-slate-800 shadow-xl group">
+                         <h4 className="text-2xl md:text-3xl font-black mb-10 flex items-center gap-4 text-slate-900 dark:text-white">סיבות פסילה <AlertTriangle className="text-red-500" /></h4>
                          <div className="space-y-8">
                             {Array.isArray(analyticsData.disqualificationReasons) && analyticsData.disqualificationReasons.length > 0 ? analyticsData.disqualificationReasons.map((r: any, idx: number) => (
                               <div key={r.reason} className="space-y-3">
@@ -921,7 +993,7 @@ export default function Home() {
                             )) : <div className="flex flex-col items-center justify-center py-12 opacity-20"><HelpCircle size={48} /><p className="font-bold mt-4">אין נתונים</p></div>}
                          </div>
                       </div>
-                      <div className="bg-indigo-600 rounded-[56px] p-12 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden group">
+                      <div className="bg-indigo-600 rounded-3xl md:rounded-[56px] p-6 md:p-12 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden group">
                          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-[120px] rounded-full translate-x-32 -translate-y-32 transition-transform duration-1000 group-hover:scale-110" />
                          
                          <div className="flex justify-between items-center mb-8 relative z-10">
@@ -991,8 +1063,8 @@ export default function Home() {
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80 backdrop-blur-xl transition-all">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-[95vw] h-[95vh] rounded-[48px] shadow-2xl flex flex-col overflow-hidden border dark:border-slate-800">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all">
+          <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] md:max-w-[95vw] md:h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800">
             {/* Header - Compact */}
             <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10" dir="rtl">
               <div className="flex items-center gap-4 text-right">
@@ -1015,9 +1087,9 @@ export default function Home() {
                {showDecisionTree ? (
                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar"><LegalDecisionTree compact={true} onComplete={handleTreeComplete} /></div>
                ) : (
-                 <div className="flex-1 flex flex-row h-full">
+                 <div className="flex-1 flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden">
                     {/* RIGHT SIDE: Notes Area (Expanded) */}
-                    <div className="flex-[2] flex flex-col p-5 border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative">
+                    <div className="flex-[2] flex flex-col p-4 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[40vh] md:min-h-0">
                        <div className="flex justify-between items-center mb-3">
                          <div className="flex items-center gap-3">
                             <label className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-2 group">
@@ -1039,7 +1111,7 @@ export default function Home() {
                     </div>
 
                     {/* LEFT SIDE: New Permanent Script (Expanded) */}
-                    <div className="flex-[1.2] flex flex-col p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar border-r dark:border-slate-800">
+                    <div className="flex-[1.2] flex flex-col p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar md:border-r border-t md:border-t-0 dark:border-slate-800">
                        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10">
                           <h4 className="text-xl font-black text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
                             <FileText size={24} /> תסריט שיחה מלא
@@ -1311,6 +1383,19 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t dark:border-white/5 pb-safe z-50 flex justify-around p-2 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        {([{id: 'crm', label: 'מעקב', icon: ClipboardList}, {id: 'calls', label: 'שיחות', icon: PhoneCall}, {id: 'archive', label: 'ארכיון', icon: Archive}] as const).map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as 'crm'|'calls'|'archive')} className={`flex flex-col items-center gap-1 p-2 w-20 rounded-2xl transition-all ${isActive ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+            <Icon size={20} className={isActive ? 'animate-bounce' : ''} />
+            <span className="text-[10px] font-black">{tab.label}</span>
+          </button>
+        )})}
+      </div>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
