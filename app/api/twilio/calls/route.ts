@@ -31,11 +31,16 @@ export async function GET() {
 
     // 3. Consolidate groups
     const consolidated = Array.from(callGroups.entries()).map(([rootSid, legs]) => {
-      const leadLeg = legs.find(l => l.to !== myNumber && l.direction !== 'inbound') || legs[0];
-      
       let totalCost = 0;
       let maxDuration = 0;
-      let finalStatus = leadLeg.status;
+      let finalStatus = legs[0].status;
+
+      const inboundLeg = legs.find(l => l.direction === 'inbound');
+      const outboundDialLeg = legs.find(l => l.direction === 'outbound-dial');
+      
+      let systemDirection = inboundLeg ? 'inbound' : 'outbound';
+      let logicalFrom = inboundLeg ? inboundLeg.from : legs[0].from;
+      let logicalTo = outboundDialLeg ? outboundDialLeg.to : legs[0].to;
 
       for (const leg of legs) {
         totalCost += Math.abs(parseFloat(leg.price || "0"));
@@ -45,12 +50,12 @@ export async function GET() {
 
       return {
         sid: rootSid,
-        from: leadLeg.from,
-        to: leadLeg.to,
+        from: logicalFrom,
+        to: logicalTo,
         status: finalStatus,
-        startTime: leadLeg.start_time,
+        startTime: legs[0].start_time,
         duration: maxDuration.toString(),
-        direction: leadLeg.direction,
+        direction: systemDirection,
         price: totalCost > 0 ? `-${totalCost.toFixed(3)}` : "0.000",
         isBridge: legs.length > 1
       };
