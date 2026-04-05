@@ -46,6 +46,28 @@ export default function LawyerDashboard() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const savedTheme = localStorage.getItem('theme');
+    
+    if (savedTheme === 'dark' || (!savedTheme && mediaQuery.matches)) {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    }
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem('theme')) {
+        setDarkMode(e.matches);
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
     if (darkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
@@ -145,7 +167,11 @@ export default function LawyerDashboard() {
             <button onClick={() => setShowSwitchModal(true)} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow-md transition-all text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-2">
               <RefreshCw className="w-5 h-5" /> חיוג מחדש / חזרה ל-CRM
             </button>
-            <button onClick={() => setDarkMode(!darkMode)} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+            <button onClick={() => {
+              const nextVal = !darkMode;
+              setDarkMode(nextVal);
+              localStorage.setItem('theme', nextVal ? 'dark' : 'light');
+            }} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
               <div className="relative w-5 h-5">
                 <Sun className={`absolute inset-0 w-5 h-5 text-yellow-500 transition-all duration-500 ${darkMode ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`} />
                 <Moon className={`absolute inset-0 w-5 h-5 text-indigo-400 transition-all duration-500 ${darkMode ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
