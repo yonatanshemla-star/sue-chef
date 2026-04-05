@@ -155,7 +155,7 @@ export default function LawyerDashboard() {
               <Scale className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
+              <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-slate-300 flex items-center gap-3">
                 Sue-Chef 
                 <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-black tracking-widest uppercase">עו"ד</span>
               </h1>

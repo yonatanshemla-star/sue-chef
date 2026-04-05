@@ -38,19 +38,19 @@ function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | st
 
 // === Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number; icon?: any }> = {
-  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-500 dark:text-white', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: -1 },
-  'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-600 dark:text-white', border: 'border-pink-700', importance: 0 },
-  'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950 dark:text-green-300', border: 'border-green-300 dark:border-green-700', importance: 1 },
-  'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950 dark:text-emerald-300', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
-  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-900/80 dark:text-orange-200', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 3 },
-  'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950 dark:text-blue-300', border: 'border-blue-300 dark:border-blue-700', importance: 4 },
-  'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-800 dark:text-gray-300', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
-  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-900 dark:text-gray-400', border: 'border-gray-600', importance: 6 },
-  'חדש': { label: '🆕 חדש', color: 'text-white', bg: 'bg-indigo-600', darkBg: 'dark:bg-indigo-600 dark:text-white', border: 'border-indigo-700 shadow-md', importance: 7 },
-  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-900/20 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', importance: 8 },
-  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-900/40 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700', importance: 9 },
-  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950 dark:text-red-300', border: 'border-red-300 dark:border-red-700', importance: 10 },
-  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-white', bg: 'bg-red-600', darkBg: 'dark:bg-red-600 dark:text-white', border: 'border-red-700 shadow-md', importance: 11 },
+  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: -1 },
+  'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-950/50 dark:text-pink-400 dark:border-pink-900', border: 'border-pink-700', importance: 0 },
+  'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950/50 dark:text-green-500 dark:border-green-900', border: 'border-green-300 dark:border-green-700', importance: 1 },
+  'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-500 dark:border-emerald-900', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
+  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 3 },
+  'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900', border: 'border-blue-300 dark:border-blue-700', importance: 4 },
+  'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-900/50 dark:text-gray-400 dark:border-gray-800', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
+  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-950/50 dark:text-gray-500 dark:border-gray-800', border: 'border-gray-600', importance: 6 },
+  'חדש': { label: '🆕 חדש', color: 'text-white', bg: 'bg-indigo-600', darkBg: 'dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-900', border: 'border-indigo-700 shadow-md', importance: 7 },
+  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-950/30 dark:text-amber-500 dark:border-amber-900/50', border: 'border-amber-200 dark:border-amber-800', importance: 8 },
+  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700', border: 'border-amber-300 dark:border-amber-700', importance: 9 },
+  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950/40 dark:text-red-400 dark:border-red-900', border: 'border-red-300 dark:border-red-700', importance: 10 },
+  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-white', bg: 'bg-red-600', darkBg: 'dark:bg-red-950/50 dark:text-red-500 dark:border-red-900', border: 'border-red-700 shadow-md', importance: 11 },
 };
 
 const LOST_REASONS = ["אין מענה חוזר", "אין עילה רפואית", "מתחרים/לקח עו\"ד אחר", "לא מעוניין", "בגלל מחיר", "טעות במספר", "אחר"];
@@ -631,7 +631,7 @@ export default function Home() {
               <MoreVertical size={24} />
             </button>
             <div className="flex flex-col">
-              <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-3 cursor-default select-none">
+              <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-slate-300 flex items-center gap-3 cursor-default select-none">
                 Sue-Chef 
                 <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.9.5</span>
               </h1>
@@ -705,8 +705,8 @@ export default function Home() {
         {/* Tabs - Restored to the center! */}
         <div className="hidden md:flex flex-wrap gap-2 mb-10 p-2 w-fit mx-auto rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-xl">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
-          {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600'}] as const).map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
+          {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700 dark:text-indigo-300'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400'}] as const).map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
               <span className="relative z-10">{tab.label}</span>
             </button>
           ))}
