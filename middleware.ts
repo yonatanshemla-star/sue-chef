@@ -7,6 +7,8 @@ function isProtectedPath(path: string) {
     '/api/auth/login',
     '/api/leads/webhook',
     '/api/twilio/',
+    '/api/voice',
+    '/api/webhook'
   ];
   
   if (path.startsWith('/_next/') || path.includes('favicon.ico')) {
