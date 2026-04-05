@@ -501,8 +501,68 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative`} style={{ zoom: 0.85 }}>
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans relative z-10 opacity-100" dir="rtl">
+    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} flex flex-row-reverse`} style={{ zoom: 0.85 }}>
+      {/* Sidebar Navigation */}
+      <aside className="w-72 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-l dark:border-slate-800 sticky top-0 h-screen z-50 flex flex-col p-6 shadow-2xl transition-all duration-500 overflow-hidden" dir="rtl">
+        <div className="mb-12 flex flex-col items-center">
+          <h1 onClick={handleTitleClick} className="text-3xl font-black tracking-tight text-indigo-600 dark:text-indigo-400 cursor-default select-none transition-all hover:scale-105 active:scale-95">
+             Sue-Chef
+          </h1>
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase mt-2">Leads Terminal</p>
+        </div>
+
+        <nav className="flex-1 space-y-3">
+          {[
+            { id: 'crm', label: 'ניהול לידים (CRM)', icon: TableProperties, color: 'text-indigo-500', bg: 'bg-indigo-50/50 dark:bg-indigo-900/10' },
+            { id: 'lawyer', label: 'דשבורד עו"ד', icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50/50 dark:bg-emerald-900/10', action: () => setShowSwitchModal(true) },
+            { id: 'analytics', label: 'אנליטיקה', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
+            { id: 'tree', label: 'עץ החלטות', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-50/50 dark:bg-purple-900/10' },
+            { id: 'calls', label: 'שיחות אחרונות', icon: PhoneCall, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+            { id: 'archive', label: 'ארכיון', icon: History, color: 'text-rose-500', bg: 'bg-rose-50/50 dark:bg-rose-900/10' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.action) item.action();
+                else setActiveTab(item.id as any);
+              }}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-3xl font-black text-sm transition-all duration-300 group ${
+                activeTab === item.id 
+                  ? `${item.bg} ${item.color} shadow-sm translate-x-1` 
+                  : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+            >
+              <item.icon className={`${activeTab === item.id ? item.color : 'text-slate-300 dark:text-slate-700'} group-hover:scale-110 transition-transform duration-300`} size={22} />
+              <span className="flex-1 text-right">{item.label}</span>
+              {activeTab === item.id && <div className={`w-1.5 h-6 rounded-full ${item.color.replace('text-', 'bg-')}`} />}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-auto pt-8 border-t dark:border-slate-800 space-y-4">
+          <div className={`p-5 rounded-3xl ${cardClass} flex flex-col gap-3 group`}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרה</p>
+            </div>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform origin-right" dir="ltr">{twilioBalance || "..."}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button onClick={() => setDarkMode(!darkMode)} className={`flex-1 p-4 flex items-center justify-center transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
+              {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-indigo-400" />}
+            </button>
+            <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`flex-1 p-4 flex items-center justify-center transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
+              <RefreshCw className={`w-5 h-5 ${(loadingLeads || loadingCalls) ? 'animate-spin text-indigo-500' : 'text-gray-400'}`} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex-1 max-h-screen overflow-y-auto custom-scrollbar">
+        <main className="max-w-[1280px] mx-auto px-6 lg:px-12 py-10 font-sans relative z-10 opacity-100" dir="rtl">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
@@ -514,20 +574,27 @@ export default function Home() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium opacity-70">מערכת ניהול לידים מתקדמת</p>
           </div>
 
-          {/* Secret Profit Tracker Panel */}
+          {/* Secret Profit Tracker Panel (Counter + Profit Only) */}
           {showSecretPanel && (
-            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
-              <button onClick={toggleWorkTimer} className={`px-5 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-lg ${isWorking ? 'bg-red-500 text-white shadow-red-500/20 animate-pulse' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
-                <Clock size={16} /> {isWorking ? 'עוצר עבודה' : 'מתחיל עבודה'}
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-2 rounded-3xl border dark:border-white/5">
+              <div className="px-4 py-2 flex flex-col items-center">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">מונה שעות עבודה</p>
+                <p className="text-sm font-black text-indigo-500" dir="ltr">
+                  {isWorking && workStartTime ? (
+                    new Date(Date.now() - workStartTime).toISOString().substr(11, 8)
+                  ) : (
+                    '00:00:00'
+                  )}
+                </p>
+              </div>
+              <button onClick={toggleWorkTimer} className={`h-12 px-6 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-lg ${isWorking ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
+                {isWorking ? 'עצור עבודה' : 'התחל עבודה'}
               </button>
-              <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="px-5 py-3 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
+              <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="h-12 px-6 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
                 <TrendingUp size={16} /> רווח שבועי
               </button>
-              <button onClick={() => setShowSwitchModal(true)} className="px-5 py-3 rounded-2xl font-black text-sm bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex items-center gap-2 hover:scale-105 transition-all">
-                <Briefcase size={16} /> מעבר לדשבורד עו"ד
-              </button>
-              <button onClick={() => setShowSecretPanel(false)} className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
-                <X size={16} />
+              <button onClick={() => setShowSecretPanel(false)} className="w-12 h-12 rounded-2xl bg-slate-200/50 dark:bg-slate-800/50 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
+                <X size={20} />
               </button>
             </div>
           )}
@@ -566,15 +633,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-10 p-2 w-fit rounded-[24px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-md">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
-          {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600'}, {id: 'analytics', label: 'אנליטיקה', accent: 'text-emerald-600'}, {id: 'tree', label: 'עץ החלטות', accent: 'text-purple-600'}] as const).map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white ${tab.accent} shadow-lg scale-105` : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-              <span className="relative z-10">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        {/* Main Sections are now in Sidebar. Tabs removed from here. */}
 
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
@@ -1218,6 +1277,7 @@ export default function Home() {
           background: rgba(99, 102, 241, 0.2);
         }
       `}</style>
+      </div>
     </div>
   );
 }
