@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
@@ -68,7 +68,7 @@ function formatDate(d: string | null) {
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup' | 'settings'>('crm');
   const [darkMode, setDarkMode] = useState(false);
   const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
@@ -78,6 +78,7 @@ export default function Home() {
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [agentPhone, setAgentPhone] = useState("");
   
   // Modals
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
@@ -210,6 +211,8 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    const stored = localStorage.getItem('agentPhone');
+    if (stored) setAgentPhone(stored);
   }, []);
 
   // Scroll Lock for modal
@@ -364,10 +367,13 @@ export default function Home() {
   const initiateCall = async (lead: Lead) => {
     if (!lead.phone) return;
     const newCount = (lead.callCount || 0) + 1;
-    handleLeadUpdate(lead.id, { callCount: newCount });
-    if (lead.status === 'חדש') handleLeadUpdate(lead.id, { status: 'ממתין לעדכון' });
+    const updates: Partial<Lead> = { callCount: newCount };
+    if (lead.status === 'חדש') {
+      updates.status = 'ממתין לעדכון';
+    }
+    handleLeadUpdate(lead.id, updates);
     try {
-      fetch('/api/twilio/call/initiate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: lead.phone }) });
+      fetch('/api/twilio/call/initiate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: lead.phone, agentPhone }) });
       setLiveNotesLead(lead);
     } catch (err) { console.error(err); }
   };
@@ -580,6 +586,7 @@ export default function Home() {
             {[
               { id: 'analytics', label: 'אנליטיקה', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' },
               { id: 'tree', label: 'עץ החלטות', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/10' },
+              { id: 'settings', label: 'הגדרות', icon: Settings, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/10' },
               { id: 'lawyer', label: 'דשבורד עו"ד', icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10', action: () => { setShowSwitchModal(true); setIsDrawerOpen(false); } },
             ].map((item) => (
               <button
@@ -628,7 +635,7 @@ export default function Home() {
               onClick={() => setIsDrawerOpen(true)}
               className="w-14 h-14 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border dark:border-slate-800 flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-500 transition-all shadow-sm active:scale-95"
             >
-              <MoreVertical size={24} />
+              <Menu size={24} />
             </button>
             <div className="flex flex-col">
               <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-slate-300 flex items-center gap-3 cursor-default select-none">
@@ -1068,6 +1075,29 @@ export default function Home() {
           )}
           
           {activeTab === 'tree' && <div className="p-8 h-full"><LegalDecisionTree /></div>}
+          
+          {activeTab === 'settings' && (
+            <div className="p-4 md:p-10 max-w-2xl mx-auto h-full min-h-[500px]">
+              <h2 className="text-3xl font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white"><Settings className="text-indigo-500" /> הגדרות מערכת</h2>
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
+                <h3 className="text-xl font-black mb-2 text-slate-900 dark:text-white">מספר נייד של הנציג</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">על מנת שהמערכת תחייג אליך כראוי, יש להזין את המספר שממנו תבצע את השיחות. אם נשאר ריק, החיוג יתבצע למספר הברירת מחדל של המערכת.</p>
+                <input 
+                  type="text" 
+                  dir="ltr"
+                  placeholder="לדוגמה: 0541234567 או +97254..." 
+                  value={agentPhone} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAgentPhone(val);
+                    localStorage.setItem('agentPhone', val);
+                  }} 
+                  className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-black outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
+                />
+              </div>
+            </div>
+          )}
         </div>
 
       {/* Disqualification Selector Modal */}

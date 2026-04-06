@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { to } = await req.json();
+    const { to, agentPhone } = await req.json();
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const myPhone = process.env.MY_PHONE_NUMBER;
+    const myPhone = agentPhone || process.env.MY_PHONE_NUMBER;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
     if (!accountSid || !authToken || !myPhone || !twilioPhone) {

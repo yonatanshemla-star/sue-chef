@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { saveLead } from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
+import { sendWhatsAppWelcome } from '@/utils/whatsapp';
 
 export async function POST(req: Request) {
   try {
@@ -25,6 +26,13 @@ export async function POST(req: Request) {
     };
 
     await saveLead(newLead as any);
+
+    // Send automatic WhatsApp welcome message
+    if (phone && phone !== 'לא ידוע') {
+        sendWhatsAppWelcome(phone, newLead.clientName).catch(err => {
+            console.error('Failed to trigger WhatsApp welcome:', err);
+        });
+    }
     
     // Twilio MUST receive TwiML XML when the Action URL runs
     return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`, {
