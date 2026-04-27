@@ -68,7 +68,7 @@ function formatDate(d: string | null) {
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup' | 'settings'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup' | 'settings' | 'noanswer'>('crm');
   const [darkMode, setDarkMode] = useState(false);
   const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
@@ -505,8 +505,78 @@ export default function Home() {
     return leads.find(l => l.phone?.includes(normalized));
   }, [leads]);
 
+  // Duplicate detection: build a map of leadId -> duplicate info
+  const duplicateMap = useMemo(() => {
+    const map = new Map<string, { lead: Lead, location: string }>();
+    const phoneGroups = new Map<string, Lead[]>();
+    const nameGroups = new Map<string, Lead[]>();
+    for (const l of leads) {
+      if (l.phone) {
+        const norm = l.phone.replace(/\D/g, '').slice(-9);
+        if (norm.length >= 7) {
+          if (!phoneGroups.has(norm)) phoneGroups.set(norm, []);
+          phoneGroups.get(norm)!.push(l);
+        }
+      }
+      if (l.clientName?.trim()) {
+        const norm = l.clientName.trim().toLowerCase();
+        if (norm.length >= 2) {
+          if (!nameGroups.has(norm)) nameGroups.set(norm, []);
+          nameGroups.get(norm)!.push(l);
+        }
+      }
+    }
+    for (const l of leads) {
+      if (l.phone) {
+        const norm = l.phone.replace(/\D/g, '').slice(-9);
+        const group = phoneGroups.get(norm);
+        if (group && group.length > 1) {
+          const dup = group.find(g => g.id !== l.id)!;
+          const loc = (dup.status === 'חתם' || dup.status === 'נגמר') ? 'archive' : dup.status === 'במעקב' ? 'followup' : 'crm';
+          map.set(l.id, { lead: dup, location: loc });
+          continue;
+        }
+      }
+      if (l.clientName?.trim()) {
+        const norm = l.clientName.trim().toLowerCase();
+        const group = nameGroups.get(norm);
+        if (group && group.length > 1) {
+          const dup = group.find(g => g.id !== l.id)!;
+          const loc = (dup.status === 'חתם' || dup.status === 'נגמר') ? 'archive' : dup.status === 'במעקב' ? 'followup' : 'crm';
+          map.set(l.id, { lead: dup, location: loc });
+        }
+      }
+    }
+    return map;
+  }, [leads]);
+
+  const navigateToDuplicate = useCallback((dupInfo: { lead: Lead, location: string }) => {
+    setActiveTab(dupInfo.location as any);
+    setGlobalSearch('');
+    setShowAdvancedStageOnly(false);
+    setTimeout(() => {
+      const el = document.getElementById(`lead-row-${dupInfo.lead.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.5)';
+        el.style.transition = 'box-shadow 0.3s';
+        setTimeout(() => { el.style.boxShadow = ''; }, 3000);
+      }
+    }, 400);
+  }, []);
+
   const crmLeads = useMemo(() => leads
-    .filter(l => l.status !== 'חתם' && l.status !== 'נגמר' && l.status !== 'במעקב')
+    .filter(l => {
+      if (l.status === 'חתם' || l.status === 'נגמר' || l.status === 'במעקב') return false;
+      // Hide "לא ענה" leads older than 5 days from main CRM
+      if (l.status === 'לא ענה') {
+        const hist = l.statusHistory || [];
+        const lastEntry = [...hist].reverse().find(h => h.to === 'לא ענה');
+        const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(l.createdAt);
+        if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 5) return false;
+      }
+      return true;
+    })
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
       if (!q) return true;
@@ -530,6 +600,15 @@ export default function Home() {
   const followupLeads = useMemo(() => leads
     .filter(l => l.status === 'במעקב')
     .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads]);
+
+  const noAnswerLeads = useMemo(() => leads
+    .filter(l => l.status === 'לא ענה')
+    .filter(l => {
+      const q = globalSearch.toLowerCase().trim();
+      if (!q) return true;
+      return l.clientName?.toLowerCase().includes(q) || l.phone?.includes(q);
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [leads, globalSearch]);
 
   const archiveLeads = useMemo(() => leads
     .filter(l => l.status === 'חתם' || l.status === 'נגמר')
@@ -720,7 +799,7 @@ export default function Home() {
         </div>
 
         {/* Search & Actions */}
-        {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
+        {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
           <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 items-center">
             {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
             <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start">
@@ -730,7 +809,7 @@ export default function Home() {
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )}
-              {(activeTab === 'crm' || activeTab === 'followup') && (
+              {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'noanswer') && (
                 <>
                   <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
                     <Clock size={14} className="md:w-[18px] md:h-[18px]" /> במעקב
@@ -738,20 +817,28 @@ export default function Home() {
                   <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
                     <Zap size={14} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
                   </button>
+                  <button onClick={() => setActiveTab(activeTab === 'noanswer' ? 'crm' : 'noanswer')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'noanswer' ? 'bg-gray-700 text-white border-gray-800 ring-4 ring-gray-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-gray-400'}`}>
+                    <PhoneOff size={14} className="md:w-[18px] md:h-[18px]" /> לא ענו ({noAnswerLeads.length})
+                  </button>
                 </>
               )}
             </div>
 
             <div className="relative flex-1 group">
               <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-              <input type="text" placeholder="חיפוש לפי שם או טלפון..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-6 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
+              <input type="text" placeholder="חיפוש לפי שם או טלפון..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
+              {globalSearch && (
+                <button onClick={() => setGlobalSearch('')} className="absolute left-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 transition-all">
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
         )}
 
         {/* Main Content Area */}
         <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
-          {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive') && (
+          {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
             <div className="overflow-x-auto">
             <table className="hidden md:table w-full text-sm text-right border-collapse">
               <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
@@ -764,9 +851,10 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-indigo-500/5 opacity-100">
-                {(Array.isArray(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) ? (activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) : []).map((lead, idx) => (
+                {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead, idx) => (
                   <tr 
-                    key={lead.id} 
+                    key={lead.id}
+                    id={`lead-row-${lead.id}`}
                     className="group hover:bg-white/60 dark:hover:bg-white/5 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 fill-mode-both"
                     style={{ animationDelay: `${idx * 50}ms`, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
                   >
@@ -781,7 +869,14 @@ export default function Home() {
                             </div>
                           ) : (
                             <>
-                              <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors" placeholder="שם הלקוח..." />
+                              <div className="flex items-center gap-2">
+                                <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
+                                {duplicateMap.has(lead.id) && (
+                                  <button onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} className="flex-shrink-0 text-red-500 hover:text-red-600 hover:scale-125 transition-all animate-pulse" title={`ליד כפול! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}>
+                                    <Star size={18} fill="currentColor" />
+                                  </button>
+                                )}
+                              </div>
                               <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
                             </>
                           )}
@@ -848,8 +943,8 @@ export default function Home() {
 
             {/* Mobile Cards View */}
             <div className="md:hidden flex flex-col gap-4 p-4 overflow-y-auto pb-6">
-              {(Array.isArray(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) ? (activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : archiveLeads) : []).map((lead) => (
-                <div key={`mob-${lead.id}`} className="bg-slate-50 dark:bg-slate-800/80 rounded-[32px] p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-5 relative">
+              {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
+                <div key={`mob-${lead.id}`} id={`lead-row-${lead.id}`} className="bg-slate-50 dark:bg-slate-800/80 rounded-[32px] p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-5 relative">
                   
                   {/* Menu Button */}
                   <div className="absolute top-4 left-4 z-10">
@@ -877,7 +972,14 @@ export default function Home() {
                   <div className="flex items-center gap-4 pl-12" onPaste={(e) => handlePaste(e, lead.id)}>
                     <button onClick={() => initiateCall(lead)} className="flex-shrink-0 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-6 h-6" /></button>
                     <div className="flex flex-col flex-1 min-w-0">
-                      <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 w-full truncate" placeholder="שם הלקוח..." />
+                      <div className="flex items-center gap-2">
+                        <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 flex-1 min-w-0 truncate" placeholder="שם הלקוח..." />
+                        {duplicateMap.has(lead.id) && (
+                          <button onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} className="flex-shrink-0 text-red-500 hover:text-red-600 transition-all animate-pulse" title="ליד כפול!">
+                            <Star size={16} fill="currentColor" />
+                          </button>
+                        )}
+                      </div>
                       <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base w-full text-right" placeholder="05..." dir="ltr" style={{ direction: 'rtl', textAlign: 'right' }} />
                     </div>
                   </div>
@@ -1177,13 +1279,8 @@ export default function Home() {
                             <section>
                               <h5 className="text-indigo-500 font-black text-lg mb-2">פתיחה</h5>
                               <p className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
-                                אהלן, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות, ורציתי לשוחח איתך כדי להבין איך נוכל לעזור. יש לך כמה דקות לדבר?
+                                היי, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות. אם יש לך כמה דקות אני אשמח לשאול אותך כמה שאלות ולראות אם נוכל לעזור.
                               </p>
-                            </section>
-
-                            <section>
-                              <h5 className="text-indigo-500 font-black text-lg mb-2">בירור כוונה</h5>
-                              <p>אני רק רוצה לוודא – אתה עדיין מעוניין שנבדוק עבורך האם נוכל לסייע?</p>
                             </section>
 
                             <section className="space-y-4">
@@ -1191,39 +1288,29 @@ export default function Home() {
                               <div className="space-y-4">
                                 <div className="flex gap-3">
                                   <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
-                                  <p>מה שמך המלא ומה הגיל שלך?</p>
+                                  <p>מה שמך המלא? ומה גילך?</p>
                                 </div>
                                 <div className="flex gap-3">
                                   <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
-                                  <p>יש לך כרגע הכנסות? אם כן – מאיפה הן מגיעות (קצבה, עבודה, פנסיה וכו') ומה הסכום בערך?</p>
+                                  <p>תוכל לספר לי קצת על מצבך הרפואי?</p>
                                 </div>
                                 <div className="flex gap-3">
                                   <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
                                   <div>
-                                    <p>תוכל לפרט קצת על המצב הרפואי שלך? ממה אתה סובל כיום, מה יש באבחנות, ומה הכי משפיע על התפקוד היומיומי?</p>
-                                    <p className="text-[10px] text-slate-400 mt-2 italic">(אם מספר כמה בעיות – תגיד: "אוקיי, חשוב לי להבין כל דבר בנפרד כדי להעביר לעו"ד בצורה מדויקת).</p>
+                                    <p>יש לך כרגע הכנסות? אם כן – מאיפה הן מגיעות (קצבה, עבודה, פנסיה וכו') ומה הסכום בערך?</p>
+                                    <p className="text-[10px] text-slate-400 mt-2 italic">(לבדוק אם משלם מס הכנסה וכמה)</p>
                                   </div>
-                                </div>
-                                <div className="flex gap-3">
-                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
-                                  <p>יש לך כרגע קצבאות כלשהן? אם כן – מאיפה? אם זו קצבה מביטוח לאומי – אתה יודע מה דרגת הנכות שקיבלת?</p>
                                 </div>
                                 <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
                                   <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
+                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
                                     <p>האם יש קושי בפעולות יומיומיות (לבוש, רחצה, תפקוד בסיסי)? תשאלו רק אם אתה שומע תיאור שמעיד על מצב תפקודי קשה.</p>
                                   </div>
                                 </div>
                                 <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
                                   <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">6</span>
+                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
                                     <p>האם יש לך ביטוח סיעודי בקופת חולים?</p>
-                                  </div>
-                                </div>
-                                <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
-                                  <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">7</span>
-                                    <p>משלם מס הכנסה? אם כן, כמה?</p>
                                   </div>
                                 </div>
                               </div>
