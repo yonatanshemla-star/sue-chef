@@ -930,6 +930,30 @@ export default function Home() {
                          <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
                          <button onClick={() => setHistoryLead(lead)} className="inline-flex items-center gap-2 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-900/20 px-4 py-3 rounded-2xl border border-amber-200/60 dark:border-amber-700/30 transition-all hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 shadow-sm active:scale-95" title="היסטוריית ליד"><History className="w-4 h-4" /></button>
                        </div>
+                       {activeTab === 'archive' && lead.status === 'חתם' && (
+                         <div className="mt-3 flex flex-col items-center gap-2">
+                           <div className="flex items-center gap-4 text-[11px] font-bold">
+                             <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-xl border border-amber-100 dark:border-amber-800/40">
+                               <Calendar className="w-3.5 h-3.5" /> חתימה: {lead.signedAt ? formatDate(lead.signedAt) : 'לא צוין'}
+                             </span>
+                             {lead.isPaid && lead.paidAt && (
+                               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-800/40">
+                                 <DollarSign className="w-3.5 h-3.5" /> תשלום: {formatDate(lead.paidAt)}
+                               </span>
+                             )}
+                           </div>
+                           <button
+                             onClick={() => handleLeadUpdate(lead.id, { isPaid: !lead.isPaid, paidAt: !lead.isPaid ? new Date().toISOString() : undefined })}
+                             className={`inline-flex items-center gap-2 text-xs font-black px-5 py-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${
+                               lead.isPaid
+                                 ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20 hover:bg-emerald-600'
+                                 : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                             }`}
+                           >
+                             {lead.isPaid ? <><Check className="w-4 h-4" /> שולם</> : <><DollarSign className="w-4 h-4" /> סמן כשולם</>}
+                           </button>
+                         </div>
+                       )}
                        {activeTab === 'archive' && lead.status === 'נגמר' && lead.disqualificationReason && (
                          <div className="mt-2 text-[10px] font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/30 inline-block">
                            ❌ {lead.disqualificationReason}
@@ -1010,6 +1034,31 @@ export default function Home() {
                        <button onClick={() => setHistoryLead(lead)} className="inline-flex justify-center items-center text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-5 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-amber-200 dark:border-amber-800"><History className="w-4 h-4" /></button>
                     </div>
                   </div>
+
+                  {activeTab === 'archive' && lead.status === 'חתם' && (
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-xl border border-amber-100 dark:border-amber-800/40">
+                          <Calendar className="w-3.5 h-3.5" /> חתימה: {lead.signedAt ? formatDate(lead.signedAt) : 'לא צוין'}
+                        </span>
+                        {lead.isPaid && lead.paidAt && (
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-800/40">
+                            <DollarSign className="w-3.5 h-3.5" /> תשלום: {formatDate(lead.paidAt)}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleLeadUpdate(lead.id, { isPaid: !lead.isPaid, paidAt: !lead.isPaid ? new Date().toISOString() : undefined })}
+                        className={`w-full inline-flex justify-center items-center gap-2 text-sm font-black px-5 py-3.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${
+                          lead.isPaid
+                            ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20 hover:bg-emerald-600'
+                            : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                        }`}
+                      >
+                        {lead.isPaid ? <><Check className="w-4 h-4" /> שולם</> : <><DollarSign className="w-4 h-4" /> סמן כשולם</>}
+                      </button>
+                    </div>
+                  )}
 
                   {activeTab === 'archive' && lead.status === 'נגמר' && lead.disqualificationReason && (
                     <div className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl mt-1 text-center">

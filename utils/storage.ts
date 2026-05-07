@@ -26,6 +26,8 @@ export interface Lead {
   lawyerNotes?: string;
   caseStatus?: string;
   profit?: number;
+  isPaid?: boolean;
+  paidAt?: string;
 }
 
 export async function initDB() {
