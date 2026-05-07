@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ArrowRight, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
@@ -198,6 +198,31 @@ export default function Home() {
     setTitleClickTimer(timer);
   };
 
+  // === Confetti celebration ===
+  const fireConfetti = useCallback(async () => {
+    try {
+      let confetti = (window as any).confetti;
+      if (!confetti) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject();
+          document.head.appendChild(script);
+        });
+        confetti = (window as any).confetti;
+      }
+      if (!confetti) return;
+      // Fire from both sides
+      const defaults = { spread: 70, ticks: 100, gravity: 0.8, decay: 0.94, startVelocity: 30, colors: ['#FFD700', '#FFA500', '#FF6347', '#4CAF50', '#2196F3', '#9C27B0'] };
+      confetti({ ...defaults, particleCount: 80, origin: { x: 0.3, y: 0.6 }, angle: 60 });
+      confetti({ ...defaults, particleCount: 80, origin: { x: 0.7, y: 0.6 }, angle: 120 });
+      setTimeout(() => {
+        confetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.4 }, spread: 120, startVelocity: 40, scalar: 1.2 });
+      }, 250);
+    } catch (e) { console.error('Confetti error:', e); }
+  }, []);
+
   // Fetch weekly profit data
   const fetchWeeklyProfit = async (offset: number = 0) => {
     setLoadingWeekly(true);
@@ -318,6 +343,8 @@ export default function Home() {
       if (updates.status === 'חתם') {
         updates.isSigned = true;
         updates.signedAt = new Date().toISOString();
+        // 🎉 Celebrate!
+        fireConfetti();
       }
       // Track status history
       const currentLead = leads.find(l => l.id === id);
@@ -1228,8 +1255,10 @@ export default function Home() {
           {activeTab === 'tree' && <div className="p-8 h-full"><LegalDecisionTree /></div>}
           
           {activeTab === 'settings' && (
-            <div className="p-4 md:p-10 max-w-2xl mx-auto h-full min-h-[500px]">
+            <div className="p-4 md:p-10 max-w-2xl mx-auto h-full min-h-[500px] space-y-8">
               <h2 className="text-3xl font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white"><Settings className="text-indigo-500" /> הגדרות מערכת</h2>
+              
+              {/* Agent Phone Section */}
               <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
                 <h3 className="text-xl font-black mb-2 text-slate-900 dark:text-white">מספר נייד של הנציג</h3>
@@ -1246,6 +1275,80 @@ export default function Home() {
                   }} 
                   className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-black outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
                 />
+              </div>
+
+              {/* Backup & Restore Section */}
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full -translate-x-10 -translate-y-10" />
+                <h3 className="text-xl font-black mb-2 text-slate-900 dark:text-white flex items-center gap-3"><Shield className="w-6 h-6 text-emerald-500" /> גיבוי ושחזור נתונים</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">הורד את כל הנתונים כקובץ JSON, או שחזר מגיבוי קודם. הגיבוי האוטומטי רץ כל יום ב-06:00 ושומר לדרייב.</p>
+                
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Download Backup */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/backup');
+                        if (!res.ok) throw new Error('Backup failed');
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `suechef-backup-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } catch (e) { alert('שגיאה בהורדת הגיבוי'); console.error(e); }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-emerald-600 text-white font-black text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all group"
+                  >
+                    <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
+                    הורד גיבוי
+                  </button>
+
+                  {/* Restore from Backup */}
+                  <label className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-amber-500 text-white font-black text-base shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group">
+                    <Upload className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
+                    שחזר מגיבוי
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (!window.confirm(`⚠️ פעולה זו תחליף את כל הנתונים הקיימים בנתונים מהקובץ:\n${file.name}\n\nהאם להמשיך?`)) {
+                          e.target.value = '';
+                          return;
+                        }
+                        try {
+                          const text = await file.text();
+                          const json = JSON.parse(text);
+                          const res = await fetch('/api/backup/restore', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(json)
+                          });
+                          const result = await res.json();
+                          if (result.success) {
+                            alert(`✅ שוחזרו ${result.count} לידים בהצלחה!`);
+                            fetchLeads();
+                          } else {
+                            alert(`❌ שגיאה: ${result.error}`);
+                          }
+                        } catch (err) {
+                          alert('❌ קובץ לא תקין או שגיאת תקשורת');
+                          console.error(err);
+                        }
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-6 flex items-center gap-3 text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 rounded-xl">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  גיבוי אוטומטי יומי ל-Google Drive פעיל
+                </div>
               </div>
             </div>
           )}
