@@ -19,7 +19,7 @@ async function getGoogleAccessToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const claimSet = Buffer.from(JSON.stringify({
     iss: email,
-    scope: 'https://www.googleapis.com/auth/drive.file',
+    scope: 'https://www.googleapis.com/auth/drive',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600,
     iat: now,
@@ -51,16 +51,16 @@ async function getGoogleAccessToken(): Promise<string> {
 }
 
 async function deleteOldBackups(accessToken: string, folderId: string) {
-  // List files in folder
+  // List files in folder — use supportsAllDrives for shared folders
   const listRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+name+contains+'suechef-backup'&fields=files(id,name)`,
+    `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+name+contains+'suechef-backup'&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const listData = await listRes.json();
   
   if (listData.files && listData.files.length > 0) {
     for (const file of listData.files) {
-      await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?supportsAllDrives=true`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -88,7 +88,8 @@ async function uploadToGoogleDrive(accessToken: string, folderId: string, fileNa
     `--${boundary}--`,
   ].join('\r\n');
 
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+  // Use supportsAllDrives so the file is owned by the shared folder, not the SA
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
