@@ -116,6 +116,7 @@ export default function Home() {
   const [stickyItems, setStickyItems] = useState<{id: string, text: string, done: boolean}[]>([]);
   const [newItemText, setNewItemText] = useState('');
   const [loadingNote, setLoadingNote] = useState(false);
+  const [isAddingStickyNote, setIsAddingStickyNote] = useState(false);
 
   const handleSwitchRole = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -849,14 +850,20 @@ export default function Home() {
             </div>
           )}
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-3 px-5 py-3.5 ${cardClass}`}>
-              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <div className={`flex items-center gap-1 px-1 py-1 ${cardClass}`}>
+              <div className="flex items-center gap-3 pl-3 pr-4">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טוויליו</p>
+                  <p className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טוויליו</p>
-                <p className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
-              </div>
+              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+              <button onClick={() => { setShowStickyNote(!showStickyNote); if (!showStickyNote) { const today = new Date().toISOString().split('T')[0]; setStickyNoteDate(today); fetchNote(today); } }} className={`p-3 mr-1 transition-all active:scale-95 rounded-xl group ${showStickyNote ? 'bg-amber-100 dark:bg-amber-900/40 shadow-inner border border-amber-300 dark:border-amber-700' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="פתק יומי">
+                <StickyNote className={`w-5 h-5 ${showStickyNote ? 'text-amber-500' : 'text-gray-400 group-hover:text-amber-400'}`} />
+              </button>
             </div>
             <button onClick={() => {
               const nextVal = !darkMode;
@@ -872,87 +879,9 @@ export default function Home() {
               <RefreshCw className={`w-6 h-6 ${(loadingLeads || loadingCalls) ? 'animate-spin text-indigo-500' : 'text-gray-600'}`} />
             </button>
           </div>
-          <button onClick={() => { setShowStickyNote(!showStickyNote); if (!showStickyNote) { const today = new Date().toISOString().split('T')[0]; setStickyNoteDate(today); fetchNote(today); } }} className={`p-4 transition-all active:scale-95 group ${cardClass} ${showStickyNote ? 'ring-2 ring-amber-400 bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-white dark:hover:bg-gray-800'}`} title="פתק יומי">
-            <StickyNote className={`w-6 h-6 ${showStickyNote ? 'text-amber-500' : 'text-gray-600 dark:text-gray-400'}`} />
-          </button>
         </div>
 
-        {/* Daily Sticky Note */}
-        {showStickyNote && (
-          <>
-            {/* Desktop: inline note */}
-            <div className="hidden md:block mb-6">
-              <div className="max-w-lg mx-auto bg-amber-100 dark:bg-amber-900/30 rounded-[24px] p-6 shadow-lg border-2 border-amber-200 dark:border-amber-700/50 relative" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-amber-300/60 dark:bg-amber-600/40 rounded-b-lg" />
-                <div className="flex items-center justify-between mb-4">
-                  <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() + 1); const next = d.toISOString().split('T')[0]; if (next <= new Date().toISOString().split('T')[0]) { setStickyNoteDate(next); fetchNote(next); } }} className="p-1.5 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all"><ChevronLeft className="w-4 h-4 text-amber-700 dark:text-amber-400" /></button>
-                  <h4 className="text-sm font-black text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                    <StickyNote className="w-4 h-4" />
-                    {stickyNoteDate === new Date().toISOString().split('T')[0] ? 'פתק להיום' : new Date(stickyNoteDate).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </h4>
-                  <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() - 1); const prev = d.toISOString().split('T')[0]; const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); if (d >= cutoff) { setStickyNoteDate(prev); fetchNote(prev); } }} className="p-1.5 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all"><ChevronRight className="w-4 h-4 text-amber-700 dark:text-amber-400" /></button>
-                </div>
-                {loadingNote ? <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-amber-500" /></div> : (
-                  <>
-                    <div className="space-y-1.5 mb-3 max-h-48 overflow-y-auto">
-                      {stickyItems.map(item => (
-                        <div key={item.id} className="flex items-center gap-2 group">
-                          <button onClick={() => { const updated = stickyItems.map(i => i.id === item.id ? {...i, done: !i.done} : i); setStickyItems(updated); saveNote(stickyNoteDate, updated); }} className="flex-shrink-0">
-                            {item.done ? <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Square className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                          </button>
-                          <span className={`text-sm font-bold flex-1 ${item.done ? 'line-through text-amber-400 dark:text-amber-600' : 'text-amber-900 dark:text-amber-200'}`}>{item.text}</span>
-                          <button onClick={() => { const updated = stickyItems.filter(i => i.id !== item.id); setStickyItems(updated); saveNote(stickyNoteDate, updated); }} className="opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3.5 h-3.5 text-amber-400 hover:text-red-500" /></button>
-                        </div>
-                      ))}
-                    </div>
-                    {stickyNoteDate === new Date().toISOString().split('T')[0] && (
-                      <form onSubmit={(e) => { e.preventDefault(); if (!newItemText.trim()) return; const updated = [...stickyItems, { id: Date.now().toString(), text: newItemText.trim(), done: false }]; setStickyItems(updated); saveNote(stickyNoteDate, updated); setNewItemText(''); }} className="flex gap-2">
-                        <input value={newItemText} onChange={e => setNewItemText(e.target.value)} placeholder="הוסף משימה..." className="flex-1 bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-400/30 placeholder:text-amber-300 dark:placeholder:text-amber-700 text-amber-900 dark:text-amber-200" />
-                        <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-3 py-2 rounded-xl font-black text-sm hover:scale-105 active:scale-95 transition-all"><Plus className="w-4 h-4" /></button>
-                      </form>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
 
-            {/* Mobile: full modal */}
-            <div className="md:hidden fixed inset-0 z-[999] flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowStickyNote(false)}>
-              <div className="bg-amber-100 dark:bg-amber-950 w-full max-h-[70vh] rounded-t-[32px] p-6 shadow-2xl border-t-2 border-amber-200 dark:border-amber-700" onClick={e => e.stopPropagation()} style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-                <div className="w-12 h-1.5 bg-amber-300 dark:bg-amber-700 rounded-full mx-auto mb-4" />
-                <div className="flex items-center justify-between mb-5">
-                  <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() + 1); const next = d.toISOString().split('T')[0]; if (next <= new Date().toISOString().split('T')[0]) { setStickyNoteDate(next); fetchNote(next); } }} className="p-2 rounded-xl bg-amber-200 dark:bg-amber-800"><ChevronLeft className="w-5 h-5 text-amber-700 dark:text-amber-300" /></button>
-                  <h4 className="text-lg font-black text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                    <StickyNote className="w-5 h-5" />
-                    {stickyNoteDate === new Date().toISOString().split('T')[0] ? 'פתק להיום' : new Date(stickyNoteDate).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </h4>
-                  <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() - 1); const prev = d.toISOString().split('T')[0]; const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); if (d >= cutoff) { setStickyNoteDate(prev); fetchNote(prev); } }} className="p-2 rounded-xl bg-amber-200 dark:bg-amber-800"><ChevronRight className="w-5 h-5 text-amber-700 dark:text-amber-300" /></button>
-                </div>
-                {loadingNote ? <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-amber-500" /></div> : (
-                  <>
-                    <div className="space-y-3 mb-4 max-h-[40vh] overflow-y-auto">
-                      {stickyItems.map(item => (
-                        <div key={item.id} className="flex items-center gap-3">
-                          <button onClick={() => { const updated = stickyItems.map(i => i.id === item.id ? {...i, done: !i.done} : i); setStickyItems(updated); saveNote(stickyNoteDate, updated); }}>
-                            {item.done ? <CheckSquare className="w-6 h-6 text-emerald-600" /> : <Square className="w-6 h-6 text-amber-600" />}
-                          </button>
-                          <span className={`text-base font-bold flex-1 ${item.done ? 'line-through text-amber-400' : 'text-amber-900 dark:text-amber-200'}`}>{item.text}</span>
-                          <button onClick={() => { const updated = stickyItems.filter(i => i.id !== item.id); setStickyItems(updated); saveNote(stickyNoteDate, updated); }}><X className="w-5 h-5 text-amber-400 hover:text-red-500" /></button>
-                        </div>
-                      ))}
-                    </div>
-                    {stickyNoteDate === new Date().toISOString().split('T')[0] && (
-                      <form onSubmit={(e) => { e.preventDefault(); if (!newItemText.trim()) return; const updated = [...stickyItems, { id: Date.now().toString(), text: newItemText.trim(), done: false }]; setStickyItems(updated); saveNote(stickyNoteDate, updated); setNewItemText(''); }} className="flex gap-2">
-                        <input value={newItemText} onChange={e => setNewItemText(e.target.value)} placeholder="הוסף משימה..." className="flex-1 bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-xl px-4 py-3 text-base font-bold outline-none placeholder:text-amber-300 text-amber-900 dark:text-amber-200" />
-                        <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-4 py-3 rounded-xl font-black text-base"><Plus className="w-5 h-5" /></button>
-                      </form>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Notifications Bar */}
         {notifications.length > 0 && (activeTab === 'crm' || activeTab === 'followup') && (
@@ -967,15 +896,108 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tabs - Restored to the center! */}
-        <div className="hidden md:flex flex-wrap gap-2 mb-10 p-2 w-fit mx-auto rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none relative overflow-hidden backdrop-blur-xl">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
-          {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700 dark:text-indigo-300'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400'}] as const).map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
-              <span className="relative z-10">{tab.label}</span>
-            </button>
-          ))}
+        {/* Tabs and Desktop Sticky Note Container */}
+        <div className="relative flex justify-center items-start mb-10 w-full z-30">
+          {/* Tabs - Centered */}
+          <div className="hidden md:flex flex-wrap gap-2 p-2 w-fit rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none overflow-hidden backdrop-blur-xl relative z-10">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
+            {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700 dark:text-indigo-300'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400'}] as const).map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop Sticky Note - Positioned Left */}
+          {showStickyNote && (
+            <div className="hidden md:block absolute left-0 top-0 w-80 2xl:w-96 origin-top-left animate-in fade-in zoom-in duration-200 z-50">
+              <div className="bg-amber-100 dark:bg-amber-900/30 rounded-[20px] p-5 shadow-xl border-2 border-amber-200 dark:border-amber-700/50 relative" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-5 bg-amber-300/60 dark:bg-amber-600/40 rounded-b-lg" />
+                <div className="flex items-center justify-between mb-4">
+                  {/* Swapped ChevronLeft and ChevronRight logic for RTL */}
+                  <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() - 1); const prev = d.toISOString().split('T')[0]; const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); if (d >= cutoff) { setStickyNoteDate(prev); fetchNote(prev); } }} className="p-1.5 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all"><ChevronRight className="w-4 h-4 text-amber-700 dark:text-amber-400" /></button>
+                  <h4 className="text-sm font-black text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <StickyNote className="w-4 h-4" />
+                    {stickyNoteDate === new Date().toISOString().split('T')[0] ? 'פתק להיום' : new Date(stickyNoteDate).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </h4>
+                  <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() + 1); const next = d.toISOString().split('T')[0]; if (next <= new Date().toISOString().split('T')[0]) { setStickyNoteDate(next); fetchNote(next); } }} className="p-1.5 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all"><ChevronLeft className="w-4 h-4 text-amber-700 dark:text-amber-400" /></button>
+                </div>
+                {loadingNote ? <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-amber-500" /></div> : (
+                  <>
+                    <div className="space-y-1.5 mb-3 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                      {stickyItems.map(item => (
+                        <div key={item.id} className="flex items-center gap-2 group">
+                          <button onClick={() => { const updated = stickyItems.map(i => i.id === item.id ? {...i, done: !i.done} : i); setStickyItems(updated); saveNote(stickyNoteDate, updated); }} className="flex-shrink-0">
+                            {item.done ? <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Square className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                          </button>
+                          <span className={`text-xs font-bold flex-1 ${item.done ? 'line-through text-amber-400 dark:text-amber-600' : 'text-amber-900 dark:text-amber-200'}`}>{item.text}</span>
+                          <button onClick={() => { const updated = stickyItems.filter(i => i.id !== item.id); setStickyItems(updated); saveNote(stickyNoteDate, updated); }} className="opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3.5 h-3.5 text-amber-400 hover:text-red-500" /></button>
+                        </div>
+                      ))}
+                    </div>
+                    {stickyNoteDate === new Date().toISOString().split('T')[0] && (
+                      isAddingStickyNote ? (
+                        <form onSubmit={(e) => { e.preventDefault(); if (!newItemText.trim()) return; const updated = [...stickyItems, { id: Date.now().toString(), text: newItemText.trim(), done: false }]; setStickyItems(updated); saveNote(stickyNoteDate, updated); setNewItemText(''); setIsAddingStickyNote(false); }} className="flex gap-2">
+                          <input autoFocus value={newItemText} onChange={e => setNewItemText(e.target.value)} placeholder="הוסף משימה..." className="flex-1 bg-white/50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400/30 text-amber-900 dark:text-amber-200" />
+                          <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-3 py-1.5 rounded-xl font-black text-xs hover:scale-105 active:scale-95 transition-all"><Plus className="w-3.5 h-3.5" /></button>
+                          <button type="button" onClick={() => setIsAddingStickyNote(false)} className="px-2 text-amber-500 hover:bg-amber-200 rounded-xl"><X size={14}/></button>
+                        </form>
+                      ) : (
+                        <button onClick={() => setIsAddingStickyNote(true)} className="w-full text-center py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-200/50 dark:hover:bg-amber-800/30 rounded-lg transition-colors border border-dashed border-amber-300 dark:border-amber-700">
+                          + הוסף משימה
+                        </button>
+                      )
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Mobile: full modal */}
+        {showStickyNote && (
+          <div className="md:hidden fixed inset-0 z-[999] flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowStickyNote(false)}>
+            <div className="bg-amber-100 dark:bg-amber-950 w-full max-h-[70vh] rounded-t-[32px] p-6 shadow-2xl border-t-2 border-amber-200 dark:border-amber-700" onClick={e => e.stopPropagation()} style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+              <div className="w-12 h-1.5 bg-amber-300 dark:bg-amber-700 rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between mb-5">
+                <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() - 1); const prev = d.toISOString().split('T')[0]; const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); if (d >= cutoff) { setStickyNoteDate(prev); fetchNote(prev); } }} className="p-2 rounded-xl bg-amber-200 dark:bg-amber-800"><ChevronRight className="w-5 h-5 text-amber-700 dark:text-amber-300" /></button>
+                <h4 className="text-lg font-black text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <StickyNote className="w-5 h-5" />
+                  {stickyNoteDate === new Date().toISOString().split('T')[0] ? 'פתק להיום' : new Date(stickyNoteDate).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </h4>
+                <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() + 1); const next = d.toISOString().split('T')[0]; if (next <= new Date().toISOString().split('T')[0]) { setStickyNoteDate(next); fetchNote(next); } }} className="p-2 rounded-xl bg-amber-200 dark:bg-amber-800"><ChevronLeft className="w-5 h-5 text-amber-700 dark:text-amber-300" /></button>
+              </div>
+              {loadingNote ? <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-amber-500" /></div> : (
+                <>
+                  <div className="space-y-3 mb-4 max-h-[40vh] overflow-y-auto">
+                    {stickyItems.map(item => (
+                      <div key={item.id} className="flex items-center gap-3">
+                        <button onClick={() => { const updated = stickyItems.map(i => i.id === item.id ? {...i, done: !i.done} : i); setStickyItems(updated); saveNote(stickyNoteDate, updated); }}>
+                          {item.done ? <CheckSquare className="w-6 h-6 text-emerald-600" /> : <Square className="w-6 h-6 text-amber-600" />}
+                        </button>
+                        <span className={`text-base font-bold flex-1 ${item.done ? 'line-through text-amber-400' : 'text-amber-900 dark:text-amber-200'}`}>{item.text}</span>
+                        <button onClick={() => { const updated = stickyItems.filter(i => i.id !== item.id); setStickyItems(updated); saveNote(stickyNoteDate, updated); }}><X className="w-5 h-5 text-amber-400 hover:text-red-500" /></button>
+                      </div>
+                    ))}
+                  </div>
+                  {stickyNoteDate === new Date().toISOString().split('T')[0] && (
+                    isAddingStickyNote ? (
+                      <form onSubmit={(e) => { e.preventDefault(); if (!newItemText.trim()) return; const updated = [...stickyItems, { id: Date.now().toString(), text: newItemText.trim(), done: false }]; setStickyItems(updated); saveNote(stickyNoteDate, updated); setNewItemText(''); setIsAddingStickyNote(false); }} className="flex gap-2 mt-2">
+                        <input autoFocus value={newItemText} onChange={e => setNewItemText(e.target.value)} placeholder="הוסף משימה..." className="flex-1 bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-xl px-4 py-3 text-base font-bold outline-none placeholder:text-amber-300 text-amber-900 dark:text-amber-200" />
+                        <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-4 py-3 rounded-xl font-black text-base"><Plus className="w-5 h-5" /></button>
+                      </form>
+                    ) : (
+                      <button onClick={() => setIsAddingStickyNote(true)} className="w-full mt-2 text-center py-3 text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-200/50 dark:hover:bg-amber-800/30 rounded-xl transition-colors border-2 border-dashed border-amber-300 dark:border-amber-700">
+                        + הוסף משימה
+                      </button>
+                    )
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
