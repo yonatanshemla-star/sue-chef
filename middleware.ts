@@ -10,6 +10,8 @@ function isProtectedPath(path: string) {
     '/api/voice',
     '/api/webhook',
     '/api/backup/auto',
+    '/api/backup/oauth-setup',
+    '/api/backup/oauth-callback',
     '/api/leadim/'
   ];
   

@@ -1,66 +1,44 @@
 import { NextResponse } from 'next/server';
 import { getLeads } from '@/utils/storage';
 
-// Google Drive API using raw fetch (no npm dependency needed)
-async function getGoogleAccessToken(): Promise<string> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const keyBase64 = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  
-  if (!email || !keyBase64) {
-    throw new Error('Missing Google Service Account credentials');
+// Use OAuth2 refresh token (user's own Drive quota, not Service Account)
+async function getAccessTokenFromRefresh(): Promise<string> {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Missing Google OAuth credentials. Run /api/backup/oauth-setup to configure.');
   }
 
-  const key = Buffer.from(keyBase64, 'base64').toString('utf-8');
-  const keyObj = JSON.parse(key);
-  const privateKey = keyObj.private_key || key;
-
-  // Create JWT
-  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-  const now = Math.floor(Date.now() / 1000);
-  const claimSet = Buffer.from(JSON.stringify({
-    iss: email,
-    scope: 'https://www.googleapis.com/auth/drive',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now,
-  })).toString('base64url');
-
-  const signInput = `${header}.${claimSet}`;
-  
-  // Sign with crypto
-  const crypto = await import('crypto');
-  const sign = crypto.createSign('RSA-SHA256');
-  sign.update(signInput);
-  const signature = sign.sign(privateKey, 'base64url');
-
-  const jwt = `${signInput}.${signature}`;
-
-  // Exchange JWT for access token
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
   });
 
-  const tokenData = await tokenRes.json();
-  if (!tokenData.access_token) {
-    throw new Error(`Token exchange failed: ${JSON.stringify(tokenData)}`);
+  const data = await res.json();
+  if (!data.access_token) {
+    throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
   }
-
-  return tokenData.access_token;
+  return data.access_token;
 }
 
 async function deleteOldBackups(accessToken: string, folderId: string) {
-  // List files in folder — use supportsAllDrives for shared folders
   const listRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+name+contains+'suechef-backup'&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
+    `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+name+contains+'suechef-backup'&fields=files(id,name)`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   const listData = await listRes.json();
   
   if (listData.files && listData.files.length > 0) {
     for (const file of listData.files) {
-      await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?supportsAllDrives=true`, {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -88,8 +66,7 @@ async function uploadToGoogleDrive(accessToken: string, folderId: string, fileNa
     `--${boundary}--`,
   ].join('\r\n');
 
-  // Use supportsAllDrives so the file is owned by the shared folder, not the SA
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -108,15 +85,14 @@ async function uploadToGoogleDrive(accessToken: string, folderId: string, fileNa
 export async function GET() {
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   
-  if (!folderId || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+  if (!folderId) {
     return NextResponse.json({ 
       success: false, 
-      error: 'Google Drive credentials not configured' 
+      error: 'GOOGLE_DRIVE_FOLDER_ID not configured' 
     }, { status: 500 });
   }
 
   try {
-    // 1. Get all leads
     const leads = await getLeads();
     
     const backup = {
@@ -130,13 +106,8 @@ export async function GET() {
     const content = JSON.stringify(backup, null, 2);
     const fileName = `suechef-backup-${new Date().toISOString().split('T')[0]}.json`;
 
-    // 2. Get access token
-    const accessToken = await getGoogleAccessToken();
-
-    // 3. Delete old backups
+    const accessToken = await getAccessTokenFromRefresh();
     await deleteOldBackups(accessToken, folderId);
-
-    // 4. Upload new backup
     const result = await uploadToGoogleDrive(accessToken, folderId, fileName, content);
 
     return NextResponse.json({ 
