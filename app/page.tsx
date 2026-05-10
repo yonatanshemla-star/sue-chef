@@ -477,7 +477,48 @@ export default function Home() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  // === Image Paste Handler (Restored Tesseract.js approach) ===
+  // === Pre-process image for OCR (normalize DPI/contrast for external monitors) ===
+  const preprocessImageForOCR = useCallback((blob: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(blob); return; }
+
+        // Upscale small images to at least 1200px wide for consistent OCR
+        const MIN_WIDTH = 1200;
+        const scale = img.width < MIN_WIDTH ? MIN_WIDTH / img.width : 1;
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+
+        // Draw with smooth upscaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Convert to high-contrast grayscale
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let j = 0; j < data.length; j += 4) {
+          // Luminance-weighted grayscale
+          const gray = data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114;
+          // Boost contrast: push toward black or white
+          const contrast = gray < 128 ? Math.max(0, gray * 0.6) : Math.min(255, gray * 1.2 + 30);
+          data[j] = data[j + 1] = data[j + 2] = contrast;
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        canvas.toBlob((processedBlob) => {
+          resolve(processedBlob || blob);
+        }, 'image/png');
+      };
+      img.onerror = () => resolve(blob); // Fallback to original on error
+      img.src = URL.createObjectURL(blob);
+    });
+  }, []);
+
+  // === Image Paste Handler (with DPI-normalized preprocessing) ===
   const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>, leadId: string) => {
     e.stopPropagation(); // Prevent duplicate events bubbling up
     const items = e.clipboardData?.items;
@@ -490,6 +531,9 @@ export default function Home() {
             if (!blob) continue;
             setProcessingImageId(leadId);
             try {
+                // Pre-process: normalize resolution & contrast for consistent OCR
+                const processedBlob = await preprocessImageForOCR(blob);
+
                 const Tesseract = (window as any).Tesseract || await new Promise<any>((resolve, reject) => {
                     if ((window as any).Tesseract) { resolve((window as any).Tesseract); return; }
                     const script = document.createElement('script');
@@ -498,7 +542,7 @@ export default function Home() {
                     script.onerror = () => reject(new Error('Failed to load Tesseract.js'));
                     document.head.appendChild(script);
                 });
-                const result = await Tesseract.recognize(blob, 'heb+eng');
+                const result = await Tesseract.recognize(processedBlob, 'heb+eng');
                 const text = result.data.text.trim();
                 if (!text) {
                     alert('לא זיהינו טקסט בתמונה. נסה תמונה ברורה יותר.');
@@ -524,7 +568,7 @@ export default function Home() {
             break;
         }
     }
-  }, [handleLeadUpdate]);
+  }, [handleLeadUpdate, preprocessImageForOCR]);
 
   const getLeadByPhone = useCallback((phone: string) => {
     if (!phone) return null;
