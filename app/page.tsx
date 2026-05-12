@@ -675,6 +675,13 @@ export default function Home() {
         const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(l.createdAt);
         if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 5) return false;
       }
+      // Hide "לחזור אליו" leads unchanged for > 14 days from main CRM
+      if (l.status === 'לחזור אליו') {
+        const hist = l.statusHistory || [];
+        const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
+        const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(l.createdAt);
+        if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) return false;
+      }
       return true;
     })
     .filter(l => {
@@ -702,7 +709,16 @@ export default function Home() {
     .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads]);
 
   const noAnswerLeads = useMemo(() => leads
-    .filter(l => l.status === 'לא ענה')
+    .filter(l => {
+      if (l.status === 'לא ענה') return true;
+      if (l.status === 'לחזור אליו') {
+        const hist = l.statusHistory || [];
+        const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
+        const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(l.createdAt);
+        if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) return true;
+      }
+      return false;
+    })
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
       if (!q) return true;
