@@ -118,6 +118,7 @@ export default function Home() {
   const [loadingNote, setLoadingNote] = useState(false);
   const [isAddingStickyNote, setIsAddingStickyNote] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<{ from: string, callerName: string | null, timestamp: string } | null>(null);
 
   const handleSwitchRole = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -485,6 +486,32 @@ export default function Home() {
     return () => { clearInterval(i1); clearInterval(i2); }; 
   }, []);
 
+  // Polling for live incoming calls
+  useEffect(() => {
+    const checkLiveCall = async () => {
+      try {
+        const res = await fetch('/api/twilio/live-call');
+        const data = await res.json();
+        if (data.success && data.activeCall) {
+          const callTime = new Date(data.activeCall.timestamp).getTime();
+          if (Date.now() - callTime < 35000) {
+            setIncomingCall(data.activeCall);
+          } else {
+            setIncomingCall(null);
+          }
+        } else {
+          setIncomingCall(null);
+        }
+      } catch (e) {
+        // silently ignore polling errors
+      }
+    };
+
+    checkLiveCall();
+    const interval = setInterval(checkLiveCall, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleTreeComplete = (answers: any) => {
     if (!liveNotesLead) return;
     const summaryParts = [`עץ החלטות במועד: ${new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`];
@@ -775,6 +802,31 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-x-hidden`} style={{ zoom: 0.85 }}>
+      {/* Live Incoming Call Banner */}
+      {incomingCall && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-11/12 max-w-md bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-6 py-4 rounded-3xl shadow-[0_20px_60px_rgba(16,185,129,0.4)] border-2 border-emerald-400/40 animate-in fade-in slide-in-from-top-6 duration-500 flex items-center gap-4" dir="rtl">
+          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center animate-pulse flex-shrink-0">
+            <PhoneCall className="w-6 h-6 text-white animate-bounce" />
+          </div>
+          <div className="flex flex-col flex-1 text-right">
+            <span className="text-[10px] font-black tracking-widest bg-emerald-500/50 text-emerald-100 px-2.5 py-0.5 rounded-full w-max mb-1 uppercase">
+              📞 שיחה נכנסת כעת
+            </span>
+            <span className="text-lg font-black leading-tight text-white">
+              {incomingCall.callerName ? incomingCall.callerName : "לקוח חדש / לא מזוהה"}
+            </span>
+            <span className="text-xs font-mono font-bold text-emerald-100/90 mt-0.5" dir="ltr">
+              {incomingCall.from}
+            </span>
+          </div>
+          <button 
+            onClick={() => setIncomingCall(null)} 
+            className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-white/80" />
+          </button>
+        </div>
+      )}
       {/* Sidebar Drawer (Slides from Right) */}
       <div 
         className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isDrawerOpen ? 'bg-slate-950/40 backdrop-blur-sm pointer-events-auto' : 'bg-transparent pointer-events-none opacity-0'}`}
