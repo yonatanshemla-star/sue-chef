@@ -30,19 +30,29 @@ async function getAccessTokenFromRefresh(): Promise<string> {
 }
 
 async function deleteOldBackups(accessToken: string, folderId: string) {
-  const listRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+name+contains+'suechef-backup'&fields=files(id,name)`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const listData = await listRes.json();
-  
-  if (listData.files && listData.files.length > 0) {
-    for (const file of listData.files) {
-      await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+  try {
+    const q = `'${folderId}' in parents and trashed = false`;
+    const listRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const listData = await listRes.json();
+    console.log('Found old backups to delete:', listData);
+    
+    if (listData.files && listData.files.length > 0) {
+      for (const file of listData.files) {
+        if (file.name?.includes('suechef-backup')) {
+          console.log(`Deleting old backup: ${file.name} (${file.id})`);
+          const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          console.log(`Delete status for ${file.name}:`, delRes.status);
+        }
+      }
     }
+  } catch (err) {
+    console.error('Error deleting old backups:', err);
   }
 }
 
