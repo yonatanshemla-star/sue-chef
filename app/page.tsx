@@ -652,7 +652,7 @@ export default function Home() {
 
   // Duplicate detection: build a map of leadId -> duplicate info
   const duplicateMap = useMemo(() => {
-    const map = new Map<string, { lead: Lead, location: string }>();
+    const map = new Map<string, { lead: Lead, location: string, matchType: 'phone' | 'name' }>();
     const phoneGroups = new Map<string, Lead[]>();
     const nameGroups = new Map<string, Lead[]>();
     for (const l of leads) {
@@ -678,7 +678,7 @@ export default function Home() {
         if (group && group.length > 1) {
           const dup = group.find(g => g.id !== l.id)!;
           const loc = (dup.status === 'חתם' || dup.status === 'נגמר') ? 'archive' : dup.status === 'במעקב' ? 'followup' : 'crm';
-          map.set(l.id, { lead: dup, location: loc });
+          map.set(l.id, { lead: dup, location: loc, matchType: 'phone' });
           continue;
         }
       }
@@ -688,7 +688,7 @@ export default function Home() {
         if (group && group.length > 1) {
           const dup = group.find(g => g.id !== l.id)!;
           const loc = (dup.status === 'חתם' || dup.status === 'נגמר') ? 'archive' : dup.status === 'במעקב' ? 'followup' : 'crm';
-          map.set(l.id, { lead: dup, location: loc });
+          map.set(l.id, { lead: dup, location: loc, matchType: 'name' });
         }
       }
     }
@@ -1159,7 +1159,11 @@ export default function Home() {
                               <div className="flex items-center gap-2">
                                 <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
                                 {duplicateMap.has(lead.id) && (
-                                  <button onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} className="flex-shrink-0 text-red-500 hover:text-red-600 hover:scale-125 transition-all animate-pulse" title={`ליד כפול! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}>
+                                  <button 
+                                    onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} 
+                                    className={`flex-shrink-0 hover:scale-125 transition-all animate-pulse ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'text-blue-500 hover:text-blue-600' : 'text-red-500 hover:text-red-600'}`} 
+                                    title={`ליד כפול לפי ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'שם' : 'מספר טלפון'}! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}
+                                  >
                                     <Star size={18} fill="currentColor" />
                                   </button>
                                 )}
