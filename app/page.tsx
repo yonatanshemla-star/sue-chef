@@ -487,6 +487,8 @@ export default function Home() {
   }, []);
 
   // Polling for live incoming calls
+  const dismissedCallTimestampRef = useRef<string | null>(null);
+
   useEffect(() => {
     const checkLiveCall = async () => {
       try {
@@ -494,6 +496,9 @@ export default function Home() {
         const data = await res.json();
         if (data.success && data.activeCall) {
           const callTime = new Date(data.activeCall.timestamp).getTime();
+          if (dismissedCallTimestampRef.current === data.activeCall.timestamp) {
+            return;
+          }
           if (Date.now() - callTime < 35000) {
             setIncomingCall(data.activeCall);
           } else {
@@ -820,7 +825,12 @@ export default function Home() {
             </span>
           </div>
           <button 
-            onClick={() => setIncomingCall(null)} 
+            onClick={() => {
+              if (incomingCall) {
+                dismissedCallTimestampRef.current = incomingCall.timestamp;
+              }
+              setIncomingCall(null);
+            }} 
             className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors flex-shrink-0"
           >
             <X className="w-4 h-4 text-white/80" />
@@ -1184,7 +1194,11 @@ export default function Home() {
                                 <button onClick={() => {
                                   const phone = lead.phone?.replace(/^0/, '972');
                                   const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
-                                  const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`);
+                                  const isNotRelevant = lead.status === 'לא רלוונטי';
+                                  const msgText = isNotRelevant 
+                                    ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
+                                    : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
+                                  const msg = encodeURIComponent(msgText);
                                   window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
                                   setOpenMenuId(null);
                                 }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 transition-colors"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
@@ -1271,7 +1285,11 @@ export default function Home() {
                           <button onClick={() => {
                             const phone = lead.phone?.replace(/^0/, '972');
                             const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
-                            const msg = encodeURIComponent(`היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`);
+                            const isNotRelevant = lead.status === 'לא רלוונטי';
+                            const msgText = isNotRelevant 
+                              ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
+                              : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
+                            const msg = encodeURIComponent(msgText);
                             window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
                             setOpenMenuId(null);
                           }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-emerald-600 hover:bg-emerald-50"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
