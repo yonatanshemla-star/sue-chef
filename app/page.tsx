@@ -715,6 +715,32 @@ export default function Home() {
     }, 400);
   }, []);
 
+  const navigateToLead = useCallback((lead: Lead) => {
+    let location = 'crm';
+    if (lead.status === 'חתם' || lead.status === 'נגמר') location = 'archive';
+    else if (lead.status === 'במעקב') location = 'followup';
+    else if (lead.status === 'לא ענה') location = 'noanswer';
+    else if (lead.status === 'לחזור אליו') {
+      const hist = lead.statusHistory || [];
+      const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
+      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
+      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) location = 'noanswer';
+    }
+    
+    setActiveTab(location as any);
+    setGlobalSearch('');
+    setShowAdvancedStageOnly(false);
+    setTimeout(() => {
+      const el = document.getElementById(`lead-row-${lead.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.5)';
+        el.style.transition = 'box-shadow 0.3s';
+        setTimeout(() => { el.style.boxShadow = ''; }, 3000);
+      }
+    }, 400);
+  }, []);
+
   const crmLeads = useMemo(() => leads
     .filter(l => {
       if (l.status === 'חתם' || l.status === 'נגמר' || l.status === 'במעקב') return false;
@@ -1396,7 +1422,11 @@ export default function Home() {
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
                           {call.direction === 'inbound' ? <ArrowUpRight size={28} /> : <ArrowDownRight size={28} />}
                         </div>
-                        <div>
+                        <div 
+                          className={lead ? "cursor-pointer hover:opacity-80 transition-opacity" : ""} 
+                          onClick={() => { if (lead) navigateToLead(lead); }}
+                          title={lead ? "לחץ למעבר לליד" : ""}
+                        >
                           <p className="font-black text-xl group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight text-slate-900 dark:text-white">{lead?.clientName || 'ליד לא מזוהה'}</p>
                           <p className="text-xs font-mono text-slate-400" dir="ltr">{call.direction==='inbound'?call.from:call.to}</p>
                         </div>
