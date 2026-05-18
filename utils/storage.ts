@@ -54,7 +54,7 @@ export async function getLeads(): Promise<Lead[]> {
     return rows.map((r: any) => r.data as Lead);
   } catch (error) {
     console.error('DB getLeads error:', error);
-    return [];
+    throw error;
   }
 }
 
