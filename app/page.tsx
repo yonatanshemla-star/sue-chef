@@ -1032,7 +1032,7 @@ export default function Home() {
 
           {/* Desktop Sticky Note - Positioned Left */}
           {showStickyNote && (
-            <div className="hidden md:block absolute left-0 top-0 w-80 2xl:w-96 origin-top-left animate-in fade-in zoom-in duration-200 z-50">
+            <div className="hidden md:block fixed left-8 top-48 w-80 2xl:w-96 origin-left animate-in fade-in zoom-in duration-200 z-50">
               <div className="bg-amber-100 dark:bg-amber-900/30 rounded-[20px] p-5 shadow-xl border-2 border-amber-200 dark:border-amber-700/50 relative" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-5 bg-amber-300/60 dark:bg-amber-600/40 rounded-b-lg" />
                 <div className="flex items-center justify-between mb-4">
