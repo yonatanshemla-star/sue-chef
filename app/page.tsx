@@ -743,6 +743,7 @@ export default function Home() {
 
   const crmLeads = useMemo(() => leads
     .filter(l => {
+      if (globalSearch.trim()) return true;
       if (l.status === 'חתם' || l.status === 'נגמר' || l.status === 'במעקב') return false;
       // Hide "לא ענה" leads older than 5 days from main CRM
       if (l.status === 'לא ענה') {
@@ -781,11 +782,17 @@ export default function Home() {
     }), [leads, globalSearch, showAdvancedStageOnly]);
 
   const followupLeads = useMemo(() => leads
-    .filter(l => l.status === 'במעקב')
-    .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads]);
+    .filter(l => globalSearch.trim() ? true : l.status === 'במעקב')
+    .filter(l => {
+      const q = globalSearch.toLowerCase().trim();
+      if (!q) return true;
+      return l.clientName?.toLowerCase().includes(q) || l.phone?.includes(q);
+    })
+    .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads, globalSearch]);
 
   const noAnswerLeads = useMemo(() => leads
     .filter(l => {
+      if (globalSearch.trim()) return true;
       if (l.status === 'לא ענה') return true;
       if (l.status === 'לחזור אליו') {
         const hist = l.statusHistory || [];
@@ -803,7 +810,7 @@ export default function Home() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [leads, globalSearch]);
 
   const archiveLeads = useMemo(() => leads
-    .filter(l => l.status === 'חתם' || l.status === 'נגמר')
+    .filter(l => globalSearch.trim() ? true : (l.status === 'חתם' || l.status === 'נגמר'))
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
       if (!q) return true;
