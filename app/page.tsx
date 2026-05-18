@@ -500,7 +500,15 @@ export default function Home() {
             return;
           }
           if (Date.now() - callTime < 35000) {
-            setIncomingCall(data.activeCall);
+            let callerName = null;
+            if (data.activeCall.from) {
+              const normalized = data.activeCall.from.replace(/\D/g, '').slice(-9);
+              const matchedLead = leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalized));
+              if (matchedLead && matchedLead.clientName?.trim()) {
+                callerName = matchedLead.clientName.trim();
+              }
+            }
+            setIncomingCall({ ...data.activeCall, callerName });
           } else {
             setIncomingCall(null);
           }
@@ -515,7 +523,7 @@ export default function Home() {
     checkLiveCall();
     const interval = setInterval(checkLiveCall, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [leads]);
 
   const handleTreeComplete = (answers: any) => {
     if (!liveNotesLead) return;

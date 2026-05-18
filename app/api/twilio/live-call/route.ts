@@ -44,17 +44,6 @@ export async function GET() {
     // Normalize phone number to match against leads
     const normalizedPhone = fromPhone.replace(/\D/g, '').slice(-9);
     
-    // 2. Lookup caller name in leads
-    const leads = await getLeads();
-    let callerName: string | null = null;
-    
-    if (normalizedPhone.length >= 7) {
-      const matchedLead = leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalizedPhone));
-      if (matchedLead && matchedLead.clientName?.trim()) {
-        callerName = matchedLead.clientName.trim();
-      }
-    }
-
     // Format phone nicely for display if no name found
     let displayPhone = fromPhone;
     if (displayPhone.startsWith('+972')) displayPhone = '0' + displayPhone.slice(4);
@@ -64,7 +53,6 @@ export async function GET() {
       success: true,
       activeCall: {
         from: displayPhone,
-        callerName,
         timestamp: activeCallData.createdAt
       }
     });

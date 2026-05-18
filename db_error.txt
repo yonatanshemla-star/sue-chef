@@ -1,1 +1,1 @@
-column "aiSummary" does not exist
+Your project has exceeded the data transfer quota. Upgrade your plan to increase limits.
