@@ -18,9 +18,10 @@ export async function POST(req: NextRequest) {
     const host = req.headers.get('host');
     const protocol = host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
-    const bridgeUrl = `${baseUrl}/api/twilio/call/bridge?to=${encodeURIComponent(to)}`;
+    const confId = `conf_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const bridgeUrl = `${baseUrl}/api/twilio/call/bridge?to=${encodeURIComponent(to)}&confId=${confId}`;
 
-    console.log(`Initiating bridge call. Calling ${myPhone}, then bridging to ${to}`);
+    console.log(`Initiating conference call. Calling ${myPhone}, then conferencing with ${to}`);
     console.log(`Bridge URL: ${bridgeUrl}`);
 
     const params = new URLSearchParams();
