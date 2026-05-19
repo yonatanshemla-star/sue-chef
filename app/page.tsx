@@ -709,11 +709,23 @@ export default function Home() {
   }, [leads]);
 
   const navigateToDuplicate = useCallback((dupInfo: { lead: Lead, location: string }) => {
-    setActiveTab(dupInfo.location as any);
+    const lead = dupInfo.lead;
+    let location = 'crm';
+    if (lead.status === 'חתם' || lead.status === 'נגמר') location = 'archive';
+    else if (lead.status === 'במעקב') location = 'followup';
+    else if (lead.status === 'לא ענה') location = 'noanswer';
+    else if (lead.status === 'לחזור אליו') {
+      const hist = lead.statusHistory || [];
+      const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
+      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
+      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) location = 'noanswer';
+    }
+
+    setActiveTab(location as any);
     setGlobalSearch('');
     setShowAdvancedStageOnly(false);
     setTimeout(() => {
-      const el = document.getElementById(`lead-row-${dupInfo.lead.id}`);
+      const el = document.getElementById(`lead-row-${lead.id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         el.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.5)';
