@@ -1881,6 +1881,16 @@ export default function Home() {
                   <p className="text-xs text-slate-400">מקור: {historyLead.source}</p>
                 </div>
 
+                {/* WhatsApp Message */}
+                {historyLead.whatsappSentAt && (
+                  <div className="relative">
+                    <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white dark:border-slate-900 shadow-md" />
+                    <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">וואטסאפ 💬</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">נשלחה הודעת פתיחה אוטומטית</p>
+                    <p className="text-xs text-slate-400">נשלחה ב: {formatDate(historyLead.whatsappSentAt)}</p>
+                  </div>
+                )}
+
                 {/* Status changes */}
                 {(historyLead.statusHistory || []).map((entry, idx) => (
                   <div key={idx} className="relative animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${idx * 80}ms` }}>

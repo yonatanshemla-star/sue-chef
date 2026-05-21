@@ -28,6 +28,7 @@ export interface Lead {
   profit?: number;
   isPaid?: boolean;
   paidAt?: string;
+  whatsappSentAt?: string;
 }
 
 export async function initDB() {
