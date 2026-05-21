@@ -29,6 +29,9 @@ export interface Lead {
   isPaid?: boolean;
   paidAt?: string;
   whatsappSentAt?: string;
+  salary?: string;
+  employmentStatus?: string;
+  medicalStatus?: string;
 }
 
 export async function initDB() {

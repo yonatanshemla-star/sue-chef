@@ -85,6 +85,7 @@ export default function Home() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
+  const [leftPanelTab, setLeftPanelTab] = useState<'script' | 'fields'>('script');
   const [pendingDisqualification, setPendingDisqualification] = useState<{ id: string, action: 'delete' | 'fail', targetStatus?: string } | null>(null);
   const [historyLead, setHistoryLead] = useState<Lead | null>(null);
   
@@ -451,6 +452,32 @@ export default function Home() {
       fetch('/api/twilio/call/initiate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: lead.phone, agentPhone }) });
       setLiveNotesLead(lead);
     } catch (err) { console.error(err); }
+  };
+
+  const handleCloseLiveNotes = async () => {
+    const currentLead = liveNotesLead;
+    setLiveNotesLead(null);
+    if (currentLead && currentLead.liveCallNotes?.trim()) {
+      try {
+        const res = await fetch('/api/leads/analyze-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: currentLead.liveCallNotes, id: currentLead.id })
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          const { salary, employmentStatus, medicalStatus } = data.data;
+          setLeads(prev => prev.map(l => l.id === currentLead.id ? { 
+            ...l, 
+            salary: salary || l.salary || "", 
+            employmentStatus: employmentStatus || l.employmentStatus || "", 
+            medicalStatus: medicalStatus || l.medicalStatus || "" 
+          } : l));
+        }
+      } catch (err) {
+        console.error("Error analyzing live call notes on close:", err);
+      }
+    }
   };
 
   const addNewLead = async () => {
@@ -1745,7 +1772,7 @@ export default function Home() {
                 <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-6 py-2.5 rounded-2xl border font-black text-xs transition-all flex items-center gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
                   <ClipboardList size={18} /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
                 </button>
-                <button onClick={() => setLiveNotesLead(null)} className="w-10 h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={24} /></button>
+                <button onClick={handleCloseLiveNotes} className="w-10 h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={24} /></button>
               </div>
             </div>
 
@@ -1777,55 +1804,127 @@ export default function Home() {
                        />
                     </div>
 
-                    {/* LEFT SIDE: New Permanent Script (Expanded) */}
+                    {/* LEFT SIDE: New Permanent Script & Key Fields (Expanded) */}
                     <div className="flex-[1.2] flex flex-col p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar md:border-r border-t md:border-t-0 dark:border-slate-800">
-                       <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10">
-                          <h4 className="text-xl font-black text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
-                            <FileText size={24} /> תסריט שיחה מלא
-                          </h4>
-                          
-                          <div className="space-y-8 text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-assistant" dir="rtl">
-                            <section>
-                              <h5 className="text-indigo-500 font-black text-lg mb-2">פתיחה</h5>
-                              <p className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
-                                היי, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות. אם יש לך כמה דקות אני אשמח לשאול אותך כמה שאלות ולראות אם נוכל לעזור.
-                              </p>
-                            </section>
-
-                            <section className="space-y-4">
-                              <h5 className="text-indigo-500 font-black text-lg mb-2">שאלות סינון</h5>
-                              <div className="space-y-4">
-                                <div className="flex gap-3">
-                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
-                                  <p>מה שמך המלא? ומה גילך?</p>
-                                </div>
-                                <div className="flex gap-3">
-                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
-                                  <p>תוכל לספר לי קצת על מצבך הרפואי?</p>
-                                </div>
-                                <div className="flex gap-3">
-                                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
-                                  <div>
-                                    <p>יש לך כרגע הכנסות? אם כן – מאיפה הן מגיעות (קצבה, עבודה, פנסיה וכו') ומה הסכום בערך?</p>
-                                    <p className="text-[10px] text-slate-400 mt-2 italic">(לבדוק אם משלם מס הכנסה וכמה)</p>
-                                  </div>
-                                </div>
-                                <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
-                                  <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
-                                    <p>האם יש קושי בפעולות יומיומיות (לבוש, רחצה, תפקוד בסיסי)? תשאלו רק אם אתה שומע תיאור שמעיד על מצב תפקודי קשה.</p>
-                                  </div>
-                                </div>
-                                <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
-                                  <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
-                                    <p>האם יש לך ביטוח סיעודי בקופת חולים?</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </section>
-                          </div>
+                       
+                       {/* Glassmorphic Tabs Toggle */}
+                       <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[22px] mb-6 border dark:border-slate-700/50 shadow-inner">
+                         <button 
+                           onClick={() => setLeftPanelTab('script')}
+                           className={`flex-1 py-3 text-center text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2.5 ${leftPanelTab === 'script' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md border dark:border-slate-800' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                         >
+                           <FileText size={16} /> תסריט שיחה
+                         </button>
+                         <button 
+                           onClick={() => setLeftPanelTab('fields')}
+                           className={`flex-1 py-3 text-center text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2.5 ${leftPanelTab === 'fields' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md border dark:border-slate-800' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                         >
+                           <Settings size={16} /> שדות מפתח
+                         </button>
                        </div>
+
+                       {leftPanelTab === 'script' ? (
+                         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300">
+                            <h4 className="text-xl font-black text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
+                              <FileText size={24} /> תסריט שיחה מלא
+                            </h4>
+                            
+                            <div className="space-y-8 text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-assistant" dir="rtl">
+                              <section>
+                                <h5 className="text-indigo-500 font-black text-lg mb-2">פתיחה</h5>
+                                <p className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
+                                  היי, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות. אם יש לך כמה דקות אני אשמח לשאול אותך כמה שאלות ולראות אם נוכל לעזור.
+                                </p>
+                              </section>
+
+                              <section className="space-y-4">
+                                <h5 className="text-indigo-500 font-black text-lg mb-2">שאלות סינון</h5>
+                                <div className="space-y-4">
+                                  <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
+                                    <p>מה שמך המלא? ומה גילך?</p>
+                                  </div>
+                                  <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
+                                    <p>תוכל לספר לי קצת על מצבך הרפואי?</p>
+                                  </div>
+                                  <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
+                                    <div>
+                                      <p>יש לך כרגע הכנסות? אם כן – מאיפה הן מגיעות (קצבה, עבודה, פנסיה וכו') ומה הסכום בערך?</p>
+                                      <p className="text-[10px] text-slate-400 mt-2 italic">(לבדוק אם משלם מס הכנסה וכמה)</p>
+                                    </div>
+                                  </div>
+                                  <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
+                                    <div className="flex gap-3">
+                                      <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
+                                      <p>האם יש קושי בפעולות יומיומיות (לבוש, רחצה, תפקוד בסיסי)? תשאלו רק אם אתה שומע תיאור שמעיד על מצב תפקודי קשה.</p>
+                                    </div>
+                                  </div>
+                                  <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
+                                    <div className="flex gap-3">
+                                      <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
+                                      <p>האם יש לך ביטוח סיעודי בקופת חולים?</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </section>
+                            </div>
+                         </div>
+                       ) : (
+                         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300 flex flex-col gap-6">
+                            <h4 className="text-xl font-black text-indigo-600 mb-2 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
+                              <Settings size={24} /> שדות מפתח לשיחה
+                            </h4>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 font-bold -mt-2 leading-relaxed">
+                              💡 השדות נשמרים אוטומטית. בסיום השיחה, ה-AI ינתח את תיעוד השיחה החופשי וישלים שדות אלו ברקע במידה ולא מילאת אותם ידנית!
+                            </p>
+
+                            <div className="space-y-5 mt-2">
+                              {/* Salary Field */}
+                              <div>
+                                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                  <DollarSign size={14} className="text-indigo-500" /> שכר חודשי מוערך
+                                </label>
+                                <input 
+                                  type="text"
+                                  value={liveNotesLead.salary || ''}
+                                  onChange={e => handleLeadUpdate(liveNotesLead.id, { salary: e.target.value })}
+                                  placeholder="לדוגמה: 12,000 ש״ח / לא צוין"
+                                  className="w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-base font-bold outline-none focus:border-indigo-500/30 dark:focus:border-indigo-500/20 transition-all text-slate-900 dark:text-white"
+                                />
+                              </div>
+
+                              {/* Employment Status */}
+                              <div>
+                                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                  <Briefcase size={14} className="text-indigo-500" /> מצב תעסוקתי
+                                </label>
+                                <input 
+                                  type="text"
+                                  value={liveNotesLead.employmentStatus || ''}
+                                  onChange={e => handleLeadUpdate(liveNotesLead.id, { employmentStatus: e.target.value })}
+                                  placeholder="לדוגמה: שכיר / עצמאי / פנסיונר / לא עובד"
+                                  className="w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-base font-bold outline-none focus:border-indigo-500/30 dark:focus:border-indigo-500/20 transition-all text-slate-900 dark:text-white"
+                                />
+                              </div>
+
+                              {/* Medical Status */}
+                              <div>
+                                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                  <Brain size={14} className="text-indigo-500" /> מצב רפואי ואבחנה
+                                </label>
+                                <textarea 
+                                  rows={4}
+                                  value={liveNotesLead.medicalStatus || ''}
+                                  onChange={e => handleLeadUpdate(liveNotesLead.id, { medicalStatus: e.target.value })}
+                                  placeholder="לדוגמה: עבר התקף לב לאחרונה, מתקשה בניידות..."
+                                  className="w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-base font-bold outline-none focus:border-indigo-500/30 dark:focus:border-indigo-500/20 transition-all text-slate-900 dark:text-white resize-none leading-relaxed font-assistant"
+                                />
+                              </div>
+                            </div>
+                         </div>
+                       )}
 
                        <div className="mt-8 opacity-20 text-[9px] items-center flex gap-2 font-black text-slate-400 uppercase tracking-tighter self-center">
                           <Zap size={10} /> Sue-Chef v5.9 Master
@@ -1841,7 +1940,7 @@ export default function Home() {
                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
                  <span>Secure Connection</span>
                </div>
-               <button onClick={() => setLiveNotesLead(null)} className="px-16 py-3.5 rounded-2xl bg-indigo-600 text-white font-black shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/20">
+               <button onClick={handleCloseLiveNotes} className="px-16 py-3.5 rounded-2xl bg-indigo-600 text-white font-black shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/20">
                  <span className="relative z-10 flex items-center gap-3 font-black"><Check size={24} /> סיום ועדכון</span>
                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                </button>
@@ -1872,6 +1971,47 @@ export default function Home() {
 
             {/* Timeline */}
             <div className="p-8 overflow-y-auto max-h-[55vh] custom-scrollbar">
+              {/* Key Details Card */}
+              {(historyLead.salary || historyLead.employmentStatus || historyLead.medicalStatus) && (
+                <div className="mb-6 p-5 bg-gradient-to-br from-indigo-50/60 to-violet-50/30 dark:from-slate-800/50 dark:to-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 rounded-3xl shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                      <Brain size={16} />
+                    </div>
+                    <span className="text-sm font-black text-indigo-950 dark:text-white">נתוני מפתח לתיק</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {historyLead.salary && (
+                      <div className="flex items-center justify-between bg-white/70 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <DollarSign size={14} className="text-indigo-500" /> שכר חודשי:
+                        </span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">{historyLead.salary}</span>
+                      </div>
+                    )}
+
+                    {historyLead.employmentStatus && (
+                      <div className="flex items-center justify-between bg-white/70 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <Briefcase size={14} className="text-indigo-500" /> מצב תעסוקתי:
+                        </span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">{historyLead.employmentStatus}</span>
+                      </div>
+                    )}
+
+                    {historyLead.medicalStatus && (
+                      <div className="bg-white/70 dark:bg-slate-900/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
+                          <Brain size={14} className="text-indigo-500" /> מצב רפואי ואבחנה:
+                        </span>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed pr-5 whitespace-pre-line">{historyLead.medicalStatus}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="relative pr-6 border-r-2 border-indigo-100 dark:border-indigo-900/30 space-y-6">
                 {/* Created */}
                 <div className="relative">

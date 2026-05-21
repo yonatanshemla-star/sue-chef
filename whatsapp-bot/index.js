@@ -5,6 +5,33 @@ const cors = require('cors');
 const { Pool } = require('pg');
 require('dotenv').config({ path: '../.env.local' });
 
+// ==================== CONFIGURATION ====================
+// SANDBOX MODE: Set to true to ONLY send messages to the owner's testing number (0522818541).
+// This is extremely safe for testing so no real clients receive test messages during tests.
+// Set to false when you want to go live and send to all real clients.
+const SANDBOX_MODE = false;
+
+// GEMINI AI PROMPT TEMPLATE: Customize how Gemini analyzes client replies.
+// [REPLY_TEXT] will be automatically replaced by the client's actual message.
+const GEMINI_PROMPT_TEMPLATE = `
+אתה עוזר משפטי חכם עבור משרד עורכי דין.
+קיבלת הודעה מלקוח בווטסאפ בתגובה להודעת הפתיחה שלנו.
+עליך לנתח את ההודעה ולחלץ ממנה מידע קריטי בצורה מובנית בתוך כותרות מסודרות בעברית.
+היה קצר וממוקד ביותר! כתוב משפטים קצרים ותמציתיים ללא פירוט יתר.
+
+ההודעה של הלקוח:
+"[REPLY_TEXT]"
+
+אנא חלץ את המידע הבא באופן תמציתי ומקצועי מאוד:
+- 📋 פרטי המקרה בקצרה (עד 2 משפטים)
+- 🏥 אבחנות רפואיות (רק כדורים/מחלות/פגיעות בנקודות קצרות)
+- 💼 סטטוס תעסוקתי (סטטוס נוכחי ועבר בנקודה אחת)
+- 🧠 שורת מחץ / רלוונטיות ראשונית (משפט אחד קצר בלבד)
+
+החזר את התשובה מעוצבת יפה עם כותרות ברורות, מותאמת ישירות להצגה בתיק המעקב של הלקוח. אל תוסיף הקדמות או סיומות, רק את הניתוח המובנה והמקוצר ביותר.
+`;
+// ========================================================
+
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -37,10 +64,49 @@ const client = new Client({
 });
 
 let isClientReady = false;
+const processedMessageIds = new Set();
 
-client.on('qr', (qr) => {
+const QRCodeImage = require('qrcode');
+const path = require('path');
+const fs = require('fs');
+
+client.on('qr', async (qr) => {
     console.log('Scan the QR code below to authenticate in WhatsApp:');
     qrcode.generate(qr, { small: true });
+    
+    // Save QR code as PNG image
+    try {
+        // 1. Save to CRM public folder so they can access it on http://localhost:3000/qr.png
+        const publicDir = path.join(__dirname, '..', 'public');
+        if (!fs.existsSync(publicDir)) {
+            fs.mkdirSync(publicDir, { recursive: true });
+        }
+        const publicQrPath = path.join(publicDir, 'qr.png');
+        await QRCodeImage.toFile(publicQrPath, qr, {
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            },
+            width: 500
+        });
+        console.log(`🖼️ Saved QR code PNG to ${publicQrPath}`);
+
+        // 2. Save to the Brain/Artifacts folder so the Assistant can display it directly in the markdown transcript!
+        const brainDir = `C:\\Users\\Yonatan\\.gemini\\antigravity\\brain\\482c84de-13c1-47c3-b2be-1182c08aa65f`;
+        if (fs.existsSync(brainDir)) {
+            const brainQrPath = path.join(brainDir, 'qr.png');
+            await QRCodeImage.toFile(brainQrPath, qr, {
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                },
+                width: 500
+            });
+            console.log(`🖼️ Saved QR code PNG to Brain at ${brainQrPath}`);
+        }
+    } catch (err) {
+        console.error('❌ Failed to generate QR code PNG:', err.message);
+    }
 });
 
 client.on('ready', () => {
@@ -59,7 +125,50 @@ client.on('disconnected', (reason) => {
 
 client.initialize();
 
-// Function to poll Neon DB for unsent WhatsApp leads (3 minutes delay)
+// Helper function to check if a lead has a duplicate (phone or name) in Neon DB
+async function checkIfLeadIsDuplicate(leadId, phone, clientName) {
+    // 1. Check phone duplicate (last 9 digits, matching JS normalization in page.tsx)
+    if (phone) {
+        const normPhone = phone.replace(/\D/g, '').slice(-9);
+        if (normPhone.length >= 7) {
+            const query = `
+                SELECT id, data->>'clientName' as "clientName"
+                FROM leads
+                WHERE id != $1
+                  AND (data->>'phone' IS NOT NULL)
+                  AND (right(regexp_replace(data->>'phone', '\\D', '', 'g'), 9) = $2)
+                LIMIT 1
+            `;
+            const res = await pool.query(query, [leadId, normPhone]);
+            if (res.rows.length > 0) {
+                return { isDuplicate: true, matchType: 'phone', originalName: res.rows[0].clientName };
+            }
+        }
+    }
+
+    // 2. Check name duplicate (matching JS normalization in page.tsx)
+    if (clientName && clientName.trim()) {
+        const normName = clientName.trim().toLowerCase();
+        if (normName.length >= 2) {
+            const query = `
+                SELECT id, data->>'clientName' as "clientName"
+                FROM leads
+                WHERE id != $1
+                  AND (data->>'clientName' IS NOT NULL)
+                  AND (LOWER(TRIM(data->>'clientName')) = $2)
+                LIMIT 1
+            `;
+            const res = await pool.query(query, [leadId, normName]);
+            if (res.rows.length > 0) {
+                return { isDuplicate: true, matchType: 'name', originalName: res.rows[0].clientName };
+            }
+        }
+    }
+
+    return { isDuplicate: false };
+}
+
+// Function to poll Neon DB for unsent WhatsApp leads (3 to 30 minutes elapsed)
 async function checkAndSendPendingWhatsAppMessages() {
     if (!isClientReady) {
         console.log('⏳ Client is not ready yet, skipping DB polling.');
@@ -89,25 +198,108 @@ async function checkAndSendPendingWhatsAppMessages() {
             const leadId = row.id;
             const lead = row.data;
             
-            const createdAtStr = lead.createdAt || lead.created_at;
-            if (!createdAtStr) continue;
-            
-            const createdTime = new Date(createdAtStr).getTime();
-            const elapsedMinutes = (Date.now() - createdTime) / (1000 * 60);
-            
-            // Check if 3 minutes have passed since creation
-            if (elapsedMinutes < 3) {
-                console.log(`Lead ${lead.clientName} (${lead.phone}) is too fresh (${elapsedMinutes.toFixed(1)} mins elapsed). Waiting...`);
-                continue;
+            const clientName = lead.clientName || 'לקוח';
+            const cleanPhone = lead.phone ? lead.phone.replace(/\D/g, '') : '';
+            const isOwner = cleanPhone.endsWith('522818541');
+
+            if (SANDBOX_MODE) {
+                // --- SANDBOX MODE ACTIVE ---
+                if (!isOwner) {
+                    // Skip all non-owner leads during sandbox testing to ensure complete safety
+                    console.log(`🛡️ [SANDBOX MODE] Skipping lead ${clientName} (${lead.phone}) - only owner testing number is allowed.`);
+                    lead.whatsappSent = 'skipped_sandbox';
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                    continue;
+                } else {
+                    console.log(`🚀 [SANDBOX MODE] Owner testing lead detected! Bypassing all safety checks, wait times, and duplicates for instant testing.`);
+                }
+            } else {
+                // --- PRODUCTION MODE ACTIVE ---
+                const createdAtStr = lead.createdAt || lead.created_at;
+                if (!createdAtStr) continue;
+                
+                const createdTime = new Date(createdAtStr).getTime();
+                const elapsedMinutes = (Date.now() - createdTime) / (1000 * 60);
+                
+                // Safety 1: Check if too fresh (less than 3 minutes)
+                if (elapsedMinutes < 3) {
+                    console.log(`Lead ${clientName} (${lead.phone}) is too fresh (${elapsedMinutes.toFixed(1)} mins elapsed). Waiting...`);
+                    continue;
+                }
+                
+                // Safety 2: Check if too old (older than 30 minutes) - mark as expired so we don't spam or poll again
+                if (elapsedMinutes > 30) {
+                    console.log(`Lead ${clientName} (${lead.phone}) is too old (${elapsedMinutes.toFixed(1)} mins elapsed). Marking as expired.`);
+                    lead.whatsappSent = 'skipped_expired';
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                    continue;
+                }
+                
+                // Safety 3: Skip owner's own number in production to avoid self-loops
+                if (isOwner) {
+                    console.log(`⚠️ Lead ${clientName} is the owner. Skipping welcome message.`);
+                    lead.whatsappSent = 'skipped_owner';
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                    continue;
+                }
+                
+                // Safety 4: Only send to valid Israeli mobile numbers
+                const isMobile = cleanPhone.startsWith('05') || cleanPhone.startsWith('9725');
+                if (!isMobile) {
+                    console.log(`⚠️ Lead ${clientName} (${lead.phone}) has non-mobile number. Skipping welcome message.`);
+                    lead.whatsappSent = 'skipped_non_mobile';
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                    continue;
+                }
+                
+                // Safety 5: Check if lead is duplicate
+                const dupCheck = await checkIfLeadIsDuplicate(leadId, lead.phone, lead.clientName);
+                if (dupCheck.isDuplicate) {
+                    console.log(`⚠️ Lead ${clientName} is a duplicate (${dupCheck.matchType} match). Skipping welcome message and notifying owner.`);
+                    
+                    // Send notification warning to owner's private number
+                    const ownerPhone = '0522818541';
+                    let formattedOwnerPhone = '972' + ownerPhone.substring(1);
+                    const ownerChatId = `${formattedOwnerPhone}@c.us`;
+                    const ownerMessage = `לא נשלחה הודעת פתיחה לליד בשם "${clientName}" בגלל שהוא ליד כפול.`;
+                    
+                    try {
+                        await client.sendMessage(ownerChatId, ownerMessage);
+                        console.log(`✅ Notified owner about duplicate lead ${clientName}`);
+                    } catch (ownerErr) {
+                        console.error(`❌ Failed to send duplicate notification to owner:`, ownerErr.message);
+                    }
+                    
+                    // Mark as skipped in database
+                    lead.whatsappSent = 'skipped_duplicate';
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                    continue;
+                }
             }
             
-            console.log(`✉️ Sending automatic WhatsApp message to ${lead.clientName} (${lead.phone})...`);
+            console.log(`✉️ Sending automatic WhatsApp message to ${clientName} (${lead.phone})...`);
             
-            // Prepare message
-            const clientName = lead.clientName || 'לקוח';
-            const message = `היי ${clientName},\n\nהגעת למשרד עורכי הדין HBA. השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר 🙏`;
+            const message = `שלום ותודה שפנית למשרדנו,
+הפנייה שלך התקבלה ונציג מהמשרד ייצור קשר בהקדם.
+
+בכדי שנוכל לתת מענה מדויק יותר נשמח לקבל ממך בקצרה את פרטי המקרה, אבחנות רפואיות וסטטוס תעסוקתי בכדי שנוכל להתכונן מראש לשיחה.`;
             
-            let formattedPhone = lead.phone.replace(/\D/g, '');
+            let formattedPhone = cleanPhone;
             if (formattedPhone.startsWith('0')) {
                 formattedPhone = '972' + formattedPhone.substring(1);
             }
@@ -115,21 +307,26 @@ async function checkAndSendPendingWhatsAppMessages() {
             
             try {
                 await client.sendMessage(chatId, message);
-                console.log(`✅ WhatsApp successfully sent to ${chatId} for lead ${lead.clientName}`);
+                console.log(`✅ WhatsApp successfully sent to ${chatId} for lead ${clientName}`);
                 
-                // Mark as sent in DB
+                // Mark as successfully sent in DB
                 lead.whatsappSent = true;
                 lead.whatsappSentAt = new Date().toISOString();
                 
-                const updateQuery = `
-                    UPDATE leads 
-                    SET data = $1 
-                    WHERE id = $2
-                `;
+                // Update generalNotes with "נשלחה הודעת פתיחה"
+                let newNotes = lead.generalNotes || '';
+                if (newNotes.trim()) {
+                    newNotes += '\nנשלחה הודעת פתיחה';
+                } else {
+                    newNotes = 'נשלחה הודעת פתיחה';
+                }
+                lead.generalNotes = newNotes;
+                
+                const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
                 await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
-                console.log(`💾 Database updated: whatsappSent = true for lead ${lead.clientName}`);
+                console.log(`💾 Database updated: whatsappSent = true & generalNotes updated for lead ${clientName}`);
             } catch (sendErr) {
-                console.error(`❌ Failed to send WhatsApp or update DB for ${lead.clientName}:`, sendErr.message);
+                console.error(`❌ Failed to send WhatsApp or update DB for ${clientName}:`, sendErr.message);
             }
         }
     } catch (err) {
@@ -139,6 +336,263 @@ async function checkAndSendPendingWhatsAppMessages() {
 
 // Set up periodic DB polling every 60 seconds
 setInterval(checkAndSendPendingWhatsAppMessages, 60000);
+
+// Helper function to call Gemini API and analyze a WhatsApp reply
+async function analyzeWhatsAppReply(replyText) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.log('⚠️ GEMINI_API_KEY is not defined, skipping AI analysis.');
+        return null;
+    }
+
+    try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: GEMINI_PROMPT_TEMPLATE.replace('[REPLY_TEXT]', replyText)
+                    }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+            return data.candidates[0].content.parts[0].text.trim();
+        }
+        return null;
+    } catch (err) {
+        console.error('❌ Gemini API call failed:', err.message);
+        return null;
+    }
+}
+
+// Global in-memory buffers to group multiple consecutive messages from the same client
+const clientBuffers = {};
+
+// Handle incoming WhatsApp messages from clients (AI analysis and auto-save)
+async function handleIncomingMessage(msg, eventSource) {
+    if (!msg.body) return;
+
+    const from = msg.from || '';
+    const to = msg.to || '';
+    const body = msg.body.trim();
+    const fromMe = msg.fromMe;
+
+    // Log raw details for diagnosis
+    console.log(`💬 [Event: ${eventSource}] from: ${from}, to: ${to}, fromMe: ${fromMe}, bodyLength: ${body.length}`);
+
+    // Robust phone number extraction using Contact object and fallback parsing
+    let contactNumber = '';
+    try {
+        const contact = await msg.getContact();
+        if (contact) {
+            // 1. Try formatted number (e.g. +972 52-281-8541 -> 972522818541)
+            const formatted = await contact.getFormattedNumber();
+            if (formatted) {
+                contactNumber = formatted.replace(/\D/g, '');
+                console.log(`👤 Resolved contact formatted number: ${formatted} -> ${contactNumber}`);
+            }
+            
+            // 2. Try raw contact number as fallback if formatted failed or looks weird
+            if ((!contactNumber || contactNumber.startsWith('623')) && contact.number) {
+                const rawNum = contact.number.split('@')[0].replace(/\D/g, '');
+                if (rawNum && !rawNum.startsWith('623')) {
+                    contactNumber = rawNum;
+                    console.log(`👤 Resolved contact raw number: ${contactNumber}`);
+                }
+            }
+        }
+    } catch (contactErr) {
+        console.warn('⚠️ Failed to get contact details, falling back to JID extraction:', contactErr.message);
+    }
+
+    // 3. Last fallback: parse JID suffix directly
+    if (!contactNumber || contactNumber.startsWith('623')) {
+        const otherPartyJid = fromMe ? to : from;
+        contactNumber = otherPartyJid.split('@')[0].replace(/\D/g, '');
+        console.log(`👤 Resolved fallback JID number: ${contactNumber}`);
+    }
+
+    const cleanPhone = contactNumber;
+    const isOwner = cleanPhone.endsWith('522818541') || cleanPhone === '62354435903598';
+
+    console.log(`📱 Processed clean phone for other party: ${cleanPhone} (isOwner: ${isOwner})`);
+
+    // Skip if this is the bot's own automated welcome message to prevent self-analysis
+    if (body.includes('שלום ותודה שפנית למשרדנו') || body.includes('בכדי שנוכל לתת מענה')) {
+        console.log(`⏭️ Skipping welcome message/prompt sent by bot to prevent recursion.`);
+        return;
+    }
+
+    // In sandbox mode, only allow messages involving the owner
+    if (SANDBOX_MODE && !isOwner) {
+        console.log(`🛡️ [SANDBOX MODE] Skipping analysis of message involving non-owner number: ${cleanPhone}`);
+        return;
+    }
+
+    // Skip outgoing messages to other people (i.e. messages sent by the bot or manual agent to clients)
+    if (fromMe && from !== to) {
+        console.log(`⏭️ Skipping outbound message sent to client: ${to}`);
+        return;
+    }
+
+    // To prevent duplicate processing of the same message ID
+    if (processedMessageIds.has(msg.id.id)) {
+        console.log(`⏭️ Message already processed: ${msg.id.id}`);
+        return;
+    }
+    processedMessageIds.add(msg.id.id);
+    if (processedMessageIds.size > 100) {
+        const firstValue = processedMessageIds.values().next().value;
+        processedMessageIds.delete(firstValue);
+    }
+
+    console.log(`📱 Processing message from ${cleanPhone}: "${body}"`);
+
+    try {
+        let phoneForQuery = cleanPhone;
+        if (cleanPhone === '62354435903598') {
+            phoneForQuery = '972522818541';
+        }
+        const normPhone9 = phoneForQuery.slice(-9);
+        const query = `
+            SELECT id, data 
+            FROM leads 
+            WHERE (data->>'phone' IS NOT NULL)
+              AND (right(regexp_replace(data->>'phone', '\\D', '', 'g'), 9) = $1)
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+        const res = await pool.query(query, [normPhone9]);
+        
+        if (res.rows.length === 0) {
+            console.log(`⚠️ No matching lead found in database for phone suffix: ${normPhone9}`);
+            return;
+        }
+
+        const leadId = res.rows[0].id;
+        const lead = res.rows[0].data;
+        const clientName = lead.clientName || 'לקוח';
+        
+        console.log(`🎯 Found matching lead: ${clientName} (ID: ${leadId})`);
+        
+        // Safety intake check: if already processed the first welcome reply, skip any subsequent casual messages!
+        const alreadyAnalyzed = lead.liveCallNotes && (
+            lead.liveCallNotes.includes('🤖 --- ניתוח תשובת וואטסאפ') ||
+            lead.liveCallNotes.includes('💬 --- הודעת וואטסאפ שהתקבלה')
+        );
+        if (alreadyAnalyzed) {
+            console.log(`⏭️ Intake analysis already completed for lead ${clientName}. Skipping subsequent messages.`);
+            return;
+        }
+
+        // Handle consecutive/burst messages by debouncing for 3 minutes (180000ms)
+        if (clientBuffers[cleanPhone]) {
+            console.log(`➕ Appending message to active buffer for ${clientName}`);
+            clientBuffers[cleanPhone].messages.push(body);
+            if (clientBuffers[cleanPhone].timeoutId) {
+                clearTimeout(clientBuffers[cleanPhone].timeoutId);
+            }
+        } else {
+            console.log(`🆕 Creating new message buffer for ${clientName}`);
+            clientBuffers[cleanPhone] = {
+                timeoutId: null,
+                messages: [body],
+                leadId: leadId,
+                clientName: clientName
+            };
+        }
+
+        console.log(`⏱️ Buffering message from ${clientName}. Waiting for consecutive messages (180s)...`);
+        clientBuffers[cleanPhone].timeoutId = setTimeout(async () => {
+            const session = clientBuffers[cleanPhone];
+            delete clientBuffers[cleanPhone]; // Clean up from memory immediately
+
+            if (!session) return;
+
+            const combinedText = session.messages.join('\n');
+            console.log(`🎬 Debounce finished for ${session.clientName}. Processing consolidated text (${session.messages.length} messages): "${combinedText}"`);
+
+            try {
+                // Perform AI analysis on combined messages
+                console.log(`🤖 Analyzing consolidated reply with Gemini AI...`);
+                const analysis = await analyzeWhatsAppReply(combinedText);
+                
+                let analysisText = '';
+                if (analysis) {
+                    analysisText = `🤖 --- ניתוח תשובת וואטסאפ (${new Date().toLocaleDateString('he-IL')} ${new Date().toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'})}) ---\n${analysis}`;
+                } else {
+                    analysisText = `💬 --- הודעת וואטסאפ שהתקבלה (${new Date().toLocaleDateString('he-IL')} ${new Date().toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'})}) ---\n${combinedText}`;
+                }
+                
+                // Fetch the latest state of the lead again in case fields changed during the buffering
+                const freshRes = await pool.query(`SELECT data FROM leads WHERE id = $1`, [session.leadId]);
+                if (freshRes.rows.length === 0) {
+                    console.log(`⚠️ Lead ${session.clientName} was deleted during buffering.`);
+                    return;
+                }
+                const latestLead = freshRes.rows[0].data;
+
+                // Prepend analysis to liveCallNotes
+                let currentNotes = latestLead.liveCallNotes || '';
+                if (currentNotes.trim()) {
+                    latestLead.liveCallNotes = analysisText.trim() + '\n\n' + currentNotes.trim();
+                } else {
+                    latestLead.liveCallNotes = analysisText.trim();
+                }
+
+                // Update generalNotes with " - הליד ענה"
+                let newGeneralNotes = latestLead.generalNotes || '';
+                if (newGeneralNotes.trim()) {
+                    if (!newGeneralNotes.includes('הליד ענה')) {
+                        if (newGeneralNotes.includes('נשלחה הודעת פתיחה')) {
+                            newGeneralNotes = newGeneralNotes.replace('נשלחה הודעת פתיחה', 'נשלחה הודעת פתיחה - הליד ענה');
+                        } else {
+                            newGeneralNotes = newGeneralNotes.trim() + ' - הליד ענה';
+                        }
+                    }
+                } else {
+                    newGeneralNotes = 'הליד ענה';
+                }
+                latestLead.generalNotes = newGeneralNotes;
+                
+                // Save updated lead to DB
+                const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                await pool.query(updateQuery, [JSON.stringify(latestLead), session.leadId]);
+                console.log(`💾 Saved consolidated analysis and updated generalNotes for lead ${session.clientName}`);
+            } catch (err) {
+                console.error(`❌ Error in message processing or DB update for ${session.clientName}:`, err.message);
+            }
+        }, 180000);
+
+    } catch (err) {
+        console.error('❌ Error in message processing or DB lookup:', err.message);
+    }
+}
+
+client.on('message', async (msg) => {
+    await handleIncomingMessage(msg, 'message');
+});
+
+client.on('message_create', async (msg) => {
+    await handleIncomingMessage(msg, 'message_create');
+});
+
+app.get('/qr', (req, res) => {
+    const qrPath = path.join(__dirname, '..', 'public', 'qr.png');
+    if (fs.existsSync(qrPath)) {
+        res.setHeader('Content-Type', 'image/png');
+        res.sendFile(qrPath);
+    } else {
+        res.status(404).send('קוד ה-QR עדיין לא נוצר או שהבוט כבר מחובר. אם הבוט מחובר, אין צורך לסרוק.');
+    }
+});
 
 app.use((req, res, next) => {
     const authHeader = req.headers.authorization;

@@ -46,3 +46,11 @@ leads.json
 
 # keep whatsapp bot files
 !whatsapp-bot/**/*.js
+
+# local whatsapp session data
+whatsapp-bot/.wwebjs_auth/
+whatsapp-bot/.wwebjs_cache/
+whatsapp-bot/check_db.js
+whatsapp-bot/show_notes.js
+whatsapp-bot/test_gemini.js
+public/qr.png
