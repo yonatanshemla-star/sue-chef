@@ -43,3 +43,6 @@ leads.json
 # misc
 .DS_Store
 *.pem
+
+# keep whatsapp bot files
+!whatsapp-bot/**/*.js

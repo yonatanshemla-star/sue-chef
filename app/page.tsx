@@ -1222,13 +1222,20 @@ export default function Home() {
                               <div className="flex items-center gap-2">
                                 <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
                                 {duplicateMap.has(lead.id) && (
-                                  <button 
-                                    onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} 
-                                    className={`flex-shrink-0 hover:scale-125 transition-all animate-pulse ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'text-blue-500 hover:text-blue-600' : 'text-red-500 hover:text-red-600'}`} 
-                                    title={`ליד כפול לפי ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'שם' : 'מספר טלפון'}! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}
-                                  >
-                                    <Star size={18} fill="currentColor" />
-                                  </button>
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <button 
+                                      onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} 
+                                      className={`flex-shrink-0 hover:scale-125 transition-all animate-pulse ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'text-blue-500 hover:text-blue-600' : 'text-red-500 hover:text-red-600'}`} 
+                                      title={`ליד כפול לפי ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'שם' : 'מספר טלפון'}! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}
+                                    >
+                                      <Star size={18} fill="currentColor" />
+                                    </button>
+                                    {duplicateMap.get(lead.id)!.matchType === 'phone' && (
+                                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/20 whitespace-nowrap leading-none select-none">
+                                        {duplicateMap.get(lead.id)!.lead.status}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
@@ -1361,9 +1368,20 @@ export default function Home() {
                       <div className="flex items-center gap-2">
                         <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 flex-1 min-w-0 truncate" placeholder="שם הלקוח..." />
                         {duplicateMap.has(lead.id) && (
-                          <button onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} className="flex-shrink-0 text-red-500 hover:text-red-600 transition-all animate-pulse" title="ליד כפול!">
-                            <Star size={16} fill="currentColor" />
-                          </button>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <button 
+                              onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} 
+                              className={`flex-shrink-0 hover:scale-125 transition-all animate-pulse ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'text-blue-500 hover:text-blue-600' : 'text-red-500 hover:text-red-600'}`} 
+                              title={`ליד כפול לפי ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'שם' : 'מספר טלפון'}! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}
+                            >
+                              <Star size={16} fill="currentColor" />
+                            </button>
+                            {duplicateMap.get(lead.id)!.matchType === 'phone' && (
+                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/20 whitespace-nowrap leading-none select-none">
+                                {duplicateMap.get(lead.id)!.lead.status}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                       <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base w-full text-right" placeholder="05..." dir="ltr" style={{ direction: 'rtl', textAlign: 'right' }} />
