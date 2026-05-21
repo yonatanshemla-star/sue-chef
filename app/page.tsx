@@ -577,9 +577,9 @@ export default function Home() {
     }
 
     const handleChange = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem('theme')) {
-        setDarkMode(e.matches);
-      }
+      // Whenever the OS changes theme, we follow it and clear any manual override
+      setDarkMode(e.matches);
+      localStorage.removeItem('theme');
     };
     
     mediaQuery.addEventListener('change', handleChange);
