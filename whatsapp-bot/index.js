@@ -48,23 +48,104 @@ const pool = new Pool({
 });
 
 // Handle errors on idle clients to prevent connection drops from crashing the Node process
-pool.on('error', (err, client) => {
+pool.on('error', async (err, client) => {
     console.error('⚠️ Unexpected error on idle client in pg Pool:', err.message);
+    await notifyOwnerCrash(`שגיאה לא צפויה בחיבור ל-Postgres (Pool Error): ${err.message}`, err);
 });
 
 let client;
 let isRestarting = false;
 let isClientReady = false;
+let wasRecovered = false;
 const processedMessageIds = new Set();
 
 const QRCodeImage = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 
+// Generic function to notify owner of critical errors (WhatsApp message if possible, fallback to Desktop alert + Windows Toast)
+async function notifyOwnerCrash(messageText, errObj = null) {
+    const ownerChatId = '972522818541@c.us';
+    
+    // 1. Try sending WhatsApp message first (if connected and ready)
+    if (isClientReady && client) {
+        try {
+            await client.sendMessage(ownerChatId, `🤖 התראה מבוט ה-WhatsApp:\n${messageText}`);
+            console.log('✅ Sent error alert to owner via WhatsApp.');
+            return;
+        } catch (sendErr) {
+            console.error('❌ Failed to send WhatsApp alert, falling back to local crash triggers:', sendErr.message);
+        }
+    }
+
+    // 2. Fallback: Write a CRASH_ALERT file to Desktop & open it in Notepad
+    try {
+        const desktopPath = path.join('C:', 'Users', 'Yonatan', 'Desktop');
+        const workspacePath = __dirname;
+        const alertFileDir = fs.existsSync(desktopPath) ? desktopPath : workspacePath;
+        const alertFilePath = path.join(alertFileDir, 'CRASH_ALERT.txt');
+        
+        const fileContent = `
+⚠️⚠️⚠️ התראת שגיאה בבוט ה-WhatsApp ⚠️⚠️⚠️
+זמן: ${new Date().toLocaleString('he-IL')}
+
+הודעה:
+${messageText}
+
+${errObj ? `פרטי השגיאה:\n${errObj.stack || errObj.message || errObj}\n` : ''}
+אנא בדוק את השרת!
+`;
+        fs.writeFileSync(alertFilePath, fileContent);
+        console.log(`💾 Saved crash alert file to: ${alertFilePath}`);
+        
+        // Open the file automatically in Notepad
+        const { exec } = require('child_process');
+        exec(`start notepad.exe "${alertFilePath}"`);
+        
+        // 3. Trigger a Windows system toast/balloon notification via PowerShell
+        const psCommand = `
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms");
+$objNotifyIcon = New-Object System.Windows.Forms.NotifyIcon;
+$objNotifyIcon.Icon = [System.Drawing.SystemIcons]::Warning;
+$objNotifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Warning;
+$objNotifyIcon.BalloonTipTitle = "שגיאה בבוט ה-WhatsApp!";
+$objNotifyIcon.BalloonTipText = "${messageText.replace(/"/g, "'").slice(0, 100)}";
+$objNotifyIcon.Visible = $True;
+$objNotifyIcon.ShowBalloonTip(15000);
+`;
+        // Execute PowerShell toast notification
+        const tempPsFile = path.join(workspacePath, 'temp_toast.ps1');
+        fs.writeFileSync(tempPsFile, psCommand, 'utf8');
+        exec(`powershell.exe -ExecutionPolicy Bypass -File "${tempPsFile}"`, () => {
+            try { fs.unlinkSync(tempPsFile); } catch (e) {}
+        });
+        
+    } catch (localErr) {
+        console.error('❌ Failed to trigger local notification systems:', localErr.message);
+    }
+}
+
+// Uncaught exception and rejection handlers to notify the owner before crashing
+process.on('uncaughtException', async (err) => {
+    console.error('❌ CRITICAL UNCAUGHT EXCEPTION:', err);
+    await notifyOwnerCrash(`קריסה קריטית בשרת הבוט (Uncaught Exception): ${err.message}. השרת ייסגר.`, err);
+    // Give some time for notepad to open before exiting
+    setTimeout(() => {
+        process.exit(1);
+    }, 2000);
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+    console.error('❌ CRITICAL UNHANDLED REJECTION:', reason);
+    const reasonMsg = reason instanceof Error ? reason.message : String(reason);
+    await notifyOwnerCrash(`שגיאה לא מטופלת בשרת הבוט (Unhandled Rejection): ${reasonMsg}`, reason instanceof Error ? reason : null);
+});
+
 async function recreateAndInitClient() {
     if (isRestarting) return;
     isRestarting = true;
     isClientReady = false;
+    wasRecovered = true;
     console.log('🔄 Starting WhatsApp Client Re-initialization / Recovery...');
     try {
         if (client) {
@@ -80,6 +161,7 @@ async function recreateAndInitClient() {
         console.log('🚀 New WhatsApp Client initialized.');
     } catch (initErr) {
         console.error('❌ Failed to initialize new client:', initErr.message);
+        await notifyOwnerCrash(`כשל קריטי באתחול מנוע הדפדפן של בוט ה-WhatsApp: ${initErr.message}`, initErr);
     } finally {
         isRestarting = false;
     }
@@ -142,18 +224,38 @@ function initWhatsAppClient() {
         }
     });
 
-    client.on('ready', () => {
+    client.on('ready', async () => {
         console.log('✅ WhatsApp Bot is Ready and Connected!');
         isClientReady = true;
+        
+        if (wasRecovered) {
+            wasRecovered = false;
+            try {
+                const ownerChatId = '972522818541@c.us';
+                await client.sendMessage(ownerChatId, `🤖 הבוט שוחזר בהצלחה לאחר ניתוק זמני בדפדפן, וכעת חזר לפעילות מלאה! 🎉`);
+                console.log('✅ Sent recovery notification to owner.');
+            } catch (notifyErr) {
+                console.error('❌ Failed to send recovery notification:', notifyErr.message);
+            }
+        }
         
         // Initial DB poll after 5 seconds
         setTimeout(checkAndSendPendingWhatsAppMessages, 5000);
     });
 
-    client.on('auth_failure', msg => console.error('AUTH FAIL', msg));
-    client.on('disconnected', (reason) => {
+    client.on('auth_failure', async (msg) => {
+        console.error('AUTH FAIL', msg);
+        await notifyOwnerCrash(`בוט ה-WhatsApp נכשל באימות (Auth Failure): ${msg}. נדרש לסרוק קוד QR חדש כדי להפעיל מחדש!`);
+    });
+
+    client.on('disconnected', async (reason) => {
         console.log('Disconnected', reason);
         isClientReady = false;
+        
+        // Notify owner about temporary disconnection
+        const alertMsg = `⚠️ בוט ה-WhatsApp נותק מהדפדפן (סיבה: ${reason}). מנסה לבצע שחזור אוטומטי כעת...`;
+        await notifyOwnerCrash(alertMsg);
+        
         setTimeout(recreateAndInitClient, 10000);
     });
 
@@ -380,12 +482,14 @@ async function checkAndSendPendingWhatsAppMessages() {
                     sendErr.message.includes('context was destroyed')
                 )) {
                     console.log('⚠️ Puppeteer browser/page became unresponsive. Triggering client recovery...');
+                    await notifyOwnerCrash(`⚠️ דפדפן הבוט איבד קשר או נסגר במהלך שליחה ל-${clientName}. מנסה לשחזר את הבוט אוטומטית כעת...`, sendErr);
                     recreateAndInitClient();
                 }
             }
         }
     } catch (err) {
         console.error('❌ Error during WhatsApp DB polling:', err.message);
+        await notifyOwnerCrash(`שגיאה קריטית בסנכרון/שילוב מסד הנתונים של הבוט: ${err.message}`, err);
     }
 }
 
