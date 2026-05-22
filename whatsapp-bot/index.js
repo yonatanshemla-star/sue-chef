@@ -47,6 +47,11 @@ const pool = new Pool({
     }
 });
 
+// Handle errors on idle clients to prevent connection drops from crashing the Node process
+pool.on('error', (err, client) => {
+    console.error('⚠️ Unexpected error on idle client in pg Pool:', err.message);
+});
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {

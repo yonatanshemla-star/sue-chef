@@ -82,6 +82,7 @@ export default function Home() {
   
   // Modals
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
@@ -477,6 +478,32 @@ export default function Home() {
       } catch (err) {
         console.error("Error analyzing live call notes on close:", err);
       }
+    }
+  };
+
+  const handleManualAnalyzeCall = async () => {
+    if (!liveNotesLead || !liveNotesLead.liveCallNotes?.trim()) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch('/api/leads/analyze-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: liveNotesLead.liveCallNotes, id: liveNotesLead.id })
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const { salary, employmentStatus, medicalStatus } = data.data;
+        const updates = {
+          salary: salary || liveNotesLead.salary || "",
+          employmentStatus: employmentStatus || liveNotesLead.employmentStatus || "",
+          medicalStatus: medicalStatus || liveNotesLead.medicalStatus || ""
+        };
+        handleLeadUpdate(liveNotesLead.id, updates);
+      }
+    } catch (err) {
+      console.error("Error running manual AI analysis:", err);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -1879,6 +1906,29 @@ export default function Home() {
                             <p className="text-xs text-slate-400 dark:text-slate-500 font-bold -mt-2 leading-relaxed">
                               💡 השדות נשמרים אוטומטית. בסיום השיחה, ה-AI ינתח את תיעוד השיחה החופשי וישלים שדות אלו ברקע במידה ולא מילאת אותם ידנית!
                             </p>
+
+                            <button
+                              onClick={handleManualAnalyzeCall}
+                              disabled={isAnalyzing || !liveNotesLead.liveCallNotes?.trim()}
+                              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 border transition-all duration-300 ${
+                                isAnalyzing 
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed'
+                                  : !liveNotesLead.liveCallNotes?.trim()
+                                    ? 'bg-slate-50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-600 border-slate-100 dark:border-slate-800 cursor-not-allowed opacity-60'
+                                    : 'bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-900/40 hover:border-indigo-300 dark:hover:border-indigo-800 shadow-sm hover:shadow active:scale-[0.98]'
+                              }`}
+                            >
+                              {isAnalyzing ? (
+                                <>
+                                  <span className="animate-spin inline-block w-4 h-4 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full" />
+                                  מנתח סיכום שיחה...
+                                </>
+                              ) : (
+                                <>
+                                  <span>✨ ניתוח סיכום שיחה ע״י AI</span>
+                                </>
+                              )}
+                            </button>
 
                             <div className="space-y-5 mt-2">
                               {/* Salary Field */}

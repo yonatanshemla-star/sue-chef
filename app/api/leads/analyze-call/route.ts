@@ -31,8 +31,17 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
-    const model = "gemini-2.0-flash";
+    const model = "gemini-2.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const cleanVal = (val: any): string => {
+      if (!val || typeof val !== 'string') return "";
+      const trimmed = val.trim();
+      if (/^(לא צוין|לא צויין|לא מופיע|לא ידוע|אין|none|n\/a|not specified|not mentioned)$/i.test(trimmed)) {
+        return "";
+      }
+      return trimmed;
+    };
 
     let resultJson: any = { salary: "", employmentStatus: "", medicalStatus: "" };
     try {
@@ -52,9 +61,9 @@ export async function POST(req: Request) {
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
         try {
           const parsed = JSON.parse(aiText);
-          if (parsed.salary) resultJson.salary = parsed.salary !== 'לא צוין' ? parsed.salary : '';
-          if (parsed.employmentStatus) resultJson.employmentStatus = parsed.employmentStatus !== 'לא צוין' ? parsed.employmentStatus : '';
-          if (parsed.medicalStatus) resultJson.medicalStatus = parsed.medicalStatus !== 'לא צוין' ? parsed.medicalStatus : '';
+          resultJson.salary = cleanVal(parsed.salary);
+          resultJson.employmentStatus = cleanVal(parsed.employmentStatus);
+          resultJson.medicalStatus = cleanVal(parsed.medicalStatus);
         } catch (parseError) {
           console.error("AI JSON Parse Error:", parseError, "AI Text was:", aiText);
         }
