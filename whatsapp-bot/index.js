@@ -52,22 +52,8 @@ pool.on('error', (err, client) => {
     console.error('⚠️ Unexpected error on idle client in pg Pool:', err.message);
 });
 
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
-        ]
-    }
-});
-
+let client;
+let isRestarting = false;
 let isClientReady = false;
 const processedMessageIds = new Set();
 
@@ -75,60 +61,115 @@ const QRCodeImage = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 
-client.on('qr', async (qr) => {
-    console.log('Scan the QR code below to authenticate in WhatsApp:');
-    qrcode.generate(qr, { small: true });
-    
-    // Save QR code as PNG image
+async function recreateAndInitClient() {
+    if (isRestarting) return;
+    isRestarting = true;
+    isClientReady = false;
+    console.log('🔄 Starting WhatsApp Client Re-initialization / Recovery...');
     try {
-        // 1. Save to CRM public folder so they can access it on http://localhost:3000/qr.png
-        const publicDir = path.join(__dirname, '..', 'public');
-        if (!fs.existsSync(publicDir)) {
-            fs.mkdirSync(publicDir, { recursive: true });
+        if (client) {
+            await client.destroy();
+            console.log('🛑 Previous Client destroyed.');
         }
-        const publicQrPath = path.join(publicDir, 'qr.png');
-        await QRCodeImage.toFile(publicQrPath, qr, {
-            color: {
-                dark: '#000000',
-                light: '#ffffff'
-            },
-            width: 500
-        });
-        console.log(`🖼️ Saved QR code PNG to ${publicQrPath}`);
+    } catch (destroyErr) {
+        console.error('⚠️ Error destroying previous client:', destroyErr.message);
+    }
+    
+    try {
+        initWhatsAppClient();
+        console.log('🚀 New WhatsApp Client initialized.');
+    } catch (initErr) {
+        console.error('❌ Failed to initialize new client:', initErr.message);
+    } finally {
+        isRestarting = false;
+    }
+}
 
-        // 2. Save to the Brain/Artifacts folder so the Assistant can display it directly in the markdown transcript!
-        const brainDir = `C:\\Users\\Yonatan\\.gemini\\antigravity\\brain\\482c84de-13c1-47c3-b2be-1182c08aa65f`;
-        if (fs.existsSync(brainDir)) {
-            const brainQrPath = path.join(brainDir, 'qr.png');
-            await QRCodeImage.toFile(brainQrPath, qr, {
+function initWhatsAppClient() {
+    console.log('Initializing WhatsApp Client instance...');
+    client = new Client({
+        authStrategy: new LocalAuth(),
+        puppeteer: {
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu'
+            ]
+        }
+    });
+
+    client.on('qr', async (qr) => {
+        console.log('Scan the QR code below to authenticate in WhatsApp:');
+        qrcode.generate(qr, { small: true });
+        
+        // Save QR code as PNG image
+        try {
+            // 1. Save to CRM public folder so they can access it on http://localhost:3000/qr.png
+            const publicDir = path.join(__dirname, '..', 'public');
+            if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir, { recursive: true });
+            }
+            const publicQrPath = path.join(publicDir, 'qr.png');
+            await QRCodeImage.toFile(publicQrPath, qr, {
                 color: {
                     dark: '#000000',
                     light: '#ffffff'
                 },
                 width: 500
             });
-            console.log(`🖼️ Saved QR code PNG to Brain at ${brainQrPath}`);
+            console.log(`🖼️ Saved QR code PNG to ${publicQrPath}`);
+
+            // 2. Save to the Brain/Artifacts folder so the Assistant can display it directly in the markdown transcript!
+            const brainDir = `C:\\Users\\Yonatan\\.gemini\\antigravity\\brain\\482c84de-13c1-47c3-b2be-1182c08aa65f`;
+            if (fs.existsSync(brainDir)) {
+                const brainQrPath = path.join(brainDir, 'qr.png');
+                await QRCodeImage.toFile(brainQrPath, qr, {
+                    color: {
+                        dark: '#000000',
+                        light: '#ffffff'
+                    },
+                    width: 500
+                });
+                console.log(`🖼️ Saved QR code PNG to Brain at ${brainQrPath}`);
+            }
+        } catch (err) {
+            console.error('❌ Failed to generate QR code PNG:', err.message);
         }
-    } catch (err) {
-        console.error('❌ Failed to generate QR code PNG:', err.message);
-    }
-});
+    });
 
-client.on('ready', () => {
-    console.log('✅ WhatsApp Bot is Ready and Connected!');
-    isClientReady = true;
-    
-    // Initial DB poll after 5 seconds
-    setTimeout(checkAndSendPendingWhatsAppMessages, 5000);
-});
+    client.on('ready', () => {
+        console.log('✅ WhatsApp Bot is Ready and Connected!');
+        isClientReady = true;
+        
+        // Initial DB poll after 5 seconds
+        setTimeout(checkAndSendPendingWhatsAppMessages, 5000);
+    });
 
-client.on('auth_failure', msg => console.error('AUTH FAIL', msg));
-client.on('disconnected', (reason) => {
-    console.log('Disconnected', reason);
-    isClientReady = false;
-});
+    client.on('auth_failure', msg => console.error('AUTH FAIL', msg));
+    client.on('disconnected', (reason) => {
+        console.log('Disconnected', reason);
+        isClientReady = false;
+        setTimeout(recreateAndInitClient, 10000);
+    });
 
-client.initialize();
+    client.on('message', async (msg) => {
+        await handleIncomingMessage(msg, 'message');
+    });
+
+    client.on('message_create', async (msg) => {
+        await handleIncomingMessage(msg, 'message_create');
+    });
+
+    client.initialize();
+}
+
+// Start the client for the first time
+initWhatsAppClient();
 
 // Helper function to check if a lead has a duplicate (phone or name) in Neon DB
 async function checkIfLeadIsDuplicate(leadId, phone, clientName) {
@@ -332,6 +373,15 @@ async function checkAndSendPendingWhatsAppMessages() {
                 console.log(`💾 Database updated: whatsappSent = true & generalNotes updated for lead ${clientName}`);
             } catch (sendErr) {
                 console.error(`❌ Failed to send WhatsApp or update DB for ${clientName}:`, sendErr.message);
+                if (sendErr.message && (
+                    sendErr.message.includes('detached') || 
+                    sendErr.message.includes('Protocol error') || 
+                    sendErr.message.includes('closed') || 
+                    sendErr.message.includes('context was destroyed')
+                )) {
+                    console.log('⚠️ Puppeteer browser/page became unresponsive. Triggering client recovery...');
+                    recreateAndInitClient();
+                }
             }
         }
     } catch (err) {
@@ -581,13 +631,7 @@ async function handleIncomingMessage(msg, eventSource) {
     }
 }
 
-client.on('message', async (msg) => {
-    await handleIncomingMessage(msg, 'message');
-});
-
-client.on('message_create', async (msg) => {
-    await handleIncomingMessage(msg, 'message_create');
-});
+// Listeners are registered inside initWhatsAppClient() now
 
 app.get('/qr', (req, res) => {
     const qrPath = path.join(__dirname, '..', 'public', 'qr.png');
