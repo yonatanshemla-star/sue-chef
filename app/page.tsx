@@ -98,6 +98,7 @@ export default function Home() {
 
   // Secret Profit Tracker
   const [showSecretPanel, setShowSecretPanel] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [titleClickTimer, setTitleClickTimer] = useState<NodeJS.Timeout | null>(null);
   const [isWorking, setIsWorking] = useState(false);
@@ -195,6 +196,11 @@ export default function Home() {
       localStorage.removeItem('currentWorkStart');
     }
   }, [workStartTime]);
+
+  // Reset bulk selection on tab switch or secret panel toggle
+  useEffect(() => {
+    setSelectedLeadIds([]);
+  }, [activeTab, showSecretPanel]);
 
   // Triple-click handler
   const handleTitleClick = () => {
@@ -439,6 +445,108 @@ export default function Home() {
     try {
       await fetch('/api/leads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reason: "Direct Deletion" }) });
     } catch (e) { console.error(e); fetchLeads(); }
+  };
+
+  const toggleLeadSelection = (leadId: string) => {
+    setSelectedLeadIds(prev => 
+      prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]
+    );
+  };
+
+  const handleSelectAllLeads = (currentLeadsList: Lead[]) => {
+    const currentIds = currentLeadsList.map(l => l.id);
+    const allSelected = currentIds.every(id => selectedLeadIds.includes(id));
+    if (allSelected) {
+      setSelectedLeadIds(prev => prev.filter(id => !currentIds.includes(id)));
+    } else {
+      setSelectedLeadIds(prev => Array.from(new Set([...prev, ...currentIds])));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeadIds.length === 0) return;
+    if (!window.confirm(`האם אתה בטוח שברצונך למחוק ${selectedLeadIds.length} לידים מסומנים?`)) return;
+    
+    setLeads(prev => prev.filter(l => !selectedLeadIds.includes(l.id)));
+    const idsToDelete = [...selectedLeadIds];
+    setSelectedLeadIds([]);
+    
+    try {
+      await Promise.all(
+        idsToDelete.map(id => 
+          fetch('/api/leads/delete', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ id, reason: "Direct Bulk Deletion" }) 
+          })
+        )
+      );
+    } catch (e) { 
+      console.error(e); 
+      fetchLeads(); 
+    }
+  };
+
+  const handleBulkMove = async (newStatus: string) => {
+    if (selectedLeadIds.length === 0 || !newStatus) return;
+    if (!window.confirm(`האם אתה בטוח שברצונך להעביר ${selectedLeadIds.length} לידים לסטטוס "${STATUS_CONFIG[newStatus]?.label || newStatus}"?`)) return;
+    
+    const idsToMove = [...selectedLeadIds];
+    setSelectedLeadIds([]);
+    
+    setLeads(prev => prev.map(l => {
+      if (!idsToMove.includes(l.id)) return l;
+      
+      const updates: Partial<Lead> = { status: newStatus };
+      const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(newStatus);
+      if (isRelevant) updates.wasRelevant = true;
+      if (newStatus === 'חתם') {
+        updates.isSigned = true;
+        updates.signedAt = new Date().toISOString();
+      }
+      
+      const history = l.statusHistory || [];
+      if (l.status !== newStatus) {
+        updates.statusHistory = [...history, { from: l.status, to: newStatus, timestamp: new Date().toISOString() }];
+      }
+      
+      return { ...l, ...updates };
+    }));
+    
+    if (newStatus === 'חתם') {
+      fireConfetti();
+    }
+    
+    try {
+      await Promise.all(
+        idsToMove.map(async (id) => {
+          localModifiedRef.current.set(id, Date.now());
+          const l = leads.find(lead => lead.id === id);
+          if (!l) return;
+          
+          const updates: Partial<Lead> = { status: newStatus };
+          const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(newStatus);
+          if (isRelevant) updates.wasRelevant = true;
+          if (newStatus === 'חתם') {
+            updates.isSigned = true;
+            updates.signedAt = new Date().toISOString();
+          }
+          if (l.status !== newStatus) {
+            const history = l.statusHistory || [];
+            updates.statusHistory = [...history, { from: l.status, to: newStatus, timestamp: new Date().toISOString() }];
+          }
+          
+          return fetch('/api/leads/update', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ id, ...updates }) 
+          });
+        })
+      );
+    } catch (e) {
+      console.error(e);
+      fetchLeads();
+    }
   };
 
   const initiateCall = async (lead: Lead) => {
@@ -1243,11 +1351,68 @@ export default function Home() {
         {/* Main Content Area */}
         <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
           {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
-            <div className="overflow-x-auto">
-            <table className="hidden md:table w-full text-sm text-right border-collapse">
-              <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
-                <tr>
-                  <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
+            <>
+              {/* Bulk Actions Panel */}
+              {showSecretPanel && selectedLeadIds.length > 0 && (
+                <div className="bg-indigo-50/70 dark:bg-indigo-950/20 border-b border-indigo-100 dark:border-indigo-900/30 px-8 py-5 flex items-center justify-between gap-4 animate-in slide-in-from-top duration-300" dir="rtl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm">{selectedLeadIds.length}</div>
+                    <span className="font-black text-slate-700 dark:text-slate-200 text-sm">לידים נבחרו לפעולה קבוצתית:</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {/* Bulk Status Move Selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">העבר סטטוס:</span>
+                      <select 
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleBulkMove(e.target.value);
+                            e.target.value = ''; // Reset dropdown
+                          }
+                        }}
+                        className="text-xs font-black rounded-xl px-4 py-2.5 outline-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>בחר סטטוס...</option>
+                        {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                          <option key={k} value={k}>{v.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+                    {/* Bulk Delete Button */}
+                    <button 
+                      onClick={handleBulkDelete}
+                      className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-sm shadow-red-500/10 transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Trash2 className="w-4 h-4" /> מחק {selectedLeadIds.length} לידים
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+              <table className="hidden md:table w-full text-sm text-right border-collapse">
+                <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
+                  <tr>
+                    {showSecretPanel && (
+                      <th className="px-4 py-6 font-bold w-12 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={
+                            (() => {
+                              const list = activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads;
+                              return list.length > 0 && list.every(l => selectedLeadIds.includes(l.id));
+                            })()
+                          }
+                          onChange={() => handleSelectAllLeads(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads)}
+                          className="w-4.5 h-4.5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer dark:bg-slate-900 dark:border-slate-700"
+                        />
+                      </th>
+                    )}
+                    <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
                   <th className="px-2 py-6 font-bold w-12 text-center"></th>
                   <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[180px]">סטטוס טיפול</th>
                   <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[220px]">הערות ומעקב</th>
@@ -1262,6 +1427,16 @@ export default function Home() {
                     className="group hover:bg-white/60 dark:hover:bg-white/5 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 fill-mode-both"
                     style={{ animationDelay: `${idx * 50}ms`, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
                   >
+                    {showSecretPanel && (
+                      <td className="px-4 py-5 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedLeadIds.includes(lead.id)}
+                          onChange={() => toggleLeadSelection(lead.id)}
+                          className="w-4.5 h-4.5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer dark:bg-slate-900 dark:border-slate-700"
+                        />
+                      </td>
+                    )}
                     <td className="px-8 py-5">
                       <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
                         <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 dark:from-slate-800 dark:to-indigo-950 dark:border dark:border-indigo-500/30 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 dark:shadow-none active:scale-90 transition-all hover:scale-110 backdrop-blur-sm"><Phone className="w-6 h-6" /></button>
@@ -1389,6 +1564,18 @@ export default function Home() {
               {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
                 <div key={`mob-${lead.id}`} id={`lead-row-${lead.id}`} className="bg-slate-50 dark:bg-slate-800/80 rounded-[32px] p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-5 relative">
                   
+                  {/* Bulk Select Checkbox (when developer panel is active) */}
+                  {showSecretPanel && (
+                    <div className="absolute top-4 right-4 z-10 flex items-center">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedLeadIds.includes(lead.id)}
+                        onChange={() => toggleLeadSelection(lead.id)}
+                        className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer dark:bg-slate-900 dark:border-slate-700"
+                      />
+                    </div>
+                  )}
+
                   {/* Menu Button */}
                   <div className="absolute top-4 left-4 z-10">
                     <button onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl transition-all shadow-sm bg-white/50"><MoreVertical className="w-5 h-5 text-slate-500" /></button>
@@ -1503,6 +1690,7 @@ export default function Home() {
               ))}
             </div>
             </div>
+            </>
           )}
 
           {activeTab === 'calls' && (
