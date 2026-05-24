@@ -721,10 +721,19 @@ async function handleIncomingMessage(msg, eventSource) {
         
         console.log(`🎯 Found matching lead: ${clientName} (ID: ${leadId})`);
         
-        // Safety intake check: if already processed the first welcome reply, skip any subsequent casual messages!
-        const alreadyAnalyzed = lead.liveCallNotes && (
-            lead.liveCallNotes.includes('🤖 --- ניתוח תשובת וואטסאפ') ||
-            lead.liveCallNotes.includes('💬 --- הודעת וואטסאפ שהתקבלה')
+        // 1. Check if the welcome message was sent to this lead
+        const hasSentWelcome = lead.whatsappSent === true || lead.whatsappSent === 'true';
+        if (!hasSentWelcome) {
+            console.log(`⏭️ Welcome message not sent yet to ${clientName}. Skipping reply analysis.`);
+            return;
+        }
+        
+        // 2. Safety intake check: if already processed the first welcome reply, skip any subsequent casual messages!
+        const alreadyAnalyzed = lead.whatsappReplyAnalyzed === true || lead.whatsappReplyAnalyzed === 'true' || (
+            lead.liveCallNotes && (
+                lead.liveCallNotes.includes('🤖 --- ניתוח תשובת וואטסאפ') ||
+                lead.liveCallNotes.includes('💬 --- הודעת וואטסאפ שהתקבלה')
+            )
         );
         if (alreadyAnalyzed) {
             console.log(`⏭️ Intake analysis already completed for lead ${clientName}. Skipping subsequent messages.`);
@@ -800,6 +809,9 @@ async function handleIncomingMessage(msg, eventSource) {
                     newGeneralNotes = 'הליד ענה';
                 }
                 latestLead.generalNotes = newGeneralNotes;
+                
+                // Set the persistent reply analyzed flag!
+                latestLead.whatsappReplyAnalyzed = true;
                 
                 // Save updated lead to DB
                 const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
