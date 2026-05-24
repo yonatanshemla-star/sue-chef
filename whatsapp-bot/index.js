@@ -382,11 +382,7 @@ async function checkAndSendPendingWhatsAppMessages() {
                 const createdTime = new Date(createdAtStr).getTime();
                 const elapsedMinutes = (Date.now() - createdTime) / (1000 * 60);
                 
-                // Safety 1: Check if too fresh (less than 3 minutes)
-                if (elapsedMinutes < 3) {
-                    console.log(`Lead ${clientName} (${lead.phone}) is too fresh (${elapsedMinutes.toFixed(1)} mins elapsed). Waiting...`);
-                    continue;
-                }
+                // Safety 1: Send instantly, no wait time!
                 
                 // Safety 2: Check if too old (older than 30 minutes) - mark as expired so we don't spam or poll again
                 if (elapsedMinutes > 30) {
