@@ -2627,7 +2627,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
           lastContacted: null,
           status: "חדש",
           followUpDate: "",
-          generalNotes: `ייבוא אוטומטי מקובץ CSV בתאריך ${new Date().toLocaleDateString('he-IL')}`,
+          generalNotes: "",
           liveCallNotes: "",
           urgency: "בינונית",
           callCount: 0
