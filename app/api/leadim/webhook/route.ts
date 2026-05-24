@@ -130,8 +130,7 @@ export async function POST(req: Request) {
     await saveLead(newLead as any);
     logInfo(`SUCCESS: Saved LeadIM lead ${newLead.id}`);
 
-    // Send automatic WhatsApp welcome message (Disabled for now per user request)
-    /*
+    // Send automatic WhatsApp welcome message
     if (phone && phone !== 'לא ידוע') {
       sendWhatsAppWelcome(phone, clientName).then((res) => {
         logInfo(`WhatsApp trigger response: ${JSON.stringify(res)}`);
@@ -139,7 +138,6 @@ export async function POST(req: Request) {
         logInfo(`Failed to trigger WhatsApp welcome: ${err.message}`);
       });
     }
-    */
 
     return NextResponse.json({ success: true, id: newLead.id });
   } catch (error: any) {
