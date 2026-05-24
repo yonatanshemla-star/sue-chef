@@ -38,19 +38,19 @@ function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | st
 
 // === Configuration ===
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number; icon?: any }> = {
-  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: -1 },
+  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: 3 },
   'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-950/50 dark:text-pink-400 dark:border-pink-900', border: 'border-pink-700', importance: 0 },
   'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950/50 dark:text-green-500 dark:border-green-900', border: 'border-green-300 dark:border-green-700', importance: 1 },
   'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-500 dark:border-emerald-900', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
-  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 3 },
-  'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900', border: 'border-blue-300 dark:border-blue-700', importance: 4 },
+  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 9 },
+  'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900', border: 'border-blue-300 dark:border-blue-700', importance: 6 },
   'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-900/50 dark:text-gray-400 dark:border-gray-800', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
-  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-950/50 dark:text-gray-500 dark:border-gray-800', border: 'border-gray-600', importance: 6 },
-  'חדש': { label: '🆕 חדש', color: 'text-white', bg: 'bg-indigo-600', darkBg: 'dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-900', border: 'border-indigo-700 shadow-md', importance: 7 },
-  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-950/30 dark:text-amber-500 dark:border-amber-900/50', border: 'border-amber-200 dark:border-amber-800', importance: 8 },
-  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700', border: 'border-amber-300 dark:border-amber-700', importance: 9 },
-  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950/40 dark:text-red-400 dark:border-red-900', border: 'border-red-300 dark:border-red-700', importance: 10 },
-  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-white', bg: 'bg-red-600', darkBg: 'dark:bg-red-950/50 dark:text-red-500 dark:border-red-900', border: 'border-red-700 shadow-md', importance: 11 },
+  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-950/50 dark:text-gray-500 dark:border-gray-800', border: 'border-gray-600', importance: 7 },
+  'חדש': { label: '🆕 חדש', color: 'text-white', bg: 'bg-indigo-600', darkBg: 'dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-900', border: 'border-indigo-700 shadow-md', importance: 4 },
+  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-950/30 dark:text-amber-500 dark:border-amber-900/50', border: 'border-amber-200 dark:border-amber-800', importance: 10 },
+  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700', border: 'border-amber-300 dark:border-amber-700', importance: 11 },
+  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950/40 dark:text-red-400 dark:border-red-900', border: 'border-red-300 dark:border-red-700', importance: 12 },
+  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-white', bg: 'bg-red-600', darkBg: 'dark:bg-red-950/50 dark:text-red-500 dark:border-red-900', border: 'border-red-700 shadow-md', importance: 8 },
 };
 
 const LOST_REASONS = ["אין מענה חוזר", "אין עילה רפואית", "מתחרים/לקח עו\"ד אחר", "לא מעוניין", "בגלל מחיר", "טעות במספר", "אחר"];
@@ -949,10 +949,6 @@ export default function Home() {
       if (!q) return true;
       const nameMatch = l.clientName?.toLowerCase().includes(q);
       const phoneMatch = l.phone?.includes(q);
-      if (showAdvancedStageOnly) {
-         const isAdvanced = ['בבדיקה עם גילי', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'רלוונטי - לעקוב'].includes(l.status);
-         if (!isAdvanced) return false;
-      }
       return nameMatch || phoneMatch;
     })
     .sort((a, b) => {
