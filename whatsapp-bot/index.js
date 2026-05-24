@@ -442,6 +442,18 @@ async function checkAndSendPendingWhatsAppMessages() {
                     
                     const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
                     await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                }
+                
+                // Safety 6: Check if already contacted or status is not 'חדש'
+                const hasBeenContacted = lead.lastContacted || (lead.callCount && lead.callCount > 0);
+                const isNotNew = lead.status && lead.status !== 'חדש';
+                if (hasBeenContacted || isNotNew) {
+                    console.log(`⚠️ Lead ${clientName} (${lead.phone}) has already been contacted or is not new (status: ${lead.status}). Skipping welcome message.`);
+                    lead.whatsappSent = 'skipped_already_contacted';
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
                     continue;
                 }
             }
