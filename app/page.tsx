@@ -99,6 +99,7 @@ export default function Home() {
   // Secret Profit Tracker
   const [showSecretPanel, setShowSecretPanel] = useState(false);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [titleClickCount, setTitleClickCount] = useState(0);
   const [titleClickTimer, setTitleClickTimer] = useState<NodeJS.Timeout | null>(null);
   const [isWorking, setIsWorking] = useState(false);
@@ -1316,10 +1317,18 @@ export default function Home() {
             {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
             <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start">
               {activeTab !== 'archive' && (
-                <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
-                  <Plus size={16} className="md:w-[20px] md:h-[20px] group-hover:rotate-90 transition-transform duration-300" /> <span className="hidden sm:inline">הוסף ליד</span><span className="sm:hidden">הוסף</span>
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                    <Plus size={16} className="md:w-[20px] md:h-[20px] group-hover:rotate-90 transition-transform duration-300" /> <span className="hidden sm:inline">הוסף ליד</span><span className="sm:hidden">הוסף</span>
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                  {showSecretPanel && (
+                    <button onClick={() => setShowImportModal(true)} className="flex-shrink-0 bg-emerald-600 dark:bg-slate-900/40 dark:border dark:border-emerald-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black shadow-lg shadow-emerald-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                      <Upload size={16} className="md:w-[20px] md:h-[20px] transition-transform duration-300" /> <span>ייבוא מ-CSV</span>
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  )}
+                </div>
               )}
               {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'noanswer') && (
                 <>
@@ -1970,6 +1979,19 @@ export default function Home() {
         </div>
       )}
 
+      {/* CSV Import Modal */}
+      {showImportModal && (
+        <CsvImportModal 
+          onClose={() => setShowImportModal(false)}
+          onImportComplete={() => {
+            setShowImportModal(false);
+            fetchLeads();
+            fireConfetti();
+          }}
+          leadsList={leads}
+        />
+      )}
+
       {/* Live Notes Modal */}
       {liveNotesLead && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all">
@@ -2461,6 +2483,311 @@ export default function Home() {
         }
       `}</style>
       </main>
+    </div>
+  );
+}
+
+interface CsvImportModalProps {
+  onClose: () => void;
+  onImportComplete: () => void;
+  leadsList: Lead[];
+}
+
+function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModalProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [csvText, setCsvText] = useState("");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rows, setRows] = useState<string[][]>([]);
+  const [selectedNameHeader, setSelectedNameHeader] = useState("");
+  const [selectedPhoneHeader, setSelectedPhoneHeader] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const parseCsvLine = (line: string, sep: string) => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === sep && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErrorMsg("");
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    if (!selectedFile.name.endsWith('.csv')) {
+      setErrorMsg("נא לבחור קובץ CSV תקין בלבד (סיומת .csv)");
+      return;
+    }
+
+    setFile(selectedFile);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        setCsvText(text);
+        
+        // Split by newlines
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length === 0) {
+          setErrorMsg("קובץ ה-CSV ריק.");
+          return;
+        }
+
+        const firstLine = lines[0];
+        // Auto detect separator
+        const separators = [',', ';', '\t'];
+        let bestSep = ',';
+        let maxCount = -1;
+        separators.forEach(sep => {
+          const count = firstLine.split(sep).length - 1;
+          if (count > maxCount) {
+            maxCount = count;
+            bestSep = sep;
+          }
+        });
+
+        // Parse headers
+        const rawHeaders = parseCsvLine(firstLine, bestSep);
+        const parsedHeaders = rawHeaders.map(h => h.replace(/^["']|["']$/g, '').trim());
+        setHeaders(parsedHeaders);
+
+        // Parse rows
+        const parsedRows = lines.slice(1).map(line => {
+          const vals = parseCsvLine(line, bestSep);
+          return vals.map(v => v.replace(/^["']|["']$/g, '').trim());
+        });
+        setRows(parsedRows);
+
+        // Auto select best headers
+        const bestNameIdx = parsedHeaders.findIndex(h => 
+          h.includes('שם') || h.includes('לקוח') || h.toLowerCase().includes('name') || h.toLowerCase().includes('client')
+        );
+        if (bestNameIdx !== -1) setSelectedNameHeader(parsedHeaders[bestNameIdx]);
+
+        const bestPhoneIdx = parsedHeaders.findIndex(h => 
+          h.includes('טלפון') || h.includes('נייד') || h.toLowerCase().includes('phone') || h.toLowerCase().includes('mobile') || h.includes('מספר')
+        );
+        if (bestPhoneIdx !== -1) setSelectedPhoneHeader(parsedHeaders[bestPhoneIdx]);
+
+      } catch (err: any) {
+        setErrorMsg(`כשל בניתוח הקובץ: ${err.message}`);
+      }
+    };
+    reader.readAsText(selectedFile, "utf-8");
+  };
+
+  const handleStartImport = async () => {
+    if (!selectedNameHeader || !selectedPhoneHeader) {
+      setErrorMsg("נא לבחור עמודת שם ועמודת טלפון למיפוי.");
+      return;
+    }
+
+    const nameIdx = headers.indexOf(selectedNameHeader);
+    const phoneIdx = headers.indexOf(selectedPhoneHeader);
+
+    if (nameIdx === -1 || phoneIdx === -1) {
+      setErrorMsg("שגיאת מיפוי עמודות.");
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress(0);
+
+    let successCount = 0;
+    try {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rawName = row[nameIdx] || "";
+        const rawPhone = row[phoneIdx] || "";
+
+        // Skip rows with empty names and phones
+        if (!rawName.trim() && !rawPhone.trim()) continue;
+
+        // Generate Lead object
+        const newLead: Lead = {
+          id: crypto.randomUUID(),
+          clientName: rawName.trim() || "לקוח ייבוא",
+          phone: rawPhone.trim(),
+          source: "Manual",
+          createdAt: new Date().toISOString(),
+          lastContacted: null,
+          status: "חדש",
+          followUpDate: "",
+          generalNotes: `ייבוא אוטומטי מקובץ CSV בתאריך ${new Date().toLocaleDateString('he-IL')}`,
+          liveCallNotes: "",
+          urgency: "בינונית",
+          callCount: 0
+        };
+
+        // Call database update api
+        await fetch('/api/leads/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newLead)
+        });
+
+        successCount++;
+        setImportProgress(Math.round(((i + 1) / rows.length) * 100));
+      }
+
+      onImportComplete();
+    } catch (err: any) {
+      setErrorMsg(`שגיאה במהלך הייבוא: ${err.message}. ${successCount} לידים יובאו בהצלחה.`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-xl animate-in fade-in duration-300" dir="rtl">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[36px] border dark:border-slate-800 shadow-2xl p-8 flex flex-col gap-6 overflow-hidden max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center border-b dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center"><Upload className="w-5 h-5" /></div>
+            <div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">ייבוא לידים מקובץ CSV</h3>
+              <p className="text-xs font-bold text-slate-400">ייבוא המוני של לקוחות ישירות למערכת</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={isImporting} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-600 transition-all"><X className="w-5 h-5" /></button>
+        </div>
+
+        {/* Error Alert */}
+        {errorMsg && (
+          <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-2xl border border-red-100 dark:border-red-900/30 text-sm font-bold flex items-start gap-2">
+            <span className="mt-0.5">⚠️</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* Content */}
+        {!file ? (
+          /* Step 1: Upload File */
+          <div className="flex flex-col items-center justify-center border-4 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-12 hover:border-emerald-500/50 hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-all cursor-pointer relative group">
+            <input 
+              type="file" 
+              accept=".csv"
+              onChange={handleFileChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            <Upload className="w-16 h-16 text-slate-300 dark:text-slate-700 group-hover:text-emerald-500 transition-colors mb-4" />
+            <h4 className="font-black text-slate-700 dark:text-slate-200 text-lg mb-1">לחץ לבחירת קובץ או גרור לכאן</h4>
+            <p className="text-xs font-bold text-slate-400">קובץ CSV בלבד (.csv)</p>
+          </div>
+        ) : isImporting ? (
+          /* Step 3: Progress */
+          <div className="flex flex-col items-center justify-center py-12 gap-5">
+            <Loader2 className="animate-spin text-emerald-500 w-12 h-12" />
+            <div className="text-center">
+              <h4 className="font-black text-slate-700 dark:text-slate-200 text-lg">מייבא לידים למסד הנתונים...</h4>
+              <p className="text-xs font-bold text-slate-400 mt-1">נא לא לסגור חלון זה</p>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden mt-2 max-w-sm">
+              <div 
+                className="bg-emerald-500 h-full transition-all duration-300 rounded-full" 
+                style={{ width: `${importProgress}%` }}
+              />
+            </div>
+            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{importProgress}%</span>
+          </div>
+        ) : (
+          /* Step 2: Mapping Columns */
+          <div className="flex flex-col gap-6 overflow-y-auto">
+            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/30 border dark:border-slate-800 p-4 rounded-2xl">
+              <div>
+                <h4 className="font-black text-sm text-slate-700 dark:text-slate-200">{file.name}</h4>
+                <p className="text-xs text-slate-400 font-bold mt-0.5">גודל: {(file.size / 1024).toFixed(1)} KB | נמצאו {rows.length} שורות</p>
+              </div>
+              <button 
+                onClick={() => { setFile(null); setHeaders([]); setRows([]); }}
+                className="text-xs font-black text-slate-400 hover:text-red-500 transition-all underline"
+              >
+                החלף קובץ
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Name Selection */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-black text-slate-500">עמודת שם לקוח (Client Name)</label>
+                <select 
+                  value={selectedNameHeader}
+                  onChange={(e) => setSelectedNameHeader(e.target.value)}
+                  className="w-full rounded-2xl border dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm px-4 py-3 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                >
+                  <option value="" disabled>בחר עמודה...</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+
+              {/* Phone Selection */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-black text-slate-500">עמודת מספר טלפון (Phone)</label>
+                <select 
+                  value={selectedPhoneHeader}
+                  onChange={(e) => setSelectedPhoneHeader(e.target.value)}
+                  className="w-full rounded-2xl border dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm px-4 py-3 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                >
+                  <option value="" disabled>בחר עמודה...</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Live Preview */}
+            {selectedNameHeader && selectedPhoneHeader && (
+              <div className="flex flex-col gap-3 border-2 border-dashed dark:border-slate-800 rounded-2xl p-4">
+                <h5 className="text-xs font-black text-slate-400">תצוגה מקדימה של 3 השורות הראשונות:</h5>
+                <div className="divide-y dark:divide-slate-800">
+                  {rows.slice(0, 3).map((row, idx) => {
+                    const nameVal = row[headers.indexOf(selectedNameHeader)] || "";
+                    const phoneVal = row[headers.indexOf(selectedPhoneHeader)] || "";
+                    return (
+                      <div key={idx} className="flex justify-between items-center py-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                        <span>👤 {nameVal || "(ריק)"}</span>
+                        <span className="font-mono">{phoneVal || "(ריק)"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Footer Buttons */}
+            <div className="flex gap-3 justify-end mt-4">
+              <button 
+                onClick={onClose}
+                className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-black transition-all"
+              >
+                ביטול
+              </button>
+              <button 
+                onClick={handleStartImport}
+                disabled={!selectedNameHeader || !selectedPhoneHeader}
+                className="px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/15 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                ייבא {rows.length} לידים
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
