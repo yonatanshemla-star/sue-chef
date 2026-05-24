@@ -1311,7 +1311,7 @@ export default function Home() {
                                   const isNotRelevant = lead.status === 'לא רלוונטי';
                                   const msgText = isNotRelevant 
                                     ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
-                                    : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
+                                    : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
                                   const msg = encodeURIComponent(msgText);
                                   window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
                                   setOpenMenuId(null);
@@ -1402,7 +1402,7 @@ export default function Home() {
                             const isNotRelevant = lead.status === 'לא רלוונטי';
                             const msgText = isNotRelevant 
                               ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
-                              : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
+                              : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
                             const msg = encodeURIComponent(msgText);
                             window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
                             setOpenMenuId(null);
