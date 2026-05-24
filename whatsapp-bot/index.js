@@ -75,6 +75,16 @@ async function notifyOwnerCrash(messageText, errObj = null) {
             return;
         } catch (sendErr) {
             console.error('❌ Failed to send WhatsApp alert, falling back to local crash triggers:', sendErr.message);
+            if (sendErr.message && (
+                sendErr.message.includes('detached') || 
+                sendErr.message.includes('Protocol error') || 
+                sendErr.message.includes('closed') || 
+                sendErr.message.includes('context was destroyed')
+            )) {
+                console.log('⚠️ Puppeteer browser/page became unresponsive during alert sending. Triggering client recovery...');
+                isClientReady = false;
+                recreateAndInitClient();
+            }
         }
     }
 
@@ -482,6 +492,7 @@ async function checkAndSendPendingWhatsAppMessages() {
                     sendErr.message.includes('context was destroyed')
                 )) {
                     console.log('⚠️ Puppeteer browser/page became unresponsive. Triggering client recovery...');
+                    isClientReady = false;
                     await notifyOwnerCrash(`⚠️ דפדפן הבוט איבד קשר או נסגר במהלך שליחה ל-${clientName}. מנסה לשחזר את הבוט אוטומטית כעת...`, sendErr);
                     recreateAndInitClient();
                 }
