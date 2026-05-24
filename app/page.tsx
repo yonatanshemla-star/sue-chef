@@ -1009,6 +1009,21 @@ export default function Home() {
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); };
 
+  const handleBannerClick = () => {
+    if (!incomingCall) return;
+    const cleanPhone = (p: string) => p ? p.replace(/[^0-9]/g, '') : '';
+    const normalizedFrom = cleanPhone(incomingCall.from);
+    if (!normalizedFrom) return;
+    const targetLead = leads.find(l => {
+      if (!l.phone) return false;
+      const lp = cleanPhone(l.phone);
+      return lp.length >= 7 && normalizedFrom.length >= 7 && (lp.endsWith(normalizedFrom) || normalizedFrom.endsWith(lp));
+    });
+    if (targetLead) {
+      navigateToLead(targetLead);
+    }
+  };
+
   if (!mounted) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
@@ -1021,7 +1036,11 @@ export default function Home() {
     <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-x-hidden`} style={{ zoom: 0.85 }}>
       {/* Live Incoming Call Banner */}
       {incomingCall && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-11/12 max-w-md bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-6 py-4 rounded-3xl shadow-[0_20px_60px_rgba(16,185,129,0.4)] border-2 border-emerald-400/40 animate-in fade-in slide-in-from-top-6 duration-500 flex items-center gap-4" dir="rtl">
+        <div 
+          onClick={handleBannerClick}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-11/12 max-w-md bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-6 py-4 rounded-3xl shadow-[0_20px_60px_rgba(16,185,129,0.4)] border-2 border-emerald-400/40 animate-in fade-in slide-in-from-top-6 duration-500 flex items-center gap-4 cursor-pointer hover:scale-105 active:scale-95 transition-all" 
+          dir="rtl"
+        >
           <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center animate-pulse flex-shrink-0">
             <PhoneCall className="w-6 h-6 text-white animate-bounce" />
           </div>
@@ -1037,7 +1056,8 @@ export default function Home() {
             </span>
           </div>
           <button 
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (incomingCall) {
                 dismissedCallTimestampRef.current = incomingCall.timestamp;
               }
@@ -1454,6 +1474,9 @@ export default function Home() {
                           ) : (
                             <>
                               <div className="flex items-center gap-2">
+                                {lead.isStarred && (
+                                  <Star size={18} className="text-amber-500 fill-amber-500 animate-in zoom-in duration-300 flex-shrink-0" />
+                                )}
                                 <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
                                 {duplicateMap.has(lead.id) && (
                                   <div className="flex flex-col items-center gap-0.5">
@@ -1497,6 +1520,13 @@ export default function Home() {
                                   setOpenMenuId(null);
                                 }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 transition-colors"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                                 <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"><Copy className="w-4 h-4" /> העתק מספר</button>
+                                <button onClick={() => {
+                                  handleLeadUpdate(lead.id, { isStarred: !lead.isStarred });
+                                  setOpenMenuId(null);
+                                }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-amber-500 transition-colors">
+                                  <Star className={`w-4 h-4 ${lead.isStarred ? 'fill-amber-500' : ''}`} /> 
+                                  {lead.isStarred ? 'הסר כוכב' : 'סמן בכוכב'}
+                                </button>
                                 <div className="h-px bg-gray-100 dark:bg-gray-800" />
                                 <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors"><Trash2 className="w-4 h-4" /> מחק ליד</button>
                               </div>
@@ -1600,6 +1630,13 @@ export default function Home() {
                             setOpenMenuId(null);
                           }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-emerald-600 hover:bg-emerald-50"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                           <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-100"><Copy className="w-4 h-4" /> העתק מספר</button>
+                          <button onClick={() => {
+                            handleLeadUpdate(lead.id, { isStarred: !lead.isStarred });
+                            setOpenMenuId(null);
+                          }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors">
+                            <Star className={`w-4 h-4 ${lead.isStarred ? 'fill-amber-500' : ''}`} /> 
+                            {lead.isStarred ? 'הסר כוכב' : 'סמן בכוכב'}
+                          </button>
                           <div className="h-px bg-slate-100 dark:bg-slate-800" />
                           <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /> מחק ליד</button>
                         </div>
@@ -1612,6 +1649,9 @@ export default function Home() {
                     <button onClick={() => initiateCall(lead)} className="flex-shrink-0 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-6 h-6" /></button>
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex items-center gap-2">
+                        {lead.isStarred && (
+                          <Star size={16} className="text-amber-500 fill-amber-500 animate-in zoom-in duration-300 flex-shrink-0" />
+                        )}
                         <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 flex-1 min-w-0 truncate" placeholder="שם הלקוח..." />
                         {duplicateMap.has(lead.id) && (
                           <div className="flex flex-col items-center gap-0.5">

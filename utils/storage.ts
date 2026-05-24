@@ -32,6 +32,7 @@ export interface Lead {
   salary?: string;
   employmentStatus?: string;
   medicalStatus?: string;
+  isStarred?: boolean;
 }
 
 export async function initDB() {
