@@ -570,24 +570,42 @@ async function handleIncomingMessage(msg, eventSource) {
     try {
         const contact = await msg.getContact();
         if (contact) {
-            // 1. Try formatted number (e.g. +972 52-281-8541 -> 972522818541)
-            const formatted = await contact.getFormattedNumber();
-            if (formatted) {
-                contactNumber = formatted.replace(/\D/g, '');
-                console.log(`👤 Resolved contact formatted number: ${formatted} -> ${contactNumber}`);
+            // 1. Try raw contact number first (extremely safe and doesn't use obfuscated browser functions)
+            if (contact.number) {
+                const rawNum = contact.number.split('@')[0].replace(/\D/g, '');
+                if (rawNum && rawNum.startsWith('972') && rawNum.length <= 13) {
+                    contactNumber = rawNum;
+                    console.log(`👤 Resolved contact raw number directly: ${contactNumber}`);
+                }
             }
             
-            // 2. Try raw contact number as fallback if formatted failed or looks weird
-            if ((!contactNumber || contactNumber.startsWith('623')) && contact.number) {
-                const rawNum = contact.number.split('@')[0].replace(/\D/g, '');
-                if (rawNum && !rawNum.startsWith('623')) {
-                    contactNumber = rawNum;
-                    console.log(`👤 Resolved contact raw number: ${contactNumber}`);
+            // 2. Try contact JID user if it's a real phone number
+            if (!contactNumber && contact.id && contact.id.user) {
+                const u = contact.id.user.replace(/\D/g, '');
+                if (u && u.startsWith('972') && u.length <= 13) {
+                    contactNumber = u;
+                    console.log(`👤 Resolved contact JID user directly: ${contactNumber}`);
+                }
+            }
+
+            // 3. Try formatted number in its own safe try/catch
+            if (!contactNumber) {
+                try {
+                    const formatted = await contact.getFormattedNumber();
+                    if (formatted) {
+                        const parsed = formatted.replace(/\D/g, '');
+                        if (parsed && parsed.startsWith('972') && parsed.length <= 13) {
+                            contactNumber = parsed;
+                            console.log(`👤 Resolved contact formatted number: ${contactNumber}`);
+                        }
+                    }
+                } catch (fmtErr) {
+                    console.log('⚠️ getFormattedNumber failed:', fmtErr.message);
                 }
             }
         }
     } catch (contactErr) {
-        console.warn('⚠️ Failed to get contact details, falling back to JID extraction:', contactErr.message);
+        console.warn('⚠️ Failed to get contact details:', contactErr.message);
     }
 
     // 3. Last fallback: parse JID suffix directly
@@ -647,8 +665,44 @@ async function handleIncomingMessage(msg, eventSource) {
             ORDER BY created_at DESC
             LIMIT 1
         `;
-        const res = await pool.query(query, [normPhone9]);
+        let res = await pool.query(query, [normPhone9]);
         
+        if (res.rows.length === 0) {
+            console.log(`⚠️ No matching lead found by phone suffix. Attempting history welcome-message parsing fallback...`);
+            try {
+                const chat = await msg.getChat();
+                if (chat) {
+                    const messages = await chat.fetchMessages({ limit: 20 });
+                    const welcomeMsg = messages.find(m => m.fromMe && (
+                        m.body.includes('הגעת למשרד עורכי הדין HBA') || 
+                        m.body.includes('הגעת למערכת הלידים של עורכי הדין')
+                    ));
+                    if (welcomeMsg) {
+                        const firstLine = welcomeMsg.body.split('\n')[0];
+                        const cleanName = firstLine.replace(/^(היי|שלום)\s+/, '').replace(/,$/, '').trim();
+                        console.log(`🔍 Parsed client name from history: "${cleanName}"`);
+                        
+                        if (cleanName) {
+                            const nameQuery = `
+                                SELECT id, data 
+                                FROM leads 
+                                WHERE data->>'clientName' = $1
+                                ORDER BY created_at DESC
+                                LIMIT 1
+                            `;
+                            const nameRes = await pool.query(nameQuery, [cleanName]);
+                            if (nameRes.rows.length > 0) {
+                                console.log(`🎯 Successfully resolved lead by welcome-message name match: ${cleanName}`);
+                                res = nameRes;
+                            }
+                        }
+                    }
+                }
+            } catch (fallbackErr) {
+                console.error('❌ History fallback resolution failed:', fallbackErr.message);
+            }
+        }
+
         if (res.rows.length === 0) {
             console.log(`⚠️ No matching lead found in database for phone suffix: ${normPhone9}`);
             return;
