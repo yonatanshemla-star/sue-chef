@@ -472,12 +472,18 @@ async function checkAndSendPendingWhatsAppMessages() {
             const chatId = `${formattedPhone}@c.us`;
             
             try {
-                await client.sendMessage(chatId, message);
+                const sentMsg = await client.sendMessage(chatId, message);
                 console.log(`✅ WhatsApp successfully sent to ${chatId} for lead ${clientName}`);
                 
-                // Mark as successfully sent in DB
+                // Mark as successfully sent in DB and save JID
                 lead.whatsappSent = true;
                 lead.whatsappSentAt = new Date().toISOString();
+                
+                const resolvedJid = sentMsg.to || sentMsg.id.remote;
+                if (resolvedJid) {
+                    lead.whatsappJid = resolvedJid;
+                    console.log(`💾 Resolved JID ${resolvedJid} captured for ${clientName}`);
+                }
                 
                 // Update generalNotes with "נשלחה הודעת פתיחה"
                 let newNotes = lead.generalNotes || '';
@@ -657,15 +663,16 @@ async function handleIncomingMessage(msg, eventSource) {
             phoneForQuery = '972522818541';
         }
         const normPhone9 = phoneForQuery.slice(-9);
+        const otherPartyJid = fromMe ? to : from;
         const query = `
             SELECT id, data 
             FROM leads 
-            WHERE (data->>'phone' IS NOT NULL)
-              AND (right(regexp_replace(data->>'phone', '\\D', '', 'g'), 9) = $1)
+            WHERE (data->>'phone' IS NOT NULL AND right(regexp_replace(data->>'phone', '\\D', '', 'g'), 9) = $1)
+               OR (data->>'whatsappJid' = $2)
             ORDER BY created_at DESC
             LIMIT 1
         `;
-        let res = await pool.query(query, [normPhone9]);
+        let res = await pool.query(query, [normPhone9, otherPartyJid]);
         
         if (res.rows.length === 0) {
             console.log(`⚠️ No matching lead found by phone suffix. Attempting history welcome-message parsing fallback...`);
@@ -838,8 +845,39 @@ app.post('/api/send', async (req, res) => {
         if (formattedPhone.startsWith('0')) formattedPhone = '972' + formattedPhone.substring(1);
         
         const chatId = `${formattedPhone}@c.us`;
-        await client.sendMessage(chatId, message);
+        const sentMsg = await client.sendMessage(chatId, message);
         console.log(`Sent to ${chatId}`);
+        
+        // Save the resolved JID to the database!
+        try {
+            const resolvedJid = sentMsg.to || sentMsg.id.remote;
+            if (resolvedJid) {
+                const normPhone9 = formattedPhone.slice(-9);
+                const query = `
+                    SELECT id, data 
+                    FROM leads 
+                    WHERE (data->>'phone' IS NOT NULL)
+                      AND (right(regexp_replace(data->>'phone', '\\D', '', 'g'), 9) = $1)
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                `;
+                const dbRes = await pool.query(query, [normPhone9]);
+                if (dbRes.rows.length > 0) {
+                    const leadId = dbRes.rows[0].id;
+                    const lead = dbRes.rows[0].data;
+                    lead.whatsappJid = resolvedJid;
+                    lead.whatsappSent = true;
+                    lead.whatsappSentAt = new Date().toISOString();
+                    
+                    const updateQuery = `UPDATE leads SET data = $1 WHERE id = $2`;
+                    await pool.query(updateQuery, [JSON.stringify(lead), leadId]);
+                    console.log(`💾 Saved resolved JID ${resolvedJid} to database for lead ${lead.clientName}`);
+                }
+            }
+        } catch (dbErr) {
+            console.error('❌ Failed to update JID in DB:', dbErr.message);
+        }
+
         res.json({ success: true });
     } catch (err) {
         console.error(err);

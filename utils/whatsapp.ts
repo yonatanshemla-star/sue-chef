@@ -5,7 +5,10 @@ export async function sendWhatsAppWelcome(phone: string, clientName: string) {
     if (!phone) return { success: false, error: 'No phone' };
 
     try {
-        const message = `היי ${clientName},\n\nהגעת למשרד עורכי הדין HBA. קיבלנו את פנייתך וניצור איתך קשר בהקדם!\nתוכל להשיב להודעה זו עם פרטים נוספים.`;
+        const message = `שלום ותודה שפנית למשרדנו,
+הפנייה שלך התקבלה ונציג מהמשרד ייצור קשר בהקדם.
+
+בכדי שנוכל לתת מענה מדויק יותר נשמח לקבל ממך בקצרה את פרטי המקרה, אבחנות רפואיות וסטטוס תעסוקתי בכדי שנוכל להתכונן מראש לשיחה.`;
         
         const response = await fetch(`${WHATSAPP_BOT_URL}/api/send`, {
             method: 'POST',
