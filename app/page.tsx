@@ -902,7 +902,16 @@ export default function Home() {
     let location = 'crm';
     if (lead.status === 'חתם' || lead.status === 'נגמר') location = 'archive';
     else if (lead.status === 'במעקב') location = 'followup';
-    else if (lead.status === 'לא ענה') location = 'noanswer';
+    else if (lead.status === 'לא ענה') {
+      const hist = lead.statusHistory || [];
+      const lastEntry = [...hist].reverse().find(h => h.to === 'לא ענה');
+      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
+      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 7) {
+        location = 'noanswer';
+      } else {
+        location = 'crm';
+      }
+    }
     else if (lead.status === 'לחזור אליו') {
       const hist = lead.statusHistory || [];
       const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
@@ -928,12 +937,12 @@ export default function Home() {
     .filter(l => {
       if (globalSearch.trim()) return true;
       if (l.status === 'חתם' || l.status === 'נגמר' || l.status === 'במעקב') return false;
-      // Hide "לא ענה" leads older than 5 days from main CRM
+      // Hide "לא ענה" leads older than 7 days from main CRM
       if (l.status === 'לא ענה') {
         const hist = l.statusHistory || [];
         const lastEntry = [...hist].reverse().find(h => h.to === 'לא ענה');
         const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(l.createdAt);
-        if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 5) return false;
+        if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 7) return false;
       }
       // Hide "לחזור אליו" leads unchanged for > 14 days from main CRM
       if (l.status === 'לחזור אליו') {
@@ -972,7 +981,12 @@ export default function Home() {
   const noAnswerLeads = useMemo(() => leads
     .filter(l => {
       if (globalSearch.trim()) return true;
-      if (l.status === 'לא ענה') return true;
+      if (l.status === 'לא ענה') {
+        const hist = l.statusHistory || [];
+        const lastEntry = [...hist].reverse().find(h => h.to === 'לא ענה');
+        const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(l.createdAt);
+        return (Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 7;
+      }
       if (l.status === 'לחזור אליו') {
         const hist = l.statusHistory || [];
         const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
