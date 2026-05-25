@@ -430,7 +430,12 @@ export default function Home() {
         await fetch('/api/leads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reason }) });
       } catch (e) { console.error(e); fetchLeads(); }
     } else {
+        const currentLead = leads.find(l => l.id === id);
         const updates: Partial<Lead> = { status: targetStatus, disqualificationReason: reason };
+        if (currentLead && currentLead.status !== targetStatus && targetStatus) {
+            const history = currentLead.statusHistory || [];
+            updates.statusHistory = [...history, { from: currentLead.status, to: targetStatus, timestamp: new Date().toISOString() }];
+        }
         setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
         try {
           await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...updates }) });
@@ -1014,7 +1019,18 @@ export default function Home() {
     .sort((a, b) => {
         if (a.status === 'חתם' && b.status !== 'חתם') return -1;
         if (a.status !== 'חתם' && b.status === 'חתם') return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        
+        const getArchiveTime = (l: Lead) => {
+          if (l.status === 'חתם') {
+            if (l.signedAt) return new Date(l.signedAt).getTime();
+          }
+          const hist = l.statusHistory || [];
+          const entry = [...hist].reverse().find(h => h.to === l.status);
+          if (entry) return new Date(entry.timestamp).getTime();
+          return new Date(l.createdAt).getTime();
+        };
+        
+        return getArchiveTime(b) - getArchiveTime(a);
     }), [leads, globalSearch]);
 
   const cardClass = "premium-glass rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:hover:shadow-indigo-500/10";
