@@ -402,6 +402,9 @@ export default function Home() {
         updates.signedAt = new Date().toISOString();
         // 🎉 Celebrate!
         fireConfetti();
+      } else {
+        updates.isSigned = false;
+        updates.signedAt = null as any;
       }
       // Track status history
       const currentLead = leads.find(l => l.id === id);
@@ -509,6 +512,9 @@ export default function Home() {
       if (newStatus === 'חתם') {
         updates.isSigned = true;
         updates.signedAt = new Date().toISOString();
+      } else {
+        updates.isSigned = false;
+        updates.signedAt = null as any;
       }
       
       const history = l.statusHistory || [];
@@ -536,6 +542,9 @@ export default function Home() {
           if (newStatus === 'חתם') {
             updates.isSigned = true;
             updates.signedAt = new Date().toISOString();
+          } else {
+            updates.isSigned = false;
+            updates.signedAt = null as any;
           }
           if (l.status !== newStatus) {
             const history = l.statusHistory || [];
@@ -1183,22 +1192,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Secret Profit Tracker Panel (Counter + Profit Only) */}
+          {/* Secret Profit Tracker Panel (Profit Only) */}
           {showSecretPanel && (
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-2 rounded-3xl border dark:border-white/5">
-              <div className="px-4 py-2 flex flex-col items-center">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">מונה שעות עבודה</p>
-                <p className="text-sm font-black text-indigo-500" dir="ltr">
-                  {isWorking && workStartTime ? (
-                    new Date(Date.now() - workStartTime).toISOString().substr(11, 8)
-                  ) : (
-                    '00:00:00'
-                  )}
-                </p>
-              </div>
-              <button onClick={toggleWorkTimer} className={`h-12 px-6 rounded-2xl font-black text-sm flex items-center gap-2 transition-all shadow-lg ${isWorking ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
-                {isWorking ? 'עצור עבודה' : 'התחל עבודה'}
-              </button>
               <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="h-12 px-6 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
                 <TrendingUp size={16} /> רווח שבועי
               </button>
@@ -2452,11 +2448,7 @@ export default function Home() {
                 <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin" size={32} /></div>
               ) : weeklyData ? (
                 <div className="mt-8 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/10 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">שעות עבודה השבוע</p>
-                      <p className="text-3xl font-black text-amber-400">{getWeeklyHours(weekOffset).toFixed(1)}<span className="text-lg mr-1">שעות</span></p>
-                    </div>
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white/10 rounded-2xl p-4">
                       <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">חתימות השבוע</p>
                       <p className="text-3xl font-black text-emerald-400">{weeklyData.signedThisWeek}</p>
@@ -2466,23 +2458,15 @@ export default function Home() {
                       <p className="text-3xl font-black text-emerald-400">₪{weeklyData.grossRevenue.toLocaleString()}</p>
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">עלות Twilio</p>
-                      <p className="text-3xl font-black text-red-400">₪{weeklyData.twilioCostNIS.toFixed(0)}</p>
-                      <p className="text-[10px] text-indigo-300 mt-1">${weeklyData.twilioCostUSD}</p>
+                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">בזבוז Twilio</p>
+                      <p className="text-3xl font-black text-red-400">${weeklyData.twilioCostUSD.toFixed(2)}</p>
+                      <p className="text-[10px] text-indigo-300 mt-1">₪{weeklyData.twilioCostNIS.toFixed(0)}</p>
                     </div>
                   </div>
                   
                   <div className="bg-white/15 rounded-3xl p-6 border border-white/10 mt-6">
                     <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">רווח נקי</p>
                     <p className={`text-5xl font-black ${weeklyData.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>₪{weeklyData.netProfit.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="bg-white/10 rounded-2xl p-5">
-                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">כסף לשעה</p>
-                    <p className="text-4xl font-black text-amber-400">
-                      ₪{getWeeklyHours(weekOffset) > 0 ? (weeklyData.netProfit / getWeeklyHours(weekOffset)).toFixed(0) : '0'}
-                      <span className="text-lg mr-1 text-indigo-200">/שעה</span>
-                    </p>
                   </div>
                 </div>
               ) : (
