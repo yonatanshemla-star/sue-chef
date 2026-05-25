@@ -2448,14 +2448,10 @@ export default function Home() {
                 <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin" size={32} /></div>
               ) : weeklyData ? (
                 <div className="mt-8 space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white/10 rounded-2xl p-4">
                       <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">חתימות השבוע</p>
                       <p className="text-3xl font-black text-emerald-400">{weeklyData.signedThisWeek}</p>
-                    </div>
-                    <div className="bg-white/10 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">הכנסה ברוטו</p>
-                      <p className="text-3xl font-black text-emerald-400">₪{weeklyData.grossRevenue.toLocaleString()}</p>
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4">
                       <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">בזבוז Twilio</p>
@@ -2465,8 +2461,8 @@ export default function Home() {
                   </div>
                   
                   <div className="bg-white/15 rounded-3xl p-6 border border-white/10 mt-6">
-                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">רווח נקי</p>
-                    <p className={`text-5xl font-black ${weeklyData.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>₪{weeklyData.netProfit.toLocaleString()}</p>
+                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">הכנסה שבועית</p>
+                    <p className="text-5xl font-black text-emerald-400">₪{weeklyData.grossRevenue.toLocaleString()}</p>
                   </div>
                 </div>
               ) : (
