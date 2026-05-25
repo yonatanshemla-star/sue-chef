@@ -1,8 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { sql } from '@vercel/postgres';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const timeframe = request.nextUrl.searchParams.get('timeframe') || 'lifetime';
+    
+    // Determine the days limit dynamically based on requested timeframe
+    let daysLimit = 999999; // Represent lifetime as a massive interval
+    if (timeframe === '30days') {
+      daysLimit = 30;
+    } else if (timeframe === '7days') {
+      daysLimit = 7;
+    } else if (timeframe === 'currentMonth') {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      daysLimit = Math.ceil((now.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // 1. Fetch KPI metrics and funnel stages filtered by timeframe
     const statsRes = await sql`
       SELECT 
         count(*) as total,
@@ -13,6 +28,7 @@ export async function GET() {
         AVG((data->>'callCount')::int) FILTER (WHERE (data->>'status') = 'חתם' AND (data->>'callCount')::int > 0) as avg_calls_to_sign,
         AVG((data->>'callCount')::int) FILTER (WHERE (data->>'disqualificationReason') = 'אין מענה חוזר' AND (data->>'callCount')::int > 0) as avg_calls_no_answer
       FROM leads
+      WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval
     `;
     
     const stats = statsRes.rows[0];
@@ -24,10 +40,12 @@ export async function GET() {
     const avgCallsPerSigned = stats.avg_calls_to_sign ? parseFloat(stats.avg_calls_to_sign).toFixed(1) : "0.0";
     const avgCallsNoAnswer = stats.avg_calls_no_answer ? parseFloat(stats.avg_calls_no_answer).toFixed(1) : "0.0";
 
+    // 2. Fetch disqualification reasons breakdown filtered by timeframe
     const disqualificationRes = await sql`
       SELECT data->>'disqualificationReason' as reason, count(*) as count
       FROM leads 
       WHERE (data->>'disqualificationReason') IS NOT NULL
+        AND created_at >= NOW() - (${daysLimit} || ' days')::interval
       GROUP BY data->>'disqualificationReason'
       ORDER BY count DESC
     `;

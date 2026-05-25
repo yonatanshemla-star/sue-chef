@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
@@ -108,11 +108,19 @@ export default function Home() {
   const [weeklyData, setWeeklyData] = useState<any>(null);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'lifetime' | '30days' | '7days' | 'currentMonth'>('lifetime');
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [switchPassword, setSwitchPassword] = useState("");
   const [switchLoading, setSwitchLoading] = useState(false);
   const [switchError, setSwitchError] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // AI Diagnostics State
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
+  const [loadingAiStatus, setLoadingAiStatus] = useState("סורק ומקבץ שיחות ולידים לתקופה...");
+  const [checkedActionItems, setCheckedActionItems] = useState<Record<number, boolean>>({});
 
   // Daily Sticky Notes
   const [showStickyNote, setShowStickyNote] = useState(false);
@@ -308,10 +316,10 @@ export default function Home() {
   }, [liveNotesLead, isDrawerOpen]);
 
   // Analytics Fetching
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = async (timeframe: string = analyticsTimeframe) => {
     setLoadingAnalytics(true);
     try {
-      const res = await fetch("/api/analytics");
+      const res = await fetch(`/api/analytics?timeframe=${timeframe}`);
       const data = await res.json();
       if (data.success) {
         setAnalyticsData(data.data);
@@ -323,13 +331,53 @@ export default function Home() {
     }
   };
 
+  const runAiAnalysis = async () => {
+    setIsAiAnalyzing(true);
+    setIsAiDrawerOpen(true);
+    setAiAnalysis(null);
+    setCheckedActionItems({});
+    
+    const statuses = [
+      "סורק ומקבץ שיחות ולידים לתקופה...",
+      "מנתח סיבות פסילה מובילות ומחשב אובדן פוטנציאל...",
+      "סוקר יעילות שיחות וממוצעי מענה...",
+      "מנסח המלצות ייעול ייעודיות לדיני עבודה וביטוחים...",
+      "מתרגם אסטרטגיה לצ'קליסט משימות מעשי..."
+    ];
+    let statusIdx = 0;
+    setLoadingAiStatus(statuses[0]);
+    const statusInterval = setInterval(() => {
+      statusIdx = (statusIdx + 1) % statuses.length;
+      setLoadingAiStatus(statuses[statusIdx]);
+    }, 2000);
+
+    try {
+      const res = await fetch(`/api/analytics/ai-analyze?timeframe=${analyticsTimeframe}`);
+      const data = await res.json();
+      if (data.success && data.analysis) {
+        setAiAnalysis(data.analysis);
+      } else {
+        throw new Error(data.error || "שגיאה בטעינת ניתוח הבינה המלאכותית");
+      }
+    } catch (e: any) {
+      console.error("AI Analysis fetch fail", e);
+      setAiAnalysis({
+        error: true,
+        message: e.message || "נכשל הניתוח באמצעות בינה מלאכותית. אנא ודא שהמערכת מחוברת ושמפתח ה-API תקין."
+      });
+    } finally {
+      clearInterval(statusInterval);
+      setIsAiAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'analytics') {
-      fetchAnalyticsData();
+      fetchAnalyticsData(analyticsTimeframe);
       const timer = setInterval(() => setCurrentInsightIndex(p => (p + 1) % 3), 6000);
       return () => clearInterval(timer);
     }
-  }, [activeTab]);
+  }, [activeTab, analyticsTimeframe]);
 
   // Notifications
   useEffect(() => {
@@ -1814,71 +1862,173 @@ export default function Home() {
           )}
 
           {activeTab === 'analytics' && (
-            <div className="p-4 md:p-10 space-y-12 min-h-[500px]">
-               {loadingAnalytics ? <div className="flex flex-col items-center justify-center h-96 gap-6"><Loader2 className="animate-spin text-indigo-500" size={64} /><p className="font-black text-slate-400 text-xl animate-pulse tracking-wide">מחשב מדדים דטרמיניסטיים...</p></div> : analyticsData ? (
+            <div className="p-4 md:p-10 space-y-10 min-h-[500px]">
+               {/* Timeframe Selector & Title Row */}
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md p-6 rounded-[32px] border dark:border-slate-800/80 shadow-sm">
+                 <div>
+                   <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">📊 אנליטיקה וביצועי משרד</h3>
+                   <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-1">מדדים סטטיסטיים מתקדמים לחילוץ וזיהוי מגמות</p>
+                 </div>
+                 
+                 <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900/60 border dark:border-slate-800 rounded-2xl self-start md:self-auto shadow-inner">
+                   {[
+                     { id: 'lifetime', label: 'כל הזמן', icon: History },
+                     { id: '30days', label: '30 ימים אחרונים', icon: Calendar },
+                     { id: 'currentMonth', label: 'החודש הנוכחי', icon: Clock },
+                     { id: '7days', label: '7 ימים אחרונים', icon: Zap }
+                   ].map(tf => {
+                     const Icon = tf.icon;
+                     const active = analyticsTimeframe === tf.id;
+                     return (
+                       <button
+                         key={tf.id}
+                         onClick={() => setAnalyticsTimeframe(tf.id as any)}
+                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+                           active
+                             ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/40 hover:text-slate-800 dark:hover:text-slate-200'
+                         }`}
+                       >
+                         <Icon size={14} />
+                         {tf.label}
+                       </button>
+                     );
+                   })}
+                 </div>
+               </div>
+
+               {loadingAnalytics ? (
+                 <div className="flex flex-col items-center justify-center h-96 gap-6">
+                   <Loader2 className="animate-spin text-indigo-500" size={64} />
+                   <p className="font-black text-slate-400 text-xl animate-pulse tracking-wide">מחשב מדדים דטרמיניסטיים...</p>
+                 </div>
+               ) : analyticsData ? (
                  <>
-                   <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                   {/* 5 KPI Grid */}
+                   <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                      {[
-                       { icon: Users, label: 'סה"כ לידים', value: analyticsData.funnel?.total || 0, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/10', border: 'border-indigo-100 dark:border-indigo-900/30' },
-                       { icon: CheckCircle, label: 'חתימות', value: analyticsData.funnel?.signed || 0, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-100 dark:border-emerald-900/30', sub: `${analyticsData.funnel?.total > 0 ? ((analyticsData.funnel.signed / analyticsData.funnel.total)*100).toFixed(1) : 0}% המרה כוללת` },
-                       { icon: Zap, label: 'ממוצע שיחות לסגירה', value: analyticsData.insights?.avgCallsPerSigned || 0, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10', border: 'border-amber-100 dark:border-amber-900/30' },
-                       { icon: TrendingUp, label: 'איכות הלידים (רלוונטיות)', value: analyticsData.insights?.leadQualityRatio || 0, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/10', border: 'border-purple-100 dark:border-purple-900/30', isPercent: true }
+                       { icon: Users, label: 'סה"כ לידים', value: analyticsData.funnel?.total || 0, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50/50 dark:bg-indigo-950/20', border: 'border-indigo-100/80 dark:border-indigo-900/30' },
+                       { icon: TrendingUp, label: 'איכות הלידים (רלוונטיות)', value: analyticsData.insights?.leadQualityRatio || 0, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50/50 dark:bg-purple-950/20', border: 'border-purple-100/80 dark:border-purple-900/30', isPercent: true },
+                       { 
+                         icon: Star, 
+                         label: 'יחס סגירה מרלוונטיים', 
+                         value: analyticsData.funnel?.relevant > 0 ? Math.round((analyticsData.funnel.signed / analyticsData.funnel.relevant) * 100) : 0, 
+                         color: 'text-blue-600 dark:text-blue-400', 
+                         bg: 'bg-blue-50/50 dark:bg-blue-950/20', 
+                         border: 'border-blue-100/80 dark:border-blue-900/30', 
+                         isPercent: true,
+                         sub: 'יעילות המכירה מתוך בעלי עילה'
+                       },
+                       { 
+                         icon: CheckCircle, 
+                         label: 'חתימות', 
+                         value: analyticsData.funnel?.signed || 0, 
+                         color: 'text-emerald-600 dark:text-emerald-400', 
+                         bg: 'bg-emerald-50/50 dark:bg-emerald-950/20', 
+                         border: 'border-emerald-100/80 dark:border-emerald-900/30', 
+                         sub: `${analyticsData.funnel?.total > 0 ? ((analyticsData.funnel.signed / analyticsData.funnel.total)*100).toFixed(1) : 0}% המרה כוללת` 
+                       },
+                       { icon: Zap, label: 'ממוצע שיחות לסגירה', value: analyticsData.insights?.avgCallsPerSigned || 0, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50/50 dark:bg-amber-950/20', border: 'border-amber-100/80 dark:border-amber-900/30' }
                      ].map((kpi, idx) => (
-                       <div key={idx} className={`${kpi.bg} p-6 md:p-10 rounded-3xl md:rounded-[40px] border ${kpi.border} transition-all duration-500 transform hover:-translate-y-2 hover:shadow-2xl opacity-100`}>
-                          <kpi.icon className={kpi.color + " mb-6"} size={32} />
-                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">{kpi.label}</p>
-                          <p className={`text-5xl font-black ${kpi.color}`}><SimpleCountUp value={kpi.value || 0} suffix={kpi.isPercent ? "%" : ""} /></p>
-                          {kpi.sub && <p className="text-xs font-bold text-emerald-500 mt-4 flex items-center gap-1"><ArrowUpRight size={14} /> {kpi.sub}</p>}
+                       <div key={idx} className={`${kpi.bg} p-6 rounded-3xl border ${kpi.border} transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl`}>
+                          <kpi.icon className={kpi.color + " mb-4"} size={26} />
+                          <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1.5">{kpi.label}</p>
+                          <p className={`text-4xl font-black ${kpi.color}`}><SimpleCountUp value={kpi.value || 0} suffix={kpi.isPercent ? "%" : ""} /></p>
+                          {kpi.sub && <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} /> {kpi.sub}</p>}
                        </div>
                      ))}
                    </div>
 
-                   <div className="bg-slate-100/30 dark:bg-slate-800/20 p-6 md:p-12 rounded-3xl md:rounded-[56px] border dark:border-slate-800 shadow-inner overflow-hidden">
-                     <h4 className="text-2xl md:text-3xl font-black mb-8 md:mb-12 flex items-center gap-4 text-slate-900 dark:text-white">משפך המרה <ArrowDownRight size={24} className="text-indigo-500" /></h4>
-                     <div className="space-y-12 max-w-4xl mx-auto">
-                        {[
-                          { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שענו לטלפון או שסטטוסם התקדם מעבר ל'חדש'." },
-                          { label: "רלוונטיות (בבדיקה/המשך טיפול)", count: analyticsData.funnel?.relevant || 0, drop: analyticsData.funnel?.contacted > 0 ? (100 - (analyticsData.funnel.relevant / analyticsData.funnel.contacted * 100)) : 0, dropVal: analyticsData.funnel?.contacted - analyticsData.funnel?.relevant, color: "bg-indigo-400", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.relevant / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שסומנו כבעלי עילה והועברו הלאה במערכת." },
-                          { label: "חתומים", count: analyticsData.funnel?.signed || 0, drop: analyticsData.funnel?.relevant > 0 ? (100 - (analyticsData.funnel.signed / analyticsData.funnel.relevant * 100)) : 0, dropVal: analyticsData.funnel?.relevant - analyticsData.funnel?.signed, color: "bg-emerald-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.signed / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", shadow: "shadow-emerald-500/30", desc: "מטופלים שהמרו והפכו לייצוג רשמי." }
-                        ].map((step, idx) => (
-                          <div key={idx} className="relative group opacity-100 mt-8">
-                             {idx > 0 && <div className="absolute -top-10 right-4 text-[10px] font-black bg-red-50 dark:bg-red-900/10 text-red-500 px-3 py-1 rounded-full z-10 shadow-sm border border-red-100 dark:border-red-900/30 flex items-center gap-1"><ArrowDownRight size={12}/> נשרו {step.drop.toFixed(1)}% ({step.dropVal} אבדו בשלב הקודם)</div>}
-                             <div className="flex justify-between items-center mb-3 px-4 relative z-20">
-                               <div className="flex flex-col">
-                                 <span className="text-base font-black text-slate-700 dark:text-slate-200 tracking-tight">{step.label}</span>
-                                 <span className="text-xs text-slate-400 font-bold mt-1 line-clamp-1 group-hover:line-clamp-none transition-all">{step.desc}</span>
-                               </div>
-                               <span className="text-lg font-black text-slate-900 dark:text-white px-4 py-1 bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border dark:border-slate-700">{step.count} ({step.val})</span>
-                             </div>
-                             <div className="w-full h-11 bg-slate-200/50 dark:bg-slate-800 rounded-full overflow-hidden flex flex-row-reverse shadow-inner relative z-20">
-                               <div className={`${step.color} h-full transition-all duration-[1000ms] ease-out flex items-center justify-end px-8 text-xs font-black text-white ${step.shadow || 'shadow-lg'}`} style={{ width: step.val }}>
-                                  {step.count > 0 && <span className="opacity-0 group-hover:opacity-100 transition-opacity tracking-widest uppercase text-[10px]">VERIFIED</span>}
-                               </div>
-                             </div>
-                          </div>
-                        ))}
+                   {/* Funnel & Relevance Progress Ring */}
+                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
+                     {/* Left: Progress Ring */}
+                     <div className="bg-slate-100/30 dark:bg-slate-800/20 p-8 rounded-3xl md:rounded-[48px] border dark:border-slate-800 shadow-inner flex flex-col items-center justify-center text-center relative overflow-hidden group min-h-[350px]">
+                       <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
+                       <h4 className="text-base font-black mb-6 text-slate-800 dark:text-slate-200">איכות הלידים בטווח הנבחר</h4>
+                       <div className="relative flex items-center justify-center mb-6">
+                         <svg className="w-44 h-44 transform -rotate-90">
+                           <circle
+                             cx="88"
+                             cy="88"
+                             r="70"
+                             className="text-slate-200 dark:text-slate-800/60"
+                             strokeWidth="12"
+                             stroke="currentColor"
+                             fill="transparent"
+                           />
+                           <circle
+                             cx="88"
+                             cy="88"
+                             r="70"
+                             className="text-indigo-600 dark:text-indigo-500 transition-all duration-[1500ms] ease-out"
+                             strokeWidth="12"
+                             strokeDasharray={439.8}
+                             strokeDashoffset={439.8 - ((analyticsData.insights?.leadQualityRatio || 0) / 100) * 439.8}
+                             strokeLinecap="round"
+                             stroke="currentColor"
+                             fill="transparent"
+                           />
+                         </svg>
+                         <div className="absolute inset-0 flex flex-col items-center justify-center">
+                           <span className="text-4xl font-black text-slate-800 dark:text-white">{analyticsData.insights?.leadQualityRatio || 0}%</span>
+                           <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">רלוונטיות לתקופה</span>
+                         </div>
+                       </div>
+                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+                         {analyticsData.insights?.leadQualityRatio >= 35 
+                           ? 'איכות הלידים שלכם מעולה! מרבית הלידים שעונים לשיחה אכן בעלי עילה משפטית רלוונטית.' 
+                           : 'איכות הלידים בינונית לתקופה זו. מומלץ לטייב את מקורות הפרסום כדי למנוע שיחות סרק.'}
+                       </p>
+                     </div>
+
+                     {/* Right: Funnel (Spans 2 columns) */}
+                     <div className="lg:col-span-2 bg-slate-100/30 dark:bg-slate-800/20 p-8 md:p-10 rounded-3xl md:rounded-[48px] border dark:border-slate-800 shadow-inner overflow-hidden flex flex-col justify-center">
+                       <h4 className="text-base font-black mb-6 flex items-center gap-3 text-slate-900 dark:text-white">משפך המרה דינמי <ArrowDownRight size={20} className="text-indigo-500" /></h4>
+                       <div className="space-y-8">
+                         {[
+                           { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-gradient-to-r from-indigo-600 to-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שענו לטלפון או שסטטוסם התקדם מעבר ל'חדש'." },
+                           { label: "רלוונטיות (בבדיקה/המשך טיפול)", count: analyticsData.funnel?.relevant || 0, drop: analyticsData.funnel?.contacted > 0 ? (100 - (analyticsData.funnel.relevant / analyticsData.funnel.contacted * 100)) : 0, dropVal: analyticsData.funnel?.contacted - analyticsData.funnel?.relevant, color: "bg-gradient-to-r from-purple-600 to-purple-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.relevant / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שסומנו כבעלי עילה והועברו הלאה במערכת." },
+                           { label: "חתומים", count: analyticsData.funnel?.signed || 0, drop: analyticsData.funnel?.relevant > 0 ? (100 - (analyticsData.funnel.signed / analyticsData.funnel.relevant * 100)) : 0, dropVal: analyticsData.funnel?.relevant - analyticsData.funnel?.signed, color: "bg-gradient-to-r from-emerald-600 to-emerald-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.signed / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", shadow: "shadow-emerald-500/30", desc: "מטופלים שהמרו והפכו לייצוג רשמי." }
+                         ].map((step, idx) => (
+                           <div key={idx} className="relative group opacity-100">
+                              {idx > 0 && <div className="absolute -top-7 left-4 text-[9px] font-black bg-red-50 dark:bg-red-950/20 text-red-500 px-2.5 py-0.5 rounded-full z-10 border border-red-100 dark:border-red-900/30 flex items-center gap-1"><ArrowDownRight size={10}/> נשרו {step.drop.toFixed(1)}% ({step.dropVal} אבדו בשלב הקודם)</div>}
+                              <div className="flex justify-between items-center mb-2 px-2 relative z-20">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-black text-slate-700 dark:text-slate-200 tracking-tight">{step.label}</span>
+                                  <span className="text-[10px] text-slate-400 font-bold mt-0.5 leading-none">{step.desc}</span>
+                                </div>
+                                <span className="text-xs font-black text-slate-800 dark:text-white px-3 py-1 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{step.count} ({step.val})</span>
+                              </div>
+                              <div className="w-full h-8 bg-slate-200/50 dark:bg-slate-800/60 rounded-full overflow-hidden flex flex-row-reverse shadow-inner relative z-20">
+                                <div className={`${step.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end px-6 text-xs font-black text-white ${step.shadow || 'shadow-lg'}`} style={{ width: step.val }}>
+                                </div>
+                              </div>
+                           </div>
+                         ))}
+                       </div>
                      </div>
                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-16 pb-12">
-                      <div className="bg-white dark:bg-slate-900 p-6 md:p-12 rounded-3xl md:rounded-[56px] border dark:border-slate-800 shadow-xl group">
-                         <h4 className="text-2xl md:text-3xl font-black mb-10 flex items-center gap-4 text-slate-900 dark:text-white">סיבות פסילה <AlertTriangle className="text-red-500" /></h4>
-                         <div className="space-y-8">
+                   {/* Disqualification & Smart Insights */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-12 pb-12">
+                      <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border dark:border-slate-800 shadow-xl group">
+                         <h4 className="text-xl font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white">סיבות פסילה לתקופה <AlertTriangle className="text-red-500" /></h4>
+                         <div className="space-y-6">
                             {Array.isArray(analyticsData.disqualificationReasons) && analyticsData.disqualificationReasons.length > 0 ? analyticsData.disqualificationReasons.map((r: any, idx: number) => (
-                              <div key={r.reason} className="space-y-3">
+                              <div key={r.reason} className="space-y-2">
                                 <div className="flex justify-between text-xs font-black uppercase text-slate-400"><span>{r.reason}</span><span>{r.count}</span></div>
                                 <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex flex-row-reverse">
                                   <div className="bg-gradient-to-l from-red-600 to-red-400 h-full transition-all duration-1000" style={{ width: `${(r.count / Math.max(1, analyticsData.funnel?.total || 1) * 100)}%` }} />
                                 </div>
                               </div>
-                            )) : <div className="flex flex-col items-center justify-center py-12 opacity-20"><HelpCircle size={48} /><p className="font-bold mt-4">אין נתונים</p></div>}
+                            )) : <div className="flex flex-col items-center justify-center py-12 opacity-20"><HelpCircle size={48} /><p className="font-bold mt-4">אין נתונים לתקופה זו</p></div>}
                          </div>
                       </div>
-                      <div className="bg-indigo-600 rounded-3xl md:rounded-[56px] p-6 md:p-12 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden group">
+                      <div className="bg-indigo-600 rounded-[40px] p-8 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden group min-h-[350px]">
                          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-[120px] rounded-full translate-x-32 -translate-y-32 transition-transform duration-1000 group-hover:scale-110" />
                          
                          <div className="flex justify-between items-center mb-8 relative z-10">
-                            <h4 className="text-xl font-black flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[11px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
+                            <h4 className="text-xl font-black flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[10px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
                             <div className="flex gap-2">
                                <button onClick={() => setCurrentInsightIndex(p => (p + 1) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-45" /></button>
                                {[0, 1, 2].map(i => <button key={i} onClick={() => setCurrentInsightIndex(i)} className={`h-2 rounded-full transition-all duration-500 cursor-pointer hover:bg-white/60 ${currentInsightIndex === i ? 'bg-white w-6' : 'bg-white/30 w-2'}`} />)}
@@ -1889,29 +2039,29 @@ export default function Home() {
                          <div className="relative h-48 z-10 w-full">
                             {currentInsightIndex === 0 && (
                                <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
-                                   <Zap size={48} className="text-amber-400 mb-6 opacity-80" />
-                                   <p className="text-3xl font-black opacity-90 leading-tight font-assistant">
+                                   <Zap size={44} className="text-amber-400 mb-6 opacity-80" />
+                                   <p className="text-2xl font-black opacity-90 leading-tight font-assistant">
                                       {analyticsData.insights?.quickSignedRate || 0}% מהחוזים נחתמים ב-<span className="text-amber-400">3 השיחות הראשונות</span>. נדרשות בממוצע {analyticsData.insights?.avgCallsPerSigned || 0} שיחות לסגירה.
                                    </p>
-                                   <p className="mt-4 text-indigo-200 font-bold text-sm">מסקנה: השקעת מאמץ מעבר ל-4 צלצולים מפחיתה דרסטית את סיכויי ההמרה.</p>
+                                   <p className="mt-3 text-indigo-200 font-bold text-xs">מסקנה: השקעת מאמץ מעבר ל-4 צלצולים מפחיתה דרסטית את סיכויי ההמרה.</p>
                                </div>
                             )}
                             {currentInsightIndex === 1 && (
                                <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
-                                   <Star size={48} className="text-emerald-400 mb-6 opacity-80" />
-                                   <p className="text-3xl font-black opacity-90 leading-tight font-assistant">
+                                   <Star size={44} className="text-emerald-400 mb-6 opacity-80" />
+                                   <p className="text-2xl font-black opacity-90 leading-tight font-assistant">
                                       מדד איכות הלידים שלך: <span className="text-emerald-400">{analyticsData.insights?.leadQualityRatio || 0}%</span> מאלו שענו באמת עברו את הסינון שלך והוגדרו כרלוונטיים.
                                    </p>
-                                   <p className="mt-4 text-indigo-200 font-bold text-sm">מסקנה: זהו אחוז הלידים הבשלים שהתקדמו לבדיקה מתוך הסך הכל הכללי עמו הושג קשר.</p>
+                                   <p className="mt-3 text-indigo-200 font-bold text-xs">מסקנה: זהו אחוז הלידים הבשלים שהתקדמו לבדיקה מתוך הסך הכל הכללי עמו הושג קשר.</p>
                                </div>
                             )}
                             {currentInsightIndex === 2 && (
                                <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
-                                   <PhoneOff size={48} className="text-red-400 mb-6 opacity-80" />
-                                   <p className="text-3xl font-black opacity-90 leading-tight font-assistant">
+                                   <PhoneOff size={44} className="text-red-400 mb-6 opacity-80" />
+                                   <p className="text-2xl font-black opacity-90 leading-tight font-assistant">
                                       לידים שנפסלו על 'אין מענה' קיבלו בממוצע רק <span className="text-red-400">{analyticsData.insights?.avgCallsNoAnswer || 0}</span> צלצולים בלבד.
                                    </p>
-                                   <p className="mt-4 text-indigo-200 font-bold text-sm">מסקנה: ייתכן ואנחנו ממהרים מדי לפסול. מומלץ להגדיל מספר ניסיונות לפני פסילה סופית.</p>
+                                   <p className="mt-3 text-indigo-200 font-bold text-xs">מסקנה: ייתכן ואנחנו ממהרים מדי לפסול. מומלץ להגדיל מספר ניסיונות לפני פסילה סופית.</p>
                                </div>
                             )}
                          </div>
@@ -2528,6 +2678,203 @@ export default function Home() {
           border-radius: 10px;
         }
       `}</style>
+
+      {/* AI Strategic Diagnostics Drawer (Slides from Right) */}
+      <div 
+        className={`fixed inset-0 z-[120] transition-opacity duration-300 ${isAiDrawerOpen ? 'bg-slate-950/60 backdrop-blur-md pointer-events-auto' : 'bg-transparent pointer-events-none opacity-0'}`}
+        onClick={() => { if (!isAiAnalyzing) setIsAiDrawerOpen(false); }}
+      />
+      <aside 
+        className={`fixed top-0 right-0 h-full w-full max-w-4xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-l dark:border-slate-800 z-[130] shadow-2xl transition-transform duration-500 transform ${isAiDrawerOpen ? 'translate-x-0' : 'translate-x-full'} overflow-y-auto`}
+        dir="rtl"
+      >
+        <div className="p-6 md:p-8 flex flex-col min-h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b dark:border-slate-800 pb-5 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 flex items-center justify-center shadow-inner">
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-xl md:text-2xl font-black bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-indigo-400">סו-שף AI • אבחון אסטרטגי</h3>
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">ניתוח דטרמיניסטי מתקדם והמלצות ייעול אופרטיביות</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+                {analyticsTimeframe === '7days' && '7 ימים אחרונים'}
+                {analyticsTimeframe === '30days' && '30 ימים אחרונים'}
+                {analyticsTimeframe === 'currentMonth' && 'החודש הנוכחי'}
+                {analyticsTimeframe === 'lifetime' && 'כל הזמן'}
+              </span>
+              
+              <button 
+                onClick={() => setIsAiDrawerOpen(false)} 
+                disabled={isAiAnalyzing}
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Body Content */}
+          {isAiAnalyzing ? (
+            /* Loading State */
+            <div className="flex-1 flex flex-col items-center justify-center py-20 gap-6">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-24 h-24 rounded-full border-4 border-violet-500/10 border-t-violet-500 animate-spin" />
+                <div className="absolute w-16 h-16 rounded-full border-4 border-indigo-500/10 border-b-indigo-500 animate-spin duration-1000" />
+                <Brain className="w-8 h-8 text-indigo-500 animate-pulse" />
+              </div>
+              <div className="text-center space-y-2 max-w-sm">
+                <h4 className="font-black text-slate-700 dark:text-slate-200 text-lg">סו-שף AI מנתח את הנתונים...</h4>
+                <p className="text-sm font-bold text-violet-600 dark:text-violet-400 animate-pulse min-h-[20px]">{loadingAiStatus}</p>
+                <p className="text-xs font-bold text-slate-400 mt-2">אנחנו מחשבים סיבות פסילה, עלויות שיחות, ויחסי המרה אקטיביים לתקופה הנבחרת.</p>
+              </div>
+            </div>
+          ) : aiAnalysis?.error ? (
+            /* Error State */
+            <div className="flex-1 flex flex-col items-center justify-center py-20 text-center gap-6">
+              <div className="w-16 h-16 rounded-3xl bg-red-50 dark:bg-red-950/20 text-red-500 flex items-center justify-center border border-red-100 dark:border-red-900/30">
+                <AlertTriangle size={32} />
+              </div>
+              <div className="max-w-md space-y-2">
+                <h4 className="text-lg font-black text-slate-800 dark:text-slate-200">לא הצלחנו לייצר ניתוח בינה מלאכותית</h4>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{aiAnalysis.message}</p>
+              </div>
+              <button 
+                onClick={runAiAnalysis} 
+                className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-xs rounded-xl shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
+              >
+                נסה שוב
+              </button>
+            </div>
+          ) : aiAnalysis ? (
+            /* Content Loaded State */
+            <div className="space-y-8 flex-1">
+              
+              {/* Executive Summary */}
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-violet-50/50 to-indigo-50/30 dark:from-violet-950/10 dark:to-indigo-950/5 border border-violet-100/50 dark:border-violet-900/20 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-24 h-24 bg-violet-500/5 blur-[30px] rounded-full" />
+                <h4 className="text-xs font-black uppercase text-violet-600 dark:text-violet-400 tracking-wider mb-2 flex items-center gap-1.5"><Sparkles size={12}/> סיכום מנהלים אסטרטגי</h4>
+                <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-relaxed">{aiAnalysis.summary}</p>
+              </div>
+
+              {/* Commentary Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-5 rounded-2xl border dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md">
+                  <h5 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider mb-2">אבחון איכות הלידים (רלוונטיות)</h5>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysis.metrics_evaluation?.relevance_rate_commentary}</p>
+                </div>
+                
+                <div className="p-5 rounded-2xl border dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md">
+                  <h5 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-2">אבחון יחס סגירה (מתוך רלוונטיים)</h5>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysis.metrics_evaluation?.conversion_rate_commentary}</p>
+                </div>
+              </div>
+
+              {/* Diagnostics Grid */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">🔍 אבחון עומק תפעולי</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {aiAnalysis.diagnostics?.map((diag: any, idx: number) => {
+                    const statusStyles: Record<string, string> = {
+                      success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30",
+                      warning: "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/30",
+                      danger: "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border-red-100/50 dark:border-red-900/30",
+                    };
+                    const statusLabels: Record<string, string> = {
+                      success: "חיובי",
+                      warning: "דרוש שיפור",
+                      danger: "קריטי"
+                    };
+                    const statusClass = statusStyles[diag.status] || statusStyles.warning;
+                    const statusLabel = statusLabels[diag.status] || "טעון שיפור";
+                    
+                    return (
+                      <div key={idx} className="p-6 rounded-2xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between gap-3 mb-4">
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-100 leading-tight">{diag.title}</span>
+                            <span className={`text-[9px] font-black px-2.5 py-1 rounded-full border ${statusClass}`}>{statusLabel}</span>
+                          </div>
+                          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">{diag.explanation}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action items checklist */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">⚡ צ'קליסט משימות אופרטיבי לגילי</h4>
+                <div className="space-y-4">
+                  {aiAnalysis.action_items?.map((item: any, idx: number) => {
+                    const checked = !!checkedActionItems[idx];
+                    const priorityColors: Record<string, string> = {
+                      high: "bg-red-50 text-red-600 dark:bg-red-950/25 dark:text-red-400 border-red-100/50 dark:border-red-900/20",
+                      medium: "bg-amber-50 text-amber-600 dark:bg-amber-950/25 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/20",
+                      low: "bg-blue-50 text-blue-600 dark:bg-blue-950/25 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/20",
+                    };
+                    const priorityLabels: Record<string, string> = {
+                      high: "עדיפות דחופה",
+                      medium: "עדיפות בינונית",
+                      low: "עדיפות משנית"
+                    };
+                    const pClass = priorityColors[item.priority] || priorityColors.medium;
+                    const pLabel = priorityLabels[item.priority] || "בינונית";
+
+                    return (
+                      <div 
+                        key={idx} 
+                        onClick={() => setCheckedActionItems(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                        className={`p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-4 ${
+                          checked 
+                            ? 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-60' 
+                            : 'bg-white dark:bg-slate-900 border-indigo-100/60 dark:border-indigo-950/40 hover:border-indigo-400 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="mt-1 flex-shrink-0">
+                          {checked ? (
+                            <CheckSquare className="w-5 h-5 text-indigo-500" />
+                          ) : (
+                            <Square className="w-5 h-5 text-slate-300 dark:text-slate-700" />
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <span className={`text-sm font-black ${checked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>{item.action}</span>
+                            <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full border ${pClass}`}>{pLabel}</span>
+                            <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/25 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/20">השפעה: {item.impact}</span>
+                          </div>
+                          
+                          <p className={`text-xs font-bold leading-relaxed ${checked ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>{item.explanation}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Trend insight footer card */}
+              <div className="p-6 rounded-2xl bg-slate-950 text-slate-100 border border-slate-800 shadow-xl flex items-start gap-4">
+                <Brain className="w-8 h-8 text-indigo-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h5 className="text-xs font-black text-indigo-300 uppercase tracking-wider">תובנת מגמה רוחבית (סו-שף Insights)</h5>
+                  <p className="text-xs font-bold leading-relaxed text-slate-300">{aiAnalysis.leads_trend_insight}</p>
+                </div>
+              </div>
+
+            </div>
+          ) : null}
+
+        </div>
+      </aside>
+
       </main>
     </div>
   );
