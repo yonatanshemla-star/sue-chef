@@ -217,7 +217,20 @@ Do not include any markdown comments, conversational preambles, or wrapping besi
     return NextResponse.json({
       success: true,
       timeframe,
-      analysis: parsedAnalysis
+      analysis: parsedAnalysis,
+      raw_metrics: {
+        disqualificationReasons,
+        employmentBreakdown,
+        salaryBreakdown,
+        stats: {
+          totalLeads,
+          contactedLeads,
+          relevantLeads,
+          signedLeads,
+          relevanceRate: contactedLeads > 0 ? Math.round((relevantLeads / contactedLeads) * 100) : 0,
+          conversionRate: relevantLeads > 0 ? Math.round((signedLeads / relevantLeads) * 100) : 0
+        }
+      }
     });
 
   } catch (error: any) {

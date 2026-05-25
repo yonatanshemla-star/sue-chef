@@ -2769,27 +2769,78 @@ export default function Home() {
               <div className="p-6 rounded-3xl bg-gradient-to-br from-violet-50/50 to-indigo-50/30 dark:from-violet-950/10 dark:to-indigo-950/5 border border-violet-100/50 dark:border-violet-900/20 relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-24 h-24 bg-violet-500/5 blur-[30px] rounded-full" />
                 <h4 className="text-xs font-black uppercase text-violet-600 dark:text-violet-400 tracking-wider mb-2 flex items-center gap-1.5"><Sparkles size={12}/> סיכום מנהלים אסטרטגי</h4>
-                <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-relaxed">{aiAnalysis.summary}</p>
+                <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).summary}</p>
               </div>
+
+              {/* Premium Score Speedometers / SVG Gauges */}
+              {(() => {
+                const rawMetrics = aiAnalysis.raw_metrics || {};
+                const stats = rawMetrics.stats || {};
+                const relRate = stats.relevanceRate || 0;
+                const wastedCalls = parseFloat(stats.avgCallsNoAnswer || "0");
+                const opEfficiency = Math.max(10, Math.min(100, Math.round(100 - (wastedCalls * 8))));
+                
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Gauge 1: Relevance Score */}
+                    <div className="p-6 rounded-3xl border dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md flex items-center justify-between gap-6 shadow-inner relative overflow-hidden group">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">מדד איכות הלידים (רלוונטיות)</span>
+                        <h4 className="text-lg font-black text-slate-800 dark:text-white">ציון איכות תקופתי</h4>
+                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed mt-1">אחוז הלידים שענו והיו בעלי עילה רלוונטית בתקופה הנוכחית.</p>
+                      </div>
+                      <div className="relative flex items-center justify-center flex-shrink-0">
+                        <svg className="w-24 h-24 transform -rotate-90">
+                          <circle cx="48" cy="48" r="40" className="text-slate-100 dark:text-slate-800/60" strokeWidth="6" stroke="currentColor" fill="transparent" />
+                          <circle cx="48" cy="48" r="40" className="text-purple-600 dark:text-purple-500 transition-all duration-[1500ms] ease-out" strokeWidth="6" strokeDasharray={251.2} strokeDashoffset={251.2 - (relRate / 100) * 251.2} strokeLinecap="round" stroke="currentColor" fill="transparent" />
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                          <span className="text-2xl font-black text-slate-800 dark:text-white">{relRate}%</span>
+                          <span className="text-[8px] font-black text-purple-500 uppercase tracking-widest mt-0.5">{relRate >= 35 ? 'מעולה' : 'טעון שיפור'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gauge 2: Operational Efficiency */}
+                    <div className="p-6 rounded-3xl border dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md flex items-center justify-between gap-6 shadow-inner relative overflow-hidden group">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">מדד יעילות תפעולית (שיחות סרק)</span>
+                        <h4 className="text-lg font-black text-slate-800 dark:text-white">יעילות תפעול שיחות</h4>
+                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed mt-1">מדידת האנרגיה שהושקעה בשיחות ללא מענה חוזר מול סגירות.</p>
+                      </div>
+                      <div className="relative flex items-center justify-center flex-shrink-0">
+                        <svg className="w-24 h-24 transform -rotate-90">
+                          <circle cx="48" cy="48" r="40" className="text-slate-100 dark:text-slate-800/60" strokeWidth="6" stroke="currentColor" fill="transparent" />
+                          <circle cx="48" cy="48" r="40" className="text-blue-600 dark:text-blue-500 transition-all duration-[1500ms] ease-out" strokeWidth="6" strokeDasharray={251.2} strokeDashoffset={251.2 - (opEfficiency / 100) * 251.2} strokeLinecap="round" stroke="currentColor" fill="transparent" />
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                          <span className="text-2xl font-black text-slate-800 dark:text-white">{opEfficiency}%</span>
+                          <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-0.5">{opEfficiency >= 75 ? 'מצוין' : 'עמוס שיחות'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Commentary Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-5 rounded-2xl border dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md">
                   <h5 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider mb-2">אבחון איכות הלידים (רלוונטיות)</h5>
-                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysis.metrics_evaluation?.relevance_rate_commentary}</p>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).metrics_evaluation?.relevance_rate_commentary}</p>
                 </div>
                 
                 <div className="p-5 rounded-2xl border dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md">
                   <h5 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-2">אבחון יחס סגירה (מתוך רלוונטיים)</h5>
-                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysis.metrics_evaluation?.conversion_rate_commentary}</p>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).metrics_evaluation?.conversion_rate_commentary}</p>
                 </div>
               </div>
 
-              {/* Diagnostics Grid */}
+              {/* Deep AI Diagnostics Grid */}
               <div className="space-y-4">
                 <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">🔍 אבחון עומק תפעולי</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {aiAnalysis.diagnostics?.map((diag: any, idx: number) => {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(aiAnalysis.analysis || aiAnalysis).diagnostics?.map((diag: any, idx: number) => {
                     const statusStyles: Record<string, string> = {
                       success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30",
                       warning: "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/30",
@@ -2804,11 +2855,11 @@ export default function Home() {
                     const statusLabel = statusLabels[diag.status] || "טעון שיפור";
                     
                     return (
-                      <div key={idx} className="p-6 rounded-2xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+                      <div key={idx} className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between gap-3 mb-4">
                             <span className="text-xs font-black text-slate-800 dark:text-slate-100 leading-tight">{diag.title}</span>
-                            <span className={`text-[9px] font-black px-2.5 py-1 rounded-full border ${statusClass}`}>{statusLabel}</span>
+                            <span className={"text-[9px] font-black px-2.5 py-1 rounded-full border " + statusClass}>{statusLabel}</span>
                           </div>
                           <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">{diag.explanation}</p>
                         </div>
@@ -2818,11 +2869,123 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* CRM Quantitative Charts Section (The Dynamic Graphs) */}
+              {(() => {
+                const rawMetrics = aiAnalysis.raw_metrics || {};
+                const employment = rawMetrics.employmentBreakdown || [];
+                const salary = rawMetrics.salaryBreakdown || [];
+                const disqualifications = rawMetrics.disqualificationReasons || [];
+                
+                if (employment.length === 0 && salary.length === 0 && disqualifications.length === 0) return null;
+                
+                const totalEmp = employment.reduce((acc: number, item: any) => acc + item.count, 0) || 1;
+                const totalSal = salary.reduce((acc: number, item: any) => acc + item.count, 0) || 1;
+                const totalDisq = disqualifications.reduce((acc: number, item: any) => acc + item.count, 0) || 1;
+                
+                return (
+                  <div className="space-y-6">
+                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">📊 פילוח נתונים כמותי (מתוך בסיס הנתונים)</h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      
+                      {/* Employment Status Chart */}
+                      <div className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-4">
+                        <div>
+                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-200">פילוח תעסוקתי של הלידים</h5>
+                          <p className="text-[9px] font-bold text-slate-400 mt-0.5">התפלגות מקום עבודה המדווחת בשיחות</p>
+                        </div>
+                        <div className="space-y-3.5">
+                          {employment.map((item: any, idx: number) => {
+                            const pct = Math.round((item.count / totalEmp) * 100);
+                            return (
+                              <div key={idx} className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-bold">
+                                  <span className="text-slate-700 dark:text-slate-300">👤 {item.status || 'לא צוין'}</span>
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-black">{item.count} לידים ({pct}%)</span>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                                  <div className="bg-gradient-to-r from-violet-600 to-indigo-600 h-full rounded-full transition-all duration-[1500ms] ease-out" style={{ width: pct + "%" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Salary Levels Chart */}
+                      <div className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-4">
+                        <div>
+                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-200">פילוח רמות שכר מדווחות</h5>
+                          <p className="text-[9px] font-bold text-slate-400 mt-0.5">פוטנציאל החזר מס ע"פ גובה שכר</p>
+                        </div>
+                        <div className="space-y-3.5">
+                          {salary.map((item: any, idx: number) => {
+                            const pct = Math.round((item.count / totalSal) * 100);
+                            const isHigh = item.salary?.includes('12') || item.salary?.includes('15') || item.salary?.includes('10') || parseFloat(item.salary || '0') >= 10000;
+                            const color = isHigh ? 'from-emerald-500 to-teal-500' : 'from-indigo-500 to-violet-500';
+                            return (
+                              <div key={idx} className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-bold">
+                                  <span className="text-slate-700 dark:text-slate-300">💰 {item.salary || 'לא צוין'}</span>
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-black">{item.count} ({pct}%)</span>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                                  <div className={"bg-gradient-to-r h-full rounded-full transition-all duration-[1500ms] ease-out " + color} style={{ width: pct + "%" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Disqualifications & Alternative channels Chart */}
+                      <div className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-4">
+                        <div>
+                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-200">סיבות פסילת לידים ותעלות חלופיות</h5>
+                          <p className="text-[9px] font-bold text-slate-400 mt-0.5">זיהוי אובדן פוטנציאל עסקי מסיבות פסילה</p>
+                        </div>
+                        <div className="space-y-3.5">
+                          {disqualifications.map((item: any, idx: number) => {
+                            const pct = Math.round((item.count / totalDisq) * 100);
+                            let tip = "";
+                            let color = "from-rose-500 to-red-500";
+                            if (item.reason === 'אין מספיק מס הכנסה') {
+                              tip = "💡 סיעודי/פנסיה";
+                              color = "from-amber-500 to-orange-500";
+                            } else if (item.reason === 'אין עילה רפואית') {
+                              tip = "💡 מסלול החזר מס";
+                              color = "from-indigo-500 to-violet-500";
+                            } else if (item.reason === 'אין מענה חוזר') {
+                              tip = "💡 חוק 3 ניסיונות";
+                              color = "from-slate-500 to-slate-600";
+                            }
+                            return (
+                              <div key={idx} className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-bold">
+                                  <span className="text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={item.reason}>⚠️ {item.reason || 'אחר'}</span>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    {tip && <span className="text-[8px] font-black bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-100/50 dark:border-indigo-900/30">{tip}</span>}
+                                    <span className="text-rose-500 font-black">{item.count}</span>
+                                  </div>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                                  <div className={"bg-gradient-to-r h-full rounded-full transition-all duration-[1500ms] ease-out " + color} style={{ width: pct + "%" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Action items checklist */}
               <div className="space-y-4">
                 <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">⚡ צ'קליסט משימות אופרטיבי לגילי</h4>
                 <div className="space-y-4">
-                  {aiAnalysis.action_items?.map((item: any, idx: number) => {
+                  {(aiAnalysis.analysis || aiAnalysis).action_items?.map((item: any, idx: number) => {
                     const checked = !!checkedActionItems[idx];
                     const priorityColors: Record<string, string> = {
                       high: "bg-red-50 text-red-600 dark:bg-red-950/25 dark:text-red-400 border-red-100/50 dark:border-red-900/20",
@@ -2836,16 +2999,12 @@ export default function Home() {
                     };
                     const pClass = priorityColors[item.priority] || priorityColors.medium;
                     const pLabel = priorityLabels[item.priority] || "בינונית";
-
+                    
                     return (
                       <div 
                         key={idx} 
                         onClick={() => setCheckedActionItems(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                        className={`p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-4 ${
-                          checked 
-                            ? 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-60' 
-                            : 'bg-white dark:bg-slate-900 border-indigo-100/60 dark:border-indigo-950/40 hover:border-indigo-400 hover:shadow-md'
-                        }`}
+                        className={"p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-4 " + (checked ? "bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80 opacity-60" : "bg-white dark:bg-slate-900 border-indigo-100/60 dark:border-indigo-950/40 hover:border-indigo-400 hover:shadow-md")}
                       >
                         <div className="mt-1 flex-shrink-0">
                           {checked ? (
@@ -2857,19 +3016,18 @@ export default function Home() {
                         
                         <div className="flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2.5">
-                            <span className={`text-sm font-black ${checked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>{item.action}</span>
-                            <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full border ${pClass}`}>{pLabel}</span>
+                            <span className={"text-sm font-black " + (checked ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-100")}>{item.action}</span>
+                            <span className={"text-[9px] font-black px-2.5 py-0.5 rounded-full border " + pClass}>{pLabel}</span>
                             <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/25 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/20">השפעה: {item.impact}</span>
                           </div>
                           
-                          <p className={`text-xs font-bold leading-relaxed ${checked ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>{item.explanation}</p>
+                          <p className={"text-xs font-bold leading-relaxed " + (checked ? "text-slate-400 dark:text-slate-500" : "text-slate-500 dark:text-slate-400")}>{item.explanation}</p>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
-
               {/* Trend insight footer card */}
               <div className="p-6 rounded-2xl bg-slate-950 text-slate-100 border border-slate-800 shadow-xl flex items-start gap-4">
                 <Brain className="w-8 h-8 text-indigo-400 flex-shrink-0 mt-0.5" />
