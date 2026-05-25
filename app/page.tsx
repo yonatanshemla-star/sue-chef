@@ -1870,30 +1870,40 @@ export default function Home() {
                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-1">מדדים סטטיסטיים מתקדמים לחילוץ וזיהוי מגמות</p>
                  </div>
                  
-                 <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900/60 border dark:border-slate-800 rounded-2xl self-start md:self-auto shadow-inner">
-                   {[
-                     { id: 'lifetime', label: 'כל הזמן', icon: History },
-                     { id: '30days', label: '30 ימים אחרונים', icon: Calendar },
-                     { id: 'currentMonth', label: 'החודש הנוכחי', icon: Clock },
-                     { id: '7days', label: '7 ימים אחרונים', icon: Zap }
-                   ].map(tf => {
-                     const Icon = tf.icon;
-                     const active = analyticsTimeframe === tf.id;
-                     return (
-                       <button
-                         key={tf.id}
-                         onClick={() => setAnalyticsTimeframe(tf.id as any)}
-                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
-                           active
-                             ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/40 hover:text-slate-800 dark:hover:text-slate-200'
-                         }`}
-                       >
-                         <Icon size={14} />
-                         {tf.label}
-                       </button>
-                     );
-                   })}
+                 <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+                   <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900/60 border dark:border-slate-800 rounded-2xl shadow-inner">
+                     {[
+                       { id: 'lifetime', label: 'כל הזמן', icon: History },
+                       { id: '30days', label: '30 ימים אחרונים', icon: Calendar },
+                       { id: 'currentMonth', label: 'החודש הנוכחי', icon: Clock },
+                       { id: '7days', label: '7 ימים אחרונים', icon: Zap }
+                     ].map(tf => {
+                       const Icon = tf.icon;
+                       const active = analyticsTimeframe === tf.id;
+                       return (
+                         <button
+                           key={tf.id}
+                           onClick={() => setAnalyticsTimeframe(tf.id as any)}
+                           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+                             active
+                               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                               : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/40 hover:text-slate-800 dark:hover:text-slate-200'
+                           }`}
+                         >
+                           <Icon size={14} />
+                           {tf.label}
+                         </button>
+                       );
+                     })}
+                   </div>
+
+                   <button
+                     onClick={runAiAnalysis}
+                     className="flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all active:scale-95 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/20 border border-indigo-500/30 hover:shadow-indigo-500/40 cursor-pointer"
+                   >
+                     <Sparkles size={14} className="animate-pulse" />
+                     נתח באמצעות בינה מלאכותית
+                   </button>
                  </div>
                </div>
 
