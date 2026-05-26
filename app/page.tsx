@@ -1570,13 +1570,11 @@ export default function Home() {
                                 )}
                               </div>
                               <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
-                              <input 
-                                type="text" 
-                                value={lead.campaign || ''} 
-                                onChange={e => handleLeadUpdate(lead.id, { campaign: e.target.value })} 
-                                className="text-xs font-bold text-indigo-500/85 dark:text-indigo-400/85 bg-transparent border-none outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700 placeholder:font-normal mt-0.5" 
-                                placeholder="קמפיין..." 
-                              />
+                              {lead.campaign && (
+                                <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 mt-1 inline-block">
+                                  קמפיין: {lead.campaign}
+                                </span>
+                              )}
                             </>
                           )}
                         </div>
@@ -1752,14 +1750,11 @@ export default function Home() {
                         )}
                       </div>
                       <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base w-full text-right" placeholder="05..." dir="ltr" style={{ direction: 'rtl', textAlign: 'right' }} />
-                      <input 
-                        type="text" 
-                        value={lead.campaign || ''} 
-                        onChange={e => handleLeadUpdate(lead.id, { campaign: e.target.value })} 
-                        className="text-xs font-bold text-indigo-500/85 dark:text-indigo-400/85 bg-transparent border-none outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700 placeholder:font-normal mt-0.5 w-full text-right" 
-                        placeholder="קמפיין..." 
-                        dir="rtl" 
-                      />
+                      {lead.campaign && (
+                        <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-1 block text-right">
+                          קמפיין: {lead.campaign}
+                        </span>
+                      )}
                     </div>
                   </div>
 
