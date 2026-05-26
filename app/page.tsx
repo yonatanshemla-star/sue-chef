@@ -1120,7 +1120,7 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen transition-all duration-700 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-x-hidden`} style={{ zoom: 0.85 }}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-x-hidden`} style={{ zoom: 0.85 }}>
       {/* Live Incoming Call Banner */}
       {incomingCall && (
         <div 
@@ -1189,13 +1189,13 @@ export default function Home() {
                   if (item.action) item.action();
                   else { setActiveTab(item.id as any); setIsDrawerOpen(false); }
                 }}
-                className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-base transition-all duration-300 group hover:scale-[1.02] border border-transparent hover:border-slate-100 dark:hover:border-slate-800 ${
+                className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-base transition-all duration-200 group hover:scale-[1.02] border border-transparent hover:border-slate-100 dark:hover:border-slate-800 ${
                   activeTab === item.id 
                     ? `${item.bg} ${item.color} shadow-[0_10px_30px_rgba(0,0,0,0.05)]` 
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-indigo-600 dark:hover:text-indigo-400'
                 }`}
               >
-                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center transition-all duration-300 group-hover:rotate-12`}>
+                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center transition-transform duration-200 group-hover:rotate-12`}>
                    <item.icon className={item.color} size={24} />
                 </div>
                 <span className="flex-1 text-right">{item.label}</span>
@@ -1210,7 +1210,11 @@ export default function Home() {
                 <p className="text-xs font-black text-indigo-500">v5.9.5-drawer</p>
              </div>
              <div className="flex gap-2">
-                <button onClick={() => setDarkMode(!darkMode)} className={`w-10 h-10 border rounded-xl flex items-center justify-center transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500`}>
+                <button onClick={() => {
+                  const nextVal = !darkMode;
+                  setDarkMode(nextVal);
+                  localStorage.setItem('theme', nextVal ? 'dark' : 'light');
+                }} className={`w-10 h-10 border rounded-xl flex items-center justify-center transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-500`}>
                   {darkMode ? <Sun size={18}/> : <Moon size={18}/>}
                 </button>
                 <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`w-10 h-10 border rounded-xl flex items-center justify-center transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500`}>
@@ -1273,8 +1277,8 @@ export default function Home() {
               localStorage.setItem('theme', nextVal ? 'dark' : 'light');
             }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
               <div className="relative w-6 h-6">
-                <Sun className={`absolute inset-0 w-6 h-6 text-yellow-500 transition-all duration-700 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-                <Moon className={`absolute inset-0 w-6 h-6 text-indigo-400 transition-all duration-700 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
+                <Sun className={`absolute inset-0 w-6 h-6 text-yellow-500 transition-all duration-500 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                <Moon className={`absolute inset-0 w-6 h-6 text-indigo-400 transition-all duration-500 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
               </div>
             </button>
             <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
