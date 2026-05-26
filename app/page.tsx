@@ -785,8 +785,21 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Add class to temporarily disable transitions during theme change
+    document.documentElement.classList.add('disable-transitions');
+    
     if (darkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
+    
+    // Force a reflow to make sure the style change is applied immediately
+    const _ = window.getComputedStyle(document.documentElement).opacity;
+    
+    // Re-enable transitions in the next animation frame
+    const raf = requestAnimationFrame(() => {
+      document.documentElement.classList.remove('disable-transitions');
+    });
+    
+    return () => cancelAnimationFrame(raf);
   }, [darkMode]);
 
   // === Pre-process image for OCR (normalize DPI/contrast for external monitors) ===

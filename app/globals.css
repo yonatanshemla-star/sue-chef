@@ -80,3 +80,9 @@
     @apply bg-white dark:bg-slate-900;
   }
 }
+
+/* Disable transitions temporarily during theme toggle to prevent browser lag */
+.disable-transitions,
+.disable-transitions * {
+  transition: none !important;
+}
