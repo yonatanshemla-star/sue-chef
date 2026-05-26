@@ -1571,7 +1571,7 @@ export default function Home() {
                               </div>
                               <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
                               {lead.campaign && (
-                                <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 mt-1 inline-block">
+                                <span className="text-[13px] font-black text-indigo-600 dark:text-indigo-400 mt-1 inline-block">
                                   קמפיין: {lead.campaign}
                                 </span>
                               )}
@@ -1751,7 +1751,7 @@ export default function Home() {
                       </div>
                       <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base w-full text-right" placeholder="05..." dir="ltr" style={{ direction: 'rtl', textAlign: 'right' }} />
                       {lead.campaign && (
-                        <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-1 block text-right">
+                        <span className="text-[13px] font-black text-indigo-600 dark:text-indigo-400 mt-1 block text-right">
                           קמפיין: {lead.campaign}
                         </span>
                       )}
