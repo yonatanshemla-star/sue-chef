@@ -21,7 +21,12 @@ const nameKeys = ['lm_name', 'name', 'fullname', 'first_name', 'last_name', 'lm_
 const phoneKeys = ['lm_phone', 'phone', 'mobile', 'lm_mobile', 'lm_phone_number', 'טלפון', 'נייד', 'מספר טלפון'];
 const remarksKeys = ['lm_remarks', 'remarks', 'notes', 'message', 'lm_notes', 'lm_message', 'הערות', 'הודעה', 'תוכן'];
 const emailKeys = ['lm_email', 'email', 'דואל', 'אימייל', 'דואר אלקטרוני'];
-const campaignKeys = ['lm_campaign_name', 'lm_campaign', 'campaign', 'campaign_name', 'קמפיין', 'שם קמפיין'];
+const campaignKeys = [
+  'lm_campaign_name', 'lm_campaign', 'campaign', 'campaign_name', 'קמפיין', 'שם קמפיין', 
+  'utm_campaign', 'utm_source', 'lead_source', 'source', 'ערוץ', 'ערוץ שיווק', 
+  'lm_supplier_name', 'lm_supplier', 'supplier', 'supplier_name', 'ספק', 'שם ספק',
+  'channel', 'marketing_channel', 'ad_campaign', 'adset_name', 'ad_name'
+];
 const supplierKeys = ['lm_supplier_name', 'lm_supplier', 'supplier', 'supplier_name', 'ספק', 'שם ספק'];
 const incomeKeys = ['lm_income', 'lm_salary', 'income', 'salary', 'שכר', 'משכורת', 'הכנסה', 'גובה שכר', 'כמה מרוויח', 'lm_שכר', 'lm_הכנסה'];
 const taxKeys = ['lm_tax', 'tax', 'income_tax', 'monthly_tax', 'tax_payment', 'מס_הכנסה', 'מס הכנסה', 'משלם_מס', 'lm_מס_הכנסה', 'lm_מס הכנסה'];
@@ -108,7 +113,8 @@ export async function POST(req: Request) {
       notesParts.push(`דוא"ל: ${email}`);
     }
     
-    const generalNotes = notesParts.join('\n');
+    const debugBlock = `\n\n[דיבאג גולמי: ${JSON.stringify(data)}]`;
+    const generalNotes = notesParts.join('\n') + debugBlock;
 
     // Create a new lead conforming to the internal Lead interface
     const newLead = {
