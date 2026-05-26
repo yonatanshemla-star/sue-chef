@@ -3071,6 +3071,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
   const [rows, setRows] = useState<string[][]>([]);
   const [selectedNameHeader, setSelectedNameHeader] = useState("");
   const [selectedPhoneHeader, setSelectedPhoneHeader] = useState("");
+  const [selectedCampaignHeader, setSelectedCampaignHeader] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
@@ -3154,6 +3155,11 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
         );
         if (bestPhoneIdx !== -1) setSelectedPhoneHeader(parsedHeaders[bestPhoneIdx]);
 
+        const bestCampaignIdx = parsedHeaders.findIndex(h => 
+          h.includes('קמפיין') || h.includes('ערוץ') || h.toLowerCase().includes('campaign') || h.toLowerCase().includes('utm_campaign') || h.toLowerCase().includes('source')
+        );
+        if (bestCampaignIdx !== -1) setSelectedCampaignHeader(parsedHeaders[bestCampaignIdx]);
+
       } catch (err: any) {
         setErrorMsg(`כשל בניתוח הקובץ: ${err.message}`);
       }
@@ -3162,16 +3168,12 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
   };
 
   const handleStartImport = async () => {
-    if (!selectedNameHeader || !selectedPhoneHeader) {
-      setErrorMsg("נא לבחור עמודת שם ועמודת טלפון למיפוי.");
-      return;
-    }
-
     const nameIdx = headers.indexOf(selectedNameHeader);
     const phoneIdx = headers.indexOf(selectedPhoneHeader);
+    const campaignIdx = selectedCampaignHeader ? headers.indexOf(selectedCampaignHeader) : -1;
 
     if (nameIdx === -1 || phoneIdx === -1) {
-      setErrorMsg("שגיאת מיפוי עמודות.");
+      setErrorMsg("נא לבחור עמודת שם ועמודת טלפון למיפוי.");
       return;
     }
 
@@ -3184,6 +3186,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
         const row = rows[i];
         const rawName = row[nameIdx] || "";
         const rawPhone = row[phoneIdx] || "";
+        const rawCampaign = campaignIdx !== -1 ? row[campaignIdx] || "" : "";
 
         // Skip rows with empty names and phones
         if (!rawName.trim() && !rawPhone.trim()) continue;
@@ -3201,7 +3204,8 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
           generalNotes: "",
           liveCallNotes: "",
           urgency: "בינונית",
-          callCount: 0
+          callCount: 0,
+          campaign: rawCampaign.trim() || undefined
         };
 
         // Call database update api
@@ -3293,7 +3297,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Name Selection */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-black text-slate-500">עמודת שם לקוח (Client Name)</label>
@@ -3319,6 +3323,19 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
+
+              {/* Campaign Selection */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-black text-slate-500">עמודת קמפיין (Campaign - אופציונלי)</label>
+                <select 
+                  value={selectedCampaignHeader}
+                  onChange={(e) => setSelectedCampaignHeader(e.target.value)}
+                  className="w-full rounded-2xl border dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-sm px-4 py-3 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                >
+                  <option value="">ללא מיפוי (ריק)...</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* Live Preview */}
@@ -3329,9 +3346,17 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
                   {rows.slice(0, 3).map((row, idx) => {
                     const nameVal = row[headers.indexOf(selectedNameHeader)] || "";
                     const phoneVal = row[headers.indexOf(selectedPhoneHeader)] || "";
+                    const campaignVal = selectedCampaignHeader ? row[headers.indexOf(selectedCampaignHeader)] || "" : "";
                     return (
                       <div key={idx} className="flex justify-between items-center py-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                        <span>👤 {nameVal || "(ריק)"}</span>
+                        <div className="flex items-center gap-2">
+                          <span>👤 {nameVal || "(ריק)"}</span>
+                          {campaignVal && (
+                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-md font-bold">
+                              📢 קמפיין: {campaignVal}
+                            </span>
+                          )}
+                        </div>
                         <span className="font-mono">{phoneVal || "(ריק)"}</span>
                       </div>
                     );
