@@ -123,7 +123,8 @@ export async function POST(req: Request) {
       generalNotes: generalNotes,
       liveCallNotes: '',
       callCount: 0,
-      urgency: 'בינונית' as const
+      urgency: 'בינונית' as const,
+      campaign: campaign || undefined
     };
 
     // Save lead to database

@@ -34,6 +34,7 @@ export interface Lead {
   medicalStatus?: string;
   isStarred?: boolean;
   whatsappReplyAnalyzed?: boolean;
+  campaign?: string;
 }
 
 export async function initDB() {
