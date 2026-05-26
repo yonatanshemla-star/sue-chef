@@ -81,8 +81,8 @@
   }
 }
 
-/* Disable transitions temporarily during theme toggle to prevent browser lag */
+/* Disable transitions temporarily during theme toggle to prevent browser lag, EXCEPT for the beautiful sun/moon icons! */
 .disable-transitions,
-.disable-transitions * {
+.disable-transitions :not(.theme-toggle-icon) {
   transition: none !important;
 }

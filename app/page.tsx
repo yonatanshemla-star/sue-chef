@@ -1290,8 +1290,8 @@ export default function Home() {
               localStorage.setItem('theme', nextVal ? 'dark' : 'light');
             }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
               <div className="relative w-6 h-6">
-                <Sun className={`absolute inset-0 w-6 h-6 text-yellow-500 transition-all duration-500 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-                <Moon className={`absolute inset-0 w-6 h-6 text-indigo-400 transition-all duration-500 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
+                <Sun className={`theme-toggle-icon absolute inset-0 w-6 h-6 text-yellow-500 transition-all duration-500 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                <Moon className={`theme-toggle-icon absolute inset-0 w-6 h-6 text-indigo-400 transition-all duration-500 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
               </div>
             </button>
             <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
