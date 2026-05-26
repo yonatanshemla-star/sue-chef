@@ -97,15 +97,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // Add marketing parameters if present
-    const campaign = findValueByKeys(data, campaignKeys);
+    // Extract and cleanly parse the campaign name
+    let campaign = findValueByKeys(data, campaignKeys);
     if (campaign) {
-      notesParts.push(`קמפיין: ${campaign}`);
-    }
-    
-    const supplier = findValueByKeys(data, supplierKeys);
-    if (supplier) {
-      notesParts.push(`ספק: ${supplier}`);
+      const campaignStr = campaign.toString();
+      // Regex matches: "...campaign: [Campaign Name], new lead..." and extracts the [Campaign Name]
+      const match = campaignStr.match(/campaign:\s*([^,]+)/i);
+      if (match) {
+        campaign = match[1].trim();
+      } else {
+        campaign = campaignStr.trim();
+      }
     }
     
     const email = findValueByKeys(data, emailKeys);
@@ -113,8 +115,8 @@ export async function POST(req: Request) {
       notesParts.push(`דוא"ל: ${email}`);
     }
     
-    const debugBlock = `\n\n[דיבאג גולמי: ${JSON.stringify(data)}]`;
-    const generalNotes = notesParts.join('\n') + debugBlock;
+    // Notes are kept perfectly clean as requested (no campaign/supplier or debug payload appended)
+    const generalNotes = notesParts.join('\n');
 
     // Create a new lead conforming to the internal Lead interface
     const newLead = {
