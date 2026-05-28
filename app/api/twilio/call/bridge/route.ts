@@ -54,12 +54,17 @@ export async function POST(req: NextRequest) {
       body: params.toString()
     }).catch(err => console.error("Failed to add lead to conference:", err));
 
-    // For the agent, we return a Conference TwiML with waitUrl="" to disable hold music.
+    const host = req.headers.get('host');
+    const protocol = host?.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
+    const waitUrl = `${baseUrl}/ringback.mp3`;
+
+    // For the agent, we return a Conference TwiML pointing to our hosted ringback tone waitUrl.
     // We set endConferenceOnExit="true" so that when the agent hangs up, the whole conference ends.
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial>
-        <Conference waitUrl="" beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confId}</Conference>
+        <Conference waitUrl="${waitUrl}" beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confId}</Conference>
     </Dial>
 </Response>`;
 

@@ -39,6 +39,13 @@ export async function GET(request: NextRequest) {
                 WHERE sh->>'to' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב')
               )
             )
+            AND NOT (
+              data->>'status' = 'לא רלוונטי'
+              OR (
+                data->>'status' = 'נגמר'
+                AND data->>'disqualificationReason' IN ('אין עילה רפואית', 'אין מספיק מס הכנסה', 'טעות במספר')
+              )
+            )
         ) as relevant,
         count(*) FILTER (
           WHERE (data->>'status') = 'חתם' 

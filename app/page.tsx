@@ -444,7 +444,11 @@ export default function Home() {
 
     if (updates.status) {
       const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(updates.status);
-      if (isRelevant) updates.wasRelevant = true;
+      if (isRelevant) {
+        updates.wasRelevant = true;
+      } else if (updates.status === 'לא רלוונטי') {
+        updates.wasRelevant = false;
+      }
       if (updates.status === 'חתם') {
         updates.isSigned = true;
         updates.signedAt = new Date().toISOString();
@@ -482,7 +486,12 @@ export default function Home() {
       } catch (e) { console.error(e); fetchLeads(); }
     } else {
         const currentLead = leads.find(l => l.id === id);
-        const updates: Partial<Lead> = { status: targetStatus, disqualificationReason: reason };
+        const isNotRelevantReason = ['אין עילה רפואית', 'אין מספיק מס הכנסה', 'טעות במספר'].includes(reason);
+        const updates: Partial<Lead> = { 
+          status: targetStatus, 
+          disqualificationReason: reason,
+          ...(isNotRelevantReason ? { wasRelevant: false } : {})
+        };
         if (currentLead && currentLead.status !== targetStatus && targetStatus) {
             const history = currentLead.statusHistory || [];
             updates.statusHistory = [...history, { from: currentLead.status, to: targetStatus, timestamp: new Date().toISOString() }];
@@ -556,7 +565,11 @@ export default function Home() {
       
       const updates: Partial<Lead> = { status: newStatus };
       const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(newStatus);
-      if (isRelevant) updates.wasRelevant = true;
+      if (isRelevant) {
+        updates.wasRelevant = true;
+      } else if (newStatus === 'לא רלוונטי') {
+        updates.wasRelevant = false;
+      }
       if (newStatus === 'חתם') {
         updates.isSigned = true;
         updates.signedAt = new Date().toISOString();
@@ -586,7 +599,11 @@ export default function Home() {
           
           const updates: Partial<Lead> = { status: newStatus };
           const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(newStatus);
-          if (isRelevant) updates.wasRelevant = true;
+          if (isRelevant) {
+            updates.wasRelevant = true;
+          } else if (newStatus === 'לא רלוונטי') {
+            updates.wasRelevant = false;
+          }
           if (newStatus === 'חתם') {
             updates.isSigned = true;
             updates.signedAt = new Date().toISOString();

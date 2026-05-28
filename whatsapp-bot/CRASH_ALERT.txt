@@ -1,6 +1,6 @@
 
 ⚠️⚠️⚠️ התראת שגיאה בבוט ה-WhatsApp ⚠️⚠️⚠️
-זמן: 24.5.2026, 17:59:27
+זמן: 26.5.2026, 15:59:10
 
 הודעה:
 שגיאה לא מטופלת בשרת הבוט (Unhandled Rejection): The browser is already running for C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\.wwebjs_auth\session. Use a different `userDataDir` or stop the running browser first.
