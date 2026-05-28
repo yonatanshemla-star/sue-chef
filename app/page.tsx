@@ -631,6 +631,10 @@ export default function Home() {
 
   const initiateCall = async (lead: Lead) => {
     if (!lead.phone) return;
+    
+    // Background ping to warm up the Twilio conference bridge serverless function (prevent cold starts)
+    fetch('/api/twilio/call/bridge?ping=true').catch(() => {});
+
     const newCount = (lead.callCount || 0) + 1;
     const updates: Partial<Lead> = { callCount: newCount };
     if (lead.status === 'חדש') {

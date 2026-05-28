@@ -17,6 +17,10 @@ function normalizeToE164(phone: string): string {
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const ping = searchParams.get('ping');
+    if (ping) {
+      return NextResponse.json({ success: true, message: 'pong' });
+    }
     const to = searchParams.get('to');
     const confId = searchParams.get('confId');
     
