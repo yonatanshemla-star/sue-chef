@@ -32,12 +32,7 @@ export async function GET(request: NextRequest) {
           WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval 
             AND (
               (data->>'status' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב')) 
-              OR (data->>'wasRelevant' = 'true') 
-              OR EXISTS (
-                SELECT 1 
-                FROM jsonb_array_elements(COALESCE(data->'statusHistory', '[]'::jsonb)) AS sh 
-                WHERE sh->>'to' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב')
-              )
+              OR (data->>'wasRelevant' = 'true')
             )
             AND NOT (
               data->>'status' = 'לא רלוונטי'

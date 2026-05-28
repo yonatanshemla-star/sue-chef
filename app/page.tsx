@@ -446,7 +446,7 @@ export default function Home() {
       const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(updates.status);
       if (isRelevant) {
         updates.wasRelevant = true;
-      } else if (updates.status === 'לא רלוונטי') {
+      } else if (['חדש', 'לא ענה', 'לחזור אליו', 'מספר שגוי', 'לא רלוונטי'].includes(updates.status)) {
         updates.wasRelevant = false;
       }
       if (updates.status === 'חתם') {
@@ -567,7 +567,7 @@ export default function Home() {
       const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(newStatus);
       if (isRelevant) {
         updates.wasRelevant = true;
-      } else if (newStatus === 'לא רלוונטי') {
+      } else if (['חדש', 'לא ענה', 'לחזור אליו', 'מספר שגוי', 'לא רלוונטי'].includes(newStatus)) {
         updates.wasRelevant = false;
       }
       if (newStatus === 'חתם') {
@@ -601,7 +601,7 @@ export default function Home() {
           const isRelevant = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב'].includes(newStatus);
           if (isRelevant) {
             updates.wasRelevant = true;
-          } else if (newStatus === 'לא רלוונטי') {
+          } else if (['חדש', 'לא ענה', 'לחזור אליו', 'מספר שגוי', 'לא רלוונטי'].includes(newStatus)) {
             updates.wasRelevant = false;
           }
           if (newStatus === 'חתם') {
