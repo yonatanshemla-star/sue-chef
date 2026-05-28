@@ -2252,7 +2252,16 @@ export default function Home() {
               <div className="flex items-center gap-4 text-right">
                 <div className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse"><PhoneCall size={24} /></div>
                 <div>
-                  <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">{liveNotesLead?.clientName || 'לקוח בשיחה'}</h2>
+                  <div className="flex items-center gap-2.5 mb-1">
+                    {liveNotesLead?.campaign && (
+                      <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-2 py-0.5 rounded-lg border border-indigo-100/60 dark:border-indigo-900/30 whitespace-nowrap self-center">
+                        קמפיין: {liveNotesLead.campaign}
+                      </span>
+                    )}
+                    <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
+                      {liveNotesLead?.clientName || 'לקוח בשיחה'}
+                    </h2>
+                  </div>
                   <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead?.phone}</p>
                 </div>
               </div>
