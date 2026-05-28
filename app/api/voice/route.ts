@@ -39,9 +39,40 @@ export async function POST(req: Request) {
          callerId = '+' + callerId;
      }
 
+      // Check if user is currently busy on another active Twilio call
+      let isBusy = false;
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      const currentCallSid = rawData['CallSid'] || '';
+
+      if (accountSid && authToken && !isOutbound) {
+        try {
+          const twilioRes = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?Status=in-progress`,
+            {
+              headers: {
+                'Authorization': 'Basic ' + Buffer.from(accountSid + ':' + authToken).toString('base64')
+              }
+            }
+          );
+          if (twilioRes.ok) {
+            const data = await twilioRes.json();
+            const activeCalls = data.calls || [];
+            const otherActiveCalls = activeCalls.filter((c: any) => c.sid !== currentCallSid);
+            if (otherActiveCalls.length > 0) {
+              isBusy = true;
+            }
+          }
+        } catch (e) {
+          console.error("Error querying active Twilio calls:", e);
+        }
+      }
+
      let twiml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n`;
 
-     if (isOutbound && toValue) {
+     if (isBusy) {
+         twiml += `  <Reject reason="busy" />\n`;
+     } else if (isOutbound && toValue) {
          if (!callerId) {
              twiml += `  <Say language="he-IL">שגיאה: חסר מספר מזוהה.</Say>\n`;
          }
