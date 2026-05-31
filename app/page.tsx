@@ -3122,13 +3122,23 @@ export default function Home() {
                 <Brain className="w-4 h-4 animate-pulse text-indigo-600 dark:text-indigo-400" />
                 סייען משימות AI חכם
               </h4>
-              <button 
-                disabled={isBatchScanning}
-                onClick={() => setShowAiPlanner(false)}
-                className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 transition-all cursor-pointer border-none bg-transparent"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button 
+                  disabled={isBatchScanning}
+                  onClick={runBatchActiveLeadsScan}
+                  className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-all cursor-pointer border-none bg-transparent flex items-center justify-center"
+                  title="סנכרן ועדכן מחדש את כל הלידים הפעילים"
+                >
+                  <RefreshCw size={13} className={isBatchScanning ? "animate-spin" : ""} />
+                </button>
+                <button 
+                  disabled={isBatchScanning}
+                  onClick={() => setShowAiPlanner(false)}
+                  className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 transition-all cursor-pointer border-none bg-transparent"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Content - with scrollable fixed height */}
@@ -3196,13 +3206,23 @@ export default function Home() {
                 <Brain className="w-5 h-5 animate-pulse text-indigo-600 dark:text-indigo-400" />
                 סייען משימות AI חכם
               </h4>
-              <button 
-                disabled={isBatchScanning}
-                onClick={() => setShowAiPlanner(false)}
-                className="p-1 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-none cursor-pointer"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  disabled={isBatchScanning}
+                  onClick={runBatchActiveLeadsScan}
+                  className="p-1 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 border-none cursor-pointer flex items-center justify-center"
+                  title="סנכרן מחדש הכל"
+                >
+                  <RefreshCw size={15} className={isBatchScanning ? "animate-spin" : ""} />
+                </button>
+                <button 
+                  disabled={isBatchScanning}
+                  onClick={() => setShowAiPlanner(false)}
+                  className="p-1 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-none cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Mobile Content */}
