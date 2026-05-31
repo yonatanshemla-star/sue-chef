@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const params = new URLSearchParams();
     params.append('To', e164To);
     params.append('From', twilioPhone as string);
-    params.append('EarlyMedia', 'false');
+    params.append('EarlyMedia', 'true');
     params.append('EndConferenceOnExit', 'false');
     params.append('Beep', 'false');
     params.append('StartConferenceOnEnter', 'true');
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial>
-        <Conference waitUrl="${waitUrl}" waitMethod="GET" beep="false" startConferenceOnEnter="false" endConferenceOnExit="true">${confId}</Conference>
+        <Conference waitUrl="" beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confId}</Conference>
     </Dial>
 </Response>`;
 
