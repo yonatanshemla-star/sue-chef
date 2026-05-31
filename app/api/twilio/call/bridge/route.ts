@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     params.append('From', twilioPhone as string);
     params.append('EarlyMedia', 'true');
     params.append('EndConferenceOnExit', 'false');
+    params.append('Beep', 'false');
 
     // We don't await this so we can immediately return the TwiML for the agent
     fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confId}/Participants.json`, {
