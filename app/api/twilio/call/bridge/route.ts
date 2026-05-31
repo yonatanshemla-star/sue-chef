@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const params = new URLSearchParams();
     params.append('To', e164To);
     params.append('From', twilioPhone as string);
-    params.append('EarlyMedia', 'true');
+    params.append('EarlyMedia', 'false');
     params.append('EndConferenceOnExit', 'false');
     params.append('Beep', 'false');
 
