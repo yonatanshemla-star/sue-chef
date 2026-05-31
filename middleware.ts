@@ -12,10 +12,12 @@ function isProtectedPath(path: string) {
     '/api/backup/auto',
     '/api/backup/oauth-setup',
     '/api/backup/oauth-callback',
-    '/api/leadim/'
+    '/api/leadim/',
+    '/ringback.mp3',
+    '/qr.png'
   ];
   
-  if (path.startsWith('/_next/') || path.includes('favicon.ico')) {
+  if (path.startsWith('/_next/') || path.includes('favicon.ico') || path.endsWith('.mp3') || path.endsWith('.png') || path.endsWith('.svg')) {
     return false;
   }
 
