@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial>
-        <Conference waitUrl="${waitUrl}" beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confId}</Conference>
+        <Conference waitUrl="${waitUrl}" waitMethod="GET" beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confId}</Conference>
     </Dial>
 </Response>`;
 
