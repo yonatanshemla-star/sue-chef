@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles } from "lucide-react";
-import type { Lead } from "@/utils/storage";
+import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 
 // -- Simple CountUp Component --
@@ -122,6 +122,13 @@ export default function Home() {
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [loadingAiStatus, setLoadingAiStatus] = useState("סורק ומקבץ שיחות ולידים לתקופה...");
   const [checkedActionItems, setCheckedActionItems] = useState<Record<number, boolean>>({});
+
+  // AI Smart Planner States
+  const [showAiPlanner, setShowAiPlanner] = useState(false);
+  const [isBatchScanning, setIsBatchScanning] = useState(false);
+  const [batchScanProgress, setBatchScanProgress] = useState(0);
+  const [batchScanStatus, setBatchScanStatus] = useState("");
+  const notesOnFocusRef = useRef<string>("");
 
   // Daily Sticky Notes
   const [showStickyNote, setShowStickyNote] = useState(false);
@@ -407,6 +414,227 @@ export default function Home() {
   const localModifiedRef = useRef<Map<string, number>>(new Map());
   const pendingUpdatesRef = useRef<Record<string, Partial<Lead>>>({});
   const leadUpdateTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+
+  // AI Smart Planner Logic
+  const extractAiTasksForLead = async (leadId: string, currentNotes: string, status: string) => {
+    if (!currentNotes || currentNotes.trim().length < 3) {
+      await handleLeadUpdate(leadId, { aiTasks: [] });
+      return;
+    }
+    try {
+      const response = await fetch('/api/gemini/extract-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status,
+          notes: currentNotes,
+          currentLocalTime: new Date().toISOString()
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await handleLeadUpdate(leadId, { aiTasks: data.tasks });
+      }
+    } catch (e) {
+      console.error("Failed to extract AI tasks for lead:", e);
+    }
+  };
+
+  const toggleAiTaskCompletion = async (leadId: string, taskId: string, completed: boolean) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead || !lead.aiTasks) return;
+    const updatedTasks = lead.aiTasks.map(t => 
+      t.id === taskId ? { ...t, completed } : t
+    );
+    await handleLeadUpdate(leadId, { aiTasks: updatedTasks });
+  };
+
+  const runBatchActiveLeadsScan = async () => {
+    const activeStatuses = ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'];
+    const activeLeads = leads.filter(l => 
+      activeStatuses.includes(l.status) && 
+      ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+    );
+    if (activeLeads.length === 0) {
+      setBatchScanStatus("אין לידים פעילים עם הערות לסריקה!");
+      return;
+    }
+    setIsBatchScanning(true);
+    setBatchScanProgress(0);
+    const chunkSize = 15;
+    const chunks: Lead[][] = [];
+    for (let i = 0; i < activeLeads.length; i += chunkSize) {
+      chunks.push(activeLeads.slice(i, i + chunkSize));
+    }
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      const percent = Math.round((index / chunks.length) * 100);
+      setBatchScanProgress(percent);
+      setBatchScanStatus(`סורק קבוצה ${index + 1} מתוך ${chunks.length} (${chunk.length} לידים)...`);
+      try {
+        const payload = chunk.map(l => ({
+          id: l.id,
+          status: l.status,
+          notes: `${l.generalNotes || ''}\n${l.liveCallNotes || ''}`.trim()
+        }));
+        const response = await fetch('/api/gemini/extract-tasks-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leads: payload,
+            currentLocalTime: new Date().toISOString()
+          })
+        });
+        const data = await response.json();
+        if (data.success && data.results) {
+          for (const leadId of Object.keys(data.results)) {
+            const tasks = data.results[leadId];
+            await handleLeadUpdate(leadId, { aiTasks: tasks });
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to scan batch chunk ${index}:`, e);
+      }
+      if (index < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 12000));
+      }
+    }
+    setBatchScanProgress(100);
+    setBatchScanStatus("הסנכרון הראשוני הושלם בהצלחה!");
+    setTimeout(() => {
+      setIsBatchScanning(false);
+      setBatchScanProgress(0);
+      setBatchScanStatus("");
+    }, 3000);
+  };
+
+  const aggregatedAiTasks = useMemo(() => {
+    const activeStatuses = ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'];
+    const tasksList: { lead: Lead; task: AITask }[] = [];
+    leads.forEach(lead => {
+      if (activeStatuses.includes(lead.status) && lead.aiTasks && Array.isArray(lead.aiTasks)) {
+        lead.aiTasks.forEach(task => {
+          tasksList.push({ lead, task });
+        });
+      }
+    });
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const overdue: typeof tasksList = [];
+    const today: typeof tasksList = [];
+    const tomorrowTasks: typeof tasksList = [];
+    const upcoming: typeof tasksList = [];
+    const noDate: typeof tasksList = [];
+
+    tasksList.forEach(item => {
+      if (item.task.completed) return;
+      if (!item.task.dueDate) {
+        noDate.push(item);
+        return;
+      }
+      const dueDate = new Date(item.task.dueDate);
+      const dueDateStr = dueDate.toISOString().split('T')[0];
+      if (dueDate < now && dueDateStr !== todayStr) {
+        overdue.push(item);
+      } else if (dueDateStr === todayStr) {
+        today.push(item);
+      } else if (dueDateStr === tomorrowStr) {
+        tomorrowTasks.push(item);
+      } else {
+        upcoming.push(item);
+      }
+    });
+
+    const sortByDate = (a: typeof tasksList[0], b: typeof tasksList[0]) => {
+      if (!a.task.dueDate || !b.task.dueDate) return 0;
+      return new Date(a.task.dueDate).getTime() - new Date(b.task.dueDate).getTime();
+    };
+
+    overdue.sort(sortByDate);
+    today.sort(sortByDate);
+    tomorrowTasks.sort(sortByDate);
+    upcoming.sort(sortByDate);
+
+    return {
+      allCount: tasksList.filter(t => !t.task.completed).length,
+      overdue,
+      today,
+      tomorrow: tomorrowTasks,
+      upcoming,
+      noDate
+    };
+  }, [leads]);
+
+  const activeTasksCount = aggregatedAiTasks.allCount;
+
+  const renderTaskGroup = (title: string, items: { lead: Lead; task: AITask }[], groupStyles: string) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="space-y-3">
+        <h4 className="text-xs font-black text-slate-400 tracking-wider flex items-center justify-between px-1">
+          <span>{title}</span>
+          <span className="bg-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full font-black">{items.length}</span>
+        </h4>
+        <div className="space-y-2.5">
+          {items.map(({ lead, task }) => {
+            const isCall = task.type === 'call';
+            const isDoc = task.type === 'document';
+            const isFollowup = task.type === 'followup';
+            let typeBadge = { text: 'כללי', bg: 'bg-slate-800/80 text-slate-400 border-slate-700/60' };
+            if (isCall) typeBadge = { text: '📞 שיחה', bg: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' };
+            else if (isDoc) typeBadge = { text: '📄 מסמכים', bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+            else if (isFollowup) typeBadge = { text: '⏳ מעקב', bg: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+
+            return (
+              <div 
+                key={task.id}
+                className={`p-4 rounded-3xl border transition-all hover:scale-[1.02] flex items-start gap-3 relative group/card ${groupStyles}`}
+              >
+                <button 
+                  onClick={() => toggleAiTaskCompletion(lead.id, task.id, true)}
+                  className="mt-0.5 w-5 h-5 rounded-lg border border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/10 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
+                  title="סמן כבוצע"
+                >
+                  <div className="w-2.5 h-2.5 rounded bg-transparent group-hover/card:bg-emerald-500/20" />
+                </button>
+                <div className="flex-1 space-y-1">
+                  <span className="text-xs font-bold text-slate-200 block leading-snug">{task.text}</span>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <button 
+                      onClick={() => {
+                        setShowAiPlanner(false);
+                        navigateToLead(lead);
+                      }}
+                      className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 hover:underline transition-all"
+                    >
+                      👤 {lead.clientName}
+                    </button>
+                    <span className="text-[9px] text-slate-500 font-bold">•</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-lg border font-black ${typeBadge.bg}`}>
+                      {typeBadge.text}
+                    </span>
+                    {task.dueDate && (
+                      <>
+                        <span className="text-[9px] text-slate-500 font-bold">•</span>
+                        <span className="text-[9px] text-slate-400 font-bold">
+                          ⏰ {new Date(task.dueDate).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          {title.includes("בהמשך") && ` (${new Date(task.dueDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })})`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const fetchLeads = async () => {
     try {
@@ -1725,6 +1953,12 @@ export default function Home() {
                       <textarea 
                         value={lead.generalNotes || ''} 
                         onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
+                        onFocus={(e) => { notesOnFocusRef.current = e.target.value; }}
+                        onBlur={(e) => {
+                          if (e.target.value !== notesOnFocusRef.current) {
+                            extractAiTasksForLead(lead.id, e.target.value, lead.status);
+                          }
+                        }}
                         className="w-full text-sm font-bold bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none h-20 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-4 focus:ring-indigo-500/10 shadow-sm" 
                         placeholder="הערות למעקב..." 
                       />
@@ -1859,6 +2093,12 @@ export default function Home() {
                   <textarea 
                     value={lead.generalNotes || ''} 
                     onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
+                    onFocus={(e) => { notesOnFocusRef.current = e.target.value; }}
+                    onBlur={(e) => {
+                      if (e.target.value !== notesOnFocusRef.current) {
+                        extractAiTasksForLead(lead.id, e.target.value, lead.status);
+                      }
+                    }}
                     className="w-full text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 resize-none outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-inner" 
                     placeholder="הערות למעקב..." 
                   />
@@ -2380,6 +2620,12 @@ export default function Home() {
                          autoFocus 
                          value={liveNotesLead.liveCallNotes || ''} 
                          onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} 
+                         onFocus={(e) => { notesOnFocusRef.current = e.target.value; }}
+                         onBlur={(e) => {
+                           if (e.target.value !== notesOnFocusRef.current) {
+                             extractAiTasksForLead(liveNotesLead.id, e.target.value, liveNotesLead.status);
+                           }
+                         }}
                          className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-[32px] p-8 text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" 
                          placeholder="כתוב כאן מה הלקוח אומר..." 
                        />
@@ -2846,6 +3092,106 @@ export default function Home() {
           <ArrowUp className="w-6 h-6 group-hover:-translate-y-1 transition-transform duration-300" />
         </button>
       )}
+
+      {/* Glowing Floating Trigger Button for AI Smart Planner */}
+      <button
+        onClick={() => setShowAiPlanner(true)}
+        className="fixed bottom-24 md:bottom-8 right-6 z-50 p-4 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-2xl shadow-indigo-500/40 hover:from-violet-700 hover:to-indigo-700 hover:scale-110 active:scale-95 transition-all duration-300 animate-in fade-in zoom-in group border border-white/20 flex items-center justify-center cursor-pointer"
+        title="מנהל משימות AI חכם"
+        style={{
+          boxShadow: '0 10px 30px -5px rgba(124, 58, 237, 0.4), 0 0 15px 2px rgba(99, 102, 241, 0.3)',
+        }}
+      >
+        <Brain className="w-6 h-6 animate-pulse" />
+        {activeTasksCount > 0 && (
+          <span className="absolute -top-1 -left-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white dark:border-slate-900 shadow-md">
+            {activeTasksCount}
+          </span>
+        )}
+      </button>
+
+      {/* AI Smart Planner Right Sidebar Drawer */}
+      <div 
+        className={`fixed inset-0 z-[120] transition-opacity duration-300 ${showAiPlanner ? 'bg-slate-950/60 backdrop-blur-md pointer-events-auto' : 'bg-transparent pointer-events-none opacity-0'}`}
+        onClick={() => { if (!isBatchScanning) setShowAiPlanner(false); }}
+      />
+      <div 
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-2xl border-l border-slate-800/80 z-[130] shadow-2xl transition-transform duration-500 transform ${showAiPlanner ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
+        dir="rtl"
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <Brain size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white leading-none">מנהל משימות AI חכם</h3>
+              <p className="text-[10px] text-slate-400 font-bold mt-1">ריכוז מעקבים ותזכורות מבוסס בינה מלאכותית</p>
+            </div>
+          </div>
+          <button 
+            disabled={isBatchScanning}
+            onClick={() => setShowAiPlanner(false)}
+            className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700/80 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+          {/* Progress or batch sync banner */}
+          {isBatchScanning ? (
+            <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-3xl p-5 text-center animate-pulse">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-400 mx-auto mb-3" />
+              <h4 className="text-sm font-black text-white">{batchScanStatus}</h4>
+              <div className="w-full bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
+                <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300" style={{ width: `${batchScanProgress}%` }} />
+              </div>
+              <p className="text-[10px] text-indigo-300 font-bold mt-2">אנא המתן, הסנכרון מתבצע במרווחים בטוחים כדי לא לעבור את מכסת ה-AI...</p>
+            </div>
+          ) : (
+            leads.some(l => 
+              ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'].includes(l.status) && 
+              (!l.aiTasks || l.aiTasks.length === 0) &&
+              ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+            ) && (
+              <div className="bg-slate-800/40 border border-slate-700 rounded-3xl p-5 text-center">
+                <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-2 animate-bounce" />
+                <h4 className="text-sm font-black text-white">ישנם לידים פעילים שטרם נסרקו!</h4>
+                <p className="text-xs text-slate-400 mt-1 font-bold">סנכרן את המשימות מתוך ההערות הקיימות שלך כדי לראות אותן כאן.</p>
+                <button 
+                  onClick={runBatchActiveLeadsScan}
+                  className="w-full mt-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white py-3 px-4 rounded-2xl text-xs font-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw size={14} className="animate-spin" /> סנכרן משימות ללידים קיימים 🔄
+                </button>
+              </div>
+            )
+          )}
+
+          {/* Empty State */}
+          {activeTasksCount === 0 && !isBatchScanning && (
+            <div className="text-center py-12 px-4 border border-dashed border-slate-800 rounded-3xl">
+              <ClipboardList className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+              <h4 className="text-sm font-black text-slate-300">אין משימות או מעקבים כרגע</h4>
+              <p className="text-xs text-slate-500 mt-1 font-bold">כשתוסיף הערה עם תזכורת או תאריך (למשל: "לחזור אליו מחר ב-15:00") ותצא מההערה, ה-AI ינתח אותה ויציג אותה כאן מיידית!</p>
+            </div>
+          )}
+
+          {/* Chronological Timeline Groups */}
+          {activeTasksCount > 0 && (
+            <div className="space-y-6">
+              {renderTaskGroup("בעיכוב 🛑", aggregatedAiTasks.overdue, "border-rose-500/20 bg-rose-950/10")}
+              {renderTaskGroup("היום ⚡", aggregatedAiTasks.today, "border-indigo-500/20 bg-indigo-950/10")}
+              {renderTaskGroup("מחר 🌅", aggregatedAiTasks.tomorrow, "border-amber-500/20 bg-amber-950/10")}
+              {renderTaskGroup("בהמשך 🔮", aggregatedAiTasks.upcoming, "border-slate-800 bg-slate-900/40")}
+              {renderTaskGroup("כללי / מעקב 📌", aggregatedAiTasks.noDate, "border-slate-800 bg-slate-900/40")}
+            </div>
+          )}
+        </div>
+      </div>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

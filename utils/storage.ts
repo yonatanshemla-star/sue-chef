@@ -1,5 +1,14 @@
 import { sql } from '@vercel/postgres';
 
+export interface AITask {
+  id: string;
+  text: string;
+  dueDate: string | null;
+  type: 'call' | 'document' | 'followup' | 'general';
+  completed: boolean;
+  createdAt: string;
+}
+
 export interface Lead {
   id: string;
   clientName: string;
@@ -35,6 +44,7 @@ export interface Lead {
   isStarred?: boolean;
   whatsappReplyAnalyzed?: boolean;
   campaign?: string;
+  aiTasks?: AITask[];
 }
 
 export async function initDB() {
