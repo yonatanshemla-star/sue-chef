@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     params.append('EarlyMedia', 'false');
     params.append('EndConferenceOnExit', 'false');
     params.append('Beep', 'false');
+    params.append('StartConferenceOnEnter', 'true');
 
     // We don't await this so we can immediately return the TwiML for the agent
     fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confId}/Participants.json`, {
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial>
-        <Conference waitUrl="${waitUrl}" waitMethod="GET" beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confId}</Conference>
+        <Conference waitUrl="${waitUrl}" waitMethod="GET" beep="false" startConferenceOnEnter="false" endConferenceOnExit="true">${confId}</Conference>
     </Dial>
 </Response>`;
 
