@@ -87,6 +87,7 @@ export default function Home() {
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'script' | 'fields'>('script');
+  const [isNegligenceActive, setIsNegligenceActive] = useState(false);
   const [pendingDisqualification, setPendingDisqualification] = useState<{ id: string, action: 'delete' | 'fail', targetStatus?: string } | null>(null);
   const [historyLead, setHistoryLead] = useState<Lead | null>(null);
   
@@ -196,6 +197,13 @@ export default function Home() {
       setIsWorking(true);
     }
   }, []);
+
+  // Reset negligence script when drawer closes
+  useEffect(() => {
+    if (!liveNotesLead) {
+      setIsNegligenceActive(false);
+    }
+  }, [liveNotesLead]);
 
   // Persist current work start
   useEffect(() => {
@@ -397,6 +405,8 @@ export default function Home() {
   
   // Track which leads were recently modified locally to prevent auto-refresh from overwriting
   const localModifiedRef = useRef<Map<string, number>>(new Map());
+  const pendingUpdatesRef = useRef<Record<string, Partial<Lead>>>({});
+  const leadUpdateTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   const fetchLeads = async () => {
     try {
@@ -466,13 +476,60 @@ export default function Home() {
       }
     }
     
+    // 1. Immediately update local states synchronously for 100% lag-free typing!
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
     localModifiedRef.current.set(id, Date.now()); // Mark as locally modified
     if (liveNotesLead?.id === id) setLiveNotesLead(prev => prev ? { ...prev, ...updates } : null);
     if (historyLead?.id === id) setHistoryLead(prev => prev ? { ...prev, ...updates } : null);
-    try {
-      await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...updates }) });
-    } catch (e) { console.error(e); fetchLeads(); }
+
+    // 2. Debounce the network fetch to avoid crashing/lagging under rapid inputs
+    const debouncedFields = ['liveCallNotes', 'generalNotes', 'clientName', 'phone', 'salary', 'employmentStatus', 'medicalStatus'];
+    const hasDebouncedField = Object.keys(updates).some(k => debouncedFields.includes(k));
+
+    if (hasDebouncedField) {
+      if (leadUpdateTimeoutRef.current[id]) {
+        clearTimeout(leadUpdateTimeoutRef.current[id]);
+      }
+      if (!pendingUpdatesRef.current[id]) {
+        pendingUpdatesRef.current[id] = {};
+      }
+      Object.assign(pendingUpdatesRef.current[id], updates);
+
+      leadUpdateTimeoutRef.current[id] = setTimeout(async () => {
+        const aggregatedUpdates = pendingUpdatesRef.current[id];
+        delete pendingUpdatesRef.current[id];
+        delete leadUpdateTimeoutRef.current[id];
+        try {
+          await fetch('/api/leads/update', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ id, ...aggregatedUpdates }) 
+          });
+        } catch (e) { 
+          console.error("Failed to save debounced lead updates:", e); 
+          fetchLeads(); 
+        }
+      }, 1000);
+    } else {
+      // Immediate save for status changes, signatures, payments, etc.
+      if (leadUpdateTimeoutRef.current[id]) {
+        clearTimeout(leadUpdateTimeoutRef.current[id]);
+        delete leadUpdateTimeoutRef.current[id];
+      }
+      const pending = pendingUpdatesRef.current[id] || {};
+      delete pendingUpdatesRef.current[id];
+
+      try {
+        await fetch('/api/leads/update', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ id, ...pending, ...updates }) 
+        });
+      } catch (e) { 
+        console.error(e); 
+        fetchLeads(); 
+      }
+    }
   };
 
   const finalizeDisqualification = async (reason: string) => {
@@ -2271,7 +2328,13 @@ export default function Home() {
             {/* Header - Compact */}
             <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10" dir="rtl">
               <div className="flex items-center gap-4 text-right">
-                <div className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse"><PhoneCall size={24} /></div>
+                <button 
+                  onClick={() => liveNotesLead && initiateCall(liveNotesLead)} 
+                  title="חייג לליד"
+                  className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse hover:scale-105 active:scale-95 transition-all outline-none"
+                >
+                  <PhoneCall size={24} />
+                </button>
                 <div>
                   <div className="flex items-center gap-2.5 mb-1">
                     <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
@@ -2341,7 +2404,45 @@ export default function Home() {
                          </button>
                        </div>
 
-                       {leftPanelTab === 'script' ? (
+                       {isNegligenceActive ? (
+                         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-red-500/20 dark:border-red-900/40 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300">
+                           <h4 className="text-xl font-black text-red-600 dark:text-red-400 mb-6 flex items-center gap-3 underline decoration-red-500/30 underline-offset-8">
+                             <ClipboardList size={24} /> במקרה של רשלנות
+                           </h4>
+                           
+                           <div className="space-y-8 text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-assistant animate-in fade-in duration-300" dir="rtl">
+                             <section className="space-y-5">
+                               <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">1</span>
+                                 <p className="text-base text-slate-800 dark:text-slate-200">
+                                   גיל עד 65 רלוונטי לתביעות
+                                 </p>
+                               </div>
+
+                               <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">2</span>
+                                 <p className="text-base text-slate-800 dark:text-slate-200">
+                                   מה האבחנה
+                                 </p>
+                               </div>
+
+                               <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">3</span>
+                                 <p className="text-base text-slate-800 dark:text-slate-200">
+                                   באיזה שלב אובחנה המחלה? אנחנו מחפשים את אלו שאובחנו בשלב 4 או סרטן גרורתי
+                                 </p>
+                               </div>
+
+                               <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">4</span>
+                                 <p className="text-base text-slate-800 dark:text-slate-200">
+                                   התביעות האלה גם רלוונטיות לנפטרים - היורשים תובעים.
+                                 </p>
+                               </div>
+                             </section>
+                           </div>
+                         </div>
+                       ) : leftPanelTab === 'script' ? (
                          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300">
                             <h4 className="text-xl font-black text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
                               <FileText size={24} /> תסריט שיחה מלא
@@ -2477,9 +2578,20 @@ export default function Home() {
 
             {/* Footer - Compact */}
             <div className="p-4 border-t dark:border-slate-800 bg-white dark:bg-slate-900 z-10 flex justify-between items-center px-8" dir="rtl">
-               <div className="hidden sm:flex items-center gap-3 uppercase font-black text-[9px] tracking-widest text-slate-300 pointer-events-none">
-                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
-                 <span>Secure Connection</span>
+               <div className="flex items-center gap-6">
+                 <div className="hidden sm:flex items-center gap-3 uppercase font-black text-[9px] tracking-widest text-slate-300 pointer-events-none">
+                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+                   <span>Secure Connection</span>
+                 </div>
+                 <button 
+                   onClick={() => setIsNegligenceActive(!isNegligenceActive)}
+                   className={`px-6 py-2.5 rounded-2xl border font-black text-xs transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-sm
+                     ${isNegligenceActive 
+                       ? 'bg-red-500 text-white border-red-600 shadow-red-500/20 hover:bg-red-600' 
+                       : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
+                 >
+                   <ClipboardList size={14} /> במקרה של רשלנות
+                 </button>
                </div>
                <button onClick={handleCloseLiveNotes} className="px-16 py-3.5 rounded-2xl bg-indigo-600 text-white font-black shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/20">
                  <span className="relative z-10 flex items-center gap-3 font-black"><Check size={24} /> סיום ועדכון</span>
