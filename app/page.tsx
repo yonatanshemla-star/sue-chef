@@ -575,52 +575,52 @@ export default function Home() {
     if (items.length === 0) return null;
     return (
       <div className="space-y-3">
-        <h4 className="text-xs font-black text-slate-400 tracking-wider flex items-center justify-between px-1">
+        <h4 className="text-sm font-black text-indigo-700 dark:text-indigo-400 tracking-wider flex items-center justify-between px-1">
           <span>{title}</span>
-          <span className="bg-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full font-black">{items.length}</span>
+          <span className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-xs px-2.5 py-0.5 rounded-full font-black border border-indigo-200/50 dark:border-indigo-900/30">{items.length}</span>
         </h4>
         <div className="space-y-2.5">
           {items.map(({ lead, task }) => {
             const isCall = task.type === 'call';
             const isDoc = task.type === 'document';
             const isFollowup = task.type === 'followup';
-            let typeBadge = { text: 'כללי', bg: 'bg-slate-800/80 text-slate-400 border-slate-700/60' };
-            if (isCall) typeBadge = { text: '📞 שיחה', bg: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' };
-            else if (isDoc) typeBadge = { text: '📄 מסמכים', bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-            else if (isFollowup) typeBadge = { text: '⏳ מעקב', bg: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+            let typeBadge = { text: 'כללי', bg: 'bg-slate-105 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700' };
+            if (isCall) typeBadge = { text: '📞 שיחה', bg: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/30 dark:border-indigo-900/30' };
+            else if (isDoc) typeBadge = { text: '📄 מסמכים', bg: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200/30 dark:border-emerald-900/30' };
+            else if (isFollowup) typeBadge = { text: '⏳ מעקב', bg: 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200/30 dark:border-amber-900/30' };
 
             return (
               <div 
                 key={task.id}
-                className={`p-4 rounded-3xl border transition-all hover:scale-[1.02] flex items-start gap-3 relative group/card ${groupStyles}`}
+                className={`p-4 rounded-2xl border transition-all hover:scale-[1.02] flex items-start gap-3 relative group/card shadow-sm ${groupStyles}`}
               >
                 <button 
                   onClick={() => toggleAiTaskCompletion(lead.id, task.id, true)}
-                  className="mt-0.5 w-5 h-5 rounded-lg border border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/10 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
+                  className="mt-0.5 w-5 h-5 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/10 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
                   title="סמן כבוצע"
                 >
                   <div className="w-2.5 h-2.5 rounded bg-transparent group-hover/card:bg-emerald-500/20" />
                 </button>
                 <div className="flex-1 space-y-1">
-                  <span className="text-xs font-bold text-slate-200 block leading-snug">{task.text}</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-slate-200 block leading-snug">{task.text}</span>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <button 
                       onClick={() => {
                         setShowAiPlanner(false);
                         navigateToLead(lead);
                       }}
-                      className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 hover:underline transition-all"
+                      className="text-xs font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-300 hover:underline transition-all"
                     >
                       👤 {lead.clientName}
                     </button>
-                    <span className="text-[9px] text-slate-500 font-bold">•</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-lg border font-black ${typeBadge.bg}`}>
+                    <span className="text-slate-300 dark:text-slate-700 font-bold text-xs">•</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-lg border font-black ${typeBadge.bg}`}>
                       {typeBadge.text}
                     </span>
                     {task.dueDate && (
                       <>
-                        <span className="text-[9px] text-slate-500 font-bold">•</span>
-                        <span className="text-[9px] text-slate-400 font-bold">
+                        <span className="text-slate-300 dark:text-slate-700 font-bold text-xs">•</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-black">
                           ⏰ {new Date(task.dueDate).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                           {title.includes("בהמשך") && ` (${new Date(task.dueDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })})`}
                         </span>
@@ -3110,88 +3110,150 @@ export default function Home() {
         )}
       </button>
 
-      {/* AI Smart Planner Right Sidebar Drawer */}
-      <div 
-        className={`fixed inset-0 z-[120] transition-opacity duration-300 ${showAiPlanner ? 'bg-slate-950/60 backdrop-blur-md pointer-events-auto' : 'bg-transparent pointer-events-none opacity-0'}`}
-        onClick={() => { if (!isBatchScanning) setShowAiPlanner(false); }}
-      />
-      <div 
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-2xl border-l border-slate-800/80 z-[130] shadow-2xl transition-transform duration-500 transform ${showAiPlanner ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
-        dir="rtl"
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Brain size={20} className="animate-pulse" />
+      {/* Desktop AI Planner - Positioned Right */}
+      {showAiPlanner && (
+        <div className="hidden md:block fixed right-8 top-48 w-80 2xl:w-96 origin-right animate-in fade-in zoom-in duration-200 z-50">
+          <div className="bg-indigo-50/95 dark:bg-slate-900/95 rounded-[20px] p-5 shadow-2xl border-2 border-indigo-100 dark:border-slate-800/80 relative" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-5 bg-indigo-200/60 dark:bg-indigo-800/40 rounded-b-lg" />
+            
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-black text-indigo-800 dark:text-indigo-300 flex items-center gap-2">
+                <Brain className="w-4 h-4 animate-pulse text-indigo-600 dark:text-indigo-400" />
+                סייען משימות AI חכם
+              </h4>
+              <button 
+                disabled={isBatchScanning}
+                onClick={() => setShowAiPlanner(false)}
+                className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 transition-all cursor-pointer border-none bg-transparent"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div>
-              <h3 className="text-lg font-black text-white leading-none">מנהל משימות AI חכם</h3>
-              <p className="text-[10px] text-slate-400 font-bold mt-1">ריכוז מעקבים ותזכורות מבוסס בינה מלאכותית</p>
+
+            {/* Content - with scrollable fixed height */}
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1" dir="rtl">
+              {/* Progress or batch sync banner */}
+              {isBatchScanning ? (
+                <div className="bg-indigo-100/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl p-4 text-center animate-pulse">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
+                  <h5 className="text-[11px] font-black text-indigo-900 dark:text-indigo-200">{batchScanStatus}</h5>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+                    <div className="bg-indigo-600 dark:bg-indigo-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${batchScanProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                leads.some(l => 
+                  ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'].includes(l.status) && 
+                  l.aiTasks === undefined &&
+                  ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+                ) && (
+                  <div className="bg-indigo-100/40 dark:bg-slate-800/40 border border-indigo-200/50 dark:border-slate-750 rounded-2xl p-4 text-center">
+                    <Sparkles className="w-6 h-6 text-amber-500 mx-auto mb-1.5 animate-bounce" />
+                    <h5 className="text-[11px] font-black text-indigo-900 dark:text-indigo-200">ישנם לידים פעילים שטרם נסרקו!</h5>
+                    <button 
+                      onClick={runBatchActiveLeadsScan}
+                      className="w-full mt-2.5 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded-xl text-[10px] font-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                    >
+                      <RefreshCw size={11} className="animate-spin" /> סנכרן משימות 🔄
+                    </button>
+                  </div>
+                )
+              )}
+
+              {/* Empty State */}
+              {activeTasksCount === 0 && !isBatchScanning && (
+                <div className="text-center py-8 px-3 border border-dashed border-indigo-200 dark:border-indigo-800/50 rounded-2xl">
+                  <ClipboardList className="w-8 h-8 text-indigo-300 dark:text-indigo-700 mx-auto mb-2" />
+                  <h5 className="text-[11px] font-black text-indigo-800 dark:text-indigo-400">אין משימות או מעקבים כרגע</h5>
+                  <p className="text-[9px] text-slate-500 mt-1 font-bold">הוסף הערה עם תזכורת וה-AI ינתח אותה מיד!</p>
+                </div>
+              )}
+
+              {/* Chronological Timeline Groups */}
+              {activeTasksCount > 0 && (
+                <div className="space-y-4">
+                  {renderTaskGroup("בעיכוב 🛑", aggregatedAiTasks.overdue, "border-rose-200/60 bg-rose-50/80 dark:border-rose-950/20 dark:bg-rose-950/10")}
+                  {renderTaskGroup("היום ⚡", aggregatedAiTasks.today, "border-indigo-100 bg-indigo-50/80 dark:border-indigo-950/20 dark:bg-indigo-950/10")}
+                  {renderTaskGroup("מחר 🌅", aggregatedAiTasks.tomorrow, "border-amber-200/60 bg-amber-50/80 dark:border-amber-950/20 dark:bg-amber-950/10")}
+                  {renderTaskGroup("בהמשך 🔮", aggregatedAiTasks.upcoming, "border-indigo-100 bg-indigo-50/80 dark:border-indigo-950/20 dark:bg-slate-900/40")}
+                  {renderTaskGroup("כללי / מעקב 📌", aggregatedAiTasks.noDate, "border-indigo-100 bg-indigo-50/80 dark:border-indigo-950/20 dark:bg-slate-900/40")}
+                </div>
+              )}
             </div>
           </div>
-          <button 
-            disabled={isBatchScanning}
-            onClick={() => setShowAiPlanner(false)}
-            className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700/80 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
-          >
-            <X size={18} />
-          </button>
         </div>
+      )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-          {/* Progress or batch sync banner */}
-          {isBatchScanning ? (
-            <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-3xl p-5 text-center animate-pulse">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-400 mx-auto mb-3" />
-              <h4 className="text-sm font-black text-white">{batchScanStatus}</h4>
-              <div className="w-full bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
-                <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300" style={{ width: `${batchScanProgress}%` }} />
-              </div>
-              <p className="text-[10px] text-indigo-300 font-bold mt-2">אנא המתן, הסנכרון מתבצע במרווחים בטוחים כדי לא לעבור את מכסת ה-AI...</p>
+      {/* Mobile: full modal for AI Planner */}
+      {showAiPlanner && (
+        <div className="md:hidden fixed inset-0 z-[999] flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowAiPlanner(false)}>
+          <div className="bg-indigo-50 dark:bg-slate-950 w-full max-h-[70vh] rounded-t-[32px] p-6 shadow-2xl border-t-2 border-indigo-200 dark:border-indigo-800" onClick={e => e.stopPropagation()} style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+            <div className="w-12 h-1.5 bg-indigo-200 dark:bg-indigo-800 rounded-full mx-auto mb-4" />
+            
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-base font-black text-indigo-800 dark:text-indigo-300 flex items-center gap-2">
+                <Brain className="w-5 h-5 animate-pulse text-indigo-600 dark:text-indigo-400" />
+                סייען משימות AI חכם
+              </h4>
+              <button 
+                disabled={isBatchScanning}
+                onClick={() => setShowAiPlanner(false)}
+                className="p-1 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-none cursor-pointer"
+              >
+                <X size={18} />
+              </button>
             </div>
-          ) : (
-            leads.some(l => 
-              ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'].includes(l.status) && 
-              (!l.aiTasks || l.aiTasks.length === 0) &&
-              ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
-            ) && (
-              <div className="bg-slate-800/40 border border-slate-700 rounded-3xl p-5 text-center">
-                <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-2 animate-bounce" />
-                <h4 className="text-sm font-black text-white">ישנם לידים פעילים שטרם נסרקו!</h4>
-                <p className="text-xs text-slate-400 mt-1 font-bold">סנכרן את המשימות מתוך ההערות הקיימות שלך כדי לראות אותן כאן.</p>
-                <button 
-                  onClick={runBatchActiveLeadsScan}
-                  className="w-full mt-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white py-3 px-4 rounded-2xl text-xs font-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <RefreshCw size={14} className="animate-spin" /> סנכרן משימות ללידים קיימים 🔄
-                </button>
-              </div>
-            )
-          )}
 
-          {/* Empty State */}
-          {activeTasksCount === 0 && !isBatchScanning && (
-            <div className="text-center py-12 px-4 border border-dashed border-slate-800 rounded-3xl">
-              <ClipboardList className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-              <h4 className="text-sm font-black text-slate-300">אין משימות או מעקבים כרגע</h4>
-              <p className="text-xs text-slate-500 mt-1 font-bold">כשתוסיף הערה עם תזכורת או תאריך (למשל: "לחזור אליו מחר ב-15:00") ותצא מההערה, ה-AI ינתח אותה ויציג אותה כאן מיידית!</p>
-            </div>
-          )}
+            {/* Mobile Content */}
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar" dir="rtl">
+              {isBatchScanning ? (
+                <div className="bg-indigo-100/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl p-4 text-center animate-pulse">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
+                  <h5 className="text-xs font-black text-indigo-900 dark:text-indigo-200">{batchScanStatus}</h5>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+                    <div className="bg-indigo-600 dark:bg-indigo-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${batchScanProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                leads.some(l => 
+                  ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'].includes(l.status) && 
+                  l.aiTasks === undefined &&
+                  ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+                ) && (
+                  <div className="bg-indigo-100/40 dark:bg-slate-800/40 border border-indigo-200/50 dark:border-slate-700 rounded-2xl p-4 text-center">
+                    <Sparkles className="w-6 h-6 text-amber-500 mx-auto mb-1.5 animate-bounce" />
+                    <h5 className="text-xs font-black text-indigo-900 dark:text-indigo-200">ישנם לידים פעילים שטרם נסרקו!</h5>
+                    <button 
+                      onClick={runBatchActiveLeadsScan}
+                      className="w-full mt-2.5 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded-xl text-xs font-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                    >
+                      <RefreshCw size={12} className="animate-spin" /> סנכרן משימות 🔄
+                    </button>
+                  </div>
+                )
+              )}
 
-          {/* Chronological Timeline Groups */}
-          {activeTasksCount > 0 && (
-            <div className="space-y-6">
-              {renderTaskGroup("בעיכוב 🛑", aggregatedAiTasks.overdue, "border-rose-500/20 bg-rose-950/10")}
-              {renderTaskGroup("היום ⚡", aggregatedAiTasks.today, "border-indigo-500/20 bg-indigo-950/10")}
-              {renderTaskGroup("מחר 🌅", aggregatedAiTasks.tomorrow, "border-amber-500/20 bg-amber-950/10")}
-              {renderTaskGroup("בהמשך 🔮", aggregatedAiTasks.upcoming, "border-slate-800 bg-slate-900/40")}
-              {renderTaskGroup("כללי / מעקב 📌", aggregatedAiTasks.noDate, "border-slate-800 bg-slate-900/40")}
+              {activeTasksCount === 0 && !isBatchScanning && (
+                <div className="text-center py-8 px-3 border border-dashed border-indigo-200 dark:border-indigo-800/50 rounded-2xl">
+                  <ClipboardList className="w-8 h-8 text-indigo-300 dark:text-indigo-700 mx-auto mb-2" />
+                  <h5 className="text-xs font-black text-indigo-800 dark:text-indigo-400">אין משימות או מעקבים כרגע</h5>
+                </div>
+              )}
+
+              {activeTasksCount > 0 && (
+                <div className="space-y-4">
+                  {renderTaskGroup("בעיכוב 🛑", aggregatedAiTasks.overdue, "border-rose-200/60 bg-rose-50/80 dark:border-rose-950/20 dark:bg-rose-950/10")}
+                  {renderTaskGroup("היום ⚡", aggregatedAiTasks.today, "border-indigo-100 bg-indigo-50/80 dark:border-indigo-950/20 dark:bg-indigo-950/10")}
+                  {renderTaskGroup("מחר 🌅", aggregatedAiTasks.tomorrow, "border-amber-200/60 bg-amber-50/80 dark:border-amber-950/20 dark:bg-amber-950/10")}
+                  {renderTaskGroup("בהמשך 🔮", aggregatedAiTasks.upcoming, "border-indigo-100 bg-indigo-50/80 dark:border-indigo-950/20 dark:bg-slate-900/40")}
+                  {renderTaskGroup("כללי / מעקב 📌", aggregatedAiTasks.noDate, "border-indigo-100 bg-indigo-50/80 dark:border-indigo-950/20 dark:bg-slate-900/40")}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
