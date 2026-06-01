@@ -417,18 +417,19 @@ export default function Home() {
 
   // AI Smart Planner Logic
   const extractAiTasksForLead = async (leadId: string, currentNotes: string, status: string) => {
-    if (!currentNotes || currentNotes.trim().length < 3) {
+    if (!currentNotes || currentNotes.trim().length < 1) {
       await handleLeadUpdate(leadId, { aiTasks: [] });
       return;
     }
     try {
+      const localTimeStr = new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());
       const response = await fetch('/api/gemini/extract-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status,
           notes: currentNotes,
-          currentLocalTime: new Date().toISOString()
+          currentLocalTime: localTimeStr
         })
       });
       const data = await response.json();
@@ -453,7 +454,7 @@ export default function Home() {
     const activeStatuses = ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'];
     const activeLeads = leads.filter(l => 
       activeStatuses.includes(l.status) && 
-      ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+      ((l.generalNotes && l.generalNotes.trim().length > 0) || (l.liveCallNotes && l.liveCallNotes.trim().length > 0))
     );
     if (activeLeads.length === 0) {
       setBatchScanStatus("אין לידים פעילים עם הערות לסריקה!");
@@ -477,12 +478,13 @@ export default function Home() {
           status: l.status,
           notes: `${l.generalNotes || ''}\n${l.liveCallNotes || ''}`.trim()
         }));
+        const localTimeStr = new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());
         const response = await fetch('/api/gemini/extract-tasks-batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             leads: payload,
-            currentLocalTime: new Date().toISOString()
+            currentLocalTime: localTimeStr
           })
         });
         const data = await response.json();
@@ -3156,7 +3158,7 @@ export default function Home() {
                 leads.some(l => 
                   ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'].includes(l.status) && 
                   l.aiTasks === undefined &&
-                  ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+                  ((l.generalNotes && l.generalNotes.trim().length > 0) || (l.liveCallNotes && l.liveCallNotes.trim().length > 0))
                 ) && (
                   <div className="bg-indigo-100/40 dark:bg-slate-800/40 border border-indigo-200/50 dark:border-slate-750 rounded-2xl p-4 text-center">
                     <Sparkles className="w-6 h-6 text-amber-500 mx-auto mb-1.5 animate-bounce" />
@@ -3239,7 +3241,7 @@ export default function Home() {
                 leads.some(l => 
                   ['חדש', 'לא ענה', 'לחזור אליו', 'במעקב', 'גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בטיפול עורך דין'].includes(l.status) && 
                   l.aiTasks === undefined &&
-                  ((l.generalNotes && l.generalNotes.trim().length > 3) || (l.liveCallNotes && l.liveCallNotes.trim().length > 3))
+                  ((l.generalNotes && l.generalNotes.trim().length > 0) || (l.liveCallNotes && l.liveCallNotes.trim().length > 0))
                 ) && (
                   <div className="bg-indigo-100/40 dark:bg-slate-800/40 border border-indigo-200/50 dark:border-slate-700 rounded-2xl p-4 text-center">
                     <Sparkles className="w-6 h-6 text-amber-500 mx-auto mb-1.5 animate-bounce" />
