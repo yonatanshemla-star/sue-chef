@@ -704,6 +704,21 @@ export default function Home() {
     } catch (err) { console.error(err); }
   };
 
+  const handleHangupCall = async () => {
+    try {
+      const res = await fetch('/api/twilio/call/disconnect', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert("השיחה נותקה בהצלחה.");
+      } else {
+        alert("לא נמצאה שיחה פעילה לניתוק או שחלה שגיאה.");
+      }
+    } catch (err) {
+      console.error("Hangup error:", err);
+      alert("שגיאת תקשורת בניסיון לנתק שיחה.");
+    }
+  };
+
   const handleCloseLiveNotes = async () => {
     const currentLead = liveNotesLead;
     setLiveNotesLead(null);
@@ -2334,6 +2349,13 @@ export default function Home() {
                   className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse hover:scale-105 active:scale-95 transition-all outline-none"
                 >
                   <PhoneCall size={24} />
+                </button>
+                <button 
+                  onClick={handleHangupCall} 
+                  title="נתק שיחה פעילה"
+                  className="w-12 h-12 bg-rose-600 hover:bg-rose-700 rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
+                >
+                  <PhoneOff size={24} />
                 </button>
                 <div>
                   <div className="flex items-center gap-2.5 mb-1">
