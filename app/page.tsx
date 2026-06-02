@@ -722,22 +722,29 @@ export default function Home() {
   const handleCloseLiveNotes = async () => {
     const currentLead = liveNotesLead;
     setLiveNotesLead(null);
-    if (currentLead && currentLead.liveCallNotes?.trim()) {
+    if (!currentLead) return;
+
+    // Get the absolute latest version of the lead from state to ensure no stale notes
+    const latestLead = leads.find(l => l.id === currentLead.id) || currentLead;
+    const notesToAnalyze = latestLead.liveCallNotes;
+
+    if (notesToAnalyze && notesToAnalyze.trim()) {
       try {
         const res = await fetch('/api/leads/analyze-call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: currentLead.liveCallNotes, id: currentLead.id })
+          body: JSON.stringify({ text: notesToAnalyze, id: latestLead.id })
         });
         const data = await res.json();
         if (data.success && data.data) {
           const { salary, employmentStatus, medicalStatus } = data.data;
-          setLeads(prev => prev.map(l => l.id === currentLead.id ? { 
-            ...l, 
-            salary: salary || l.salary || "", 
-            employmentStatus: employmentStatus || l.employmentStatus || "", 
-            medicalStatus: medicalStatus || l.medicalStatus || "" 
-          } : l));
+          const updates = {
+            salary: salary || latestLead.salary || "",
+            employmentStatus: employmentStatus || latestLead.employmentStatus || "",
+            medicalStatus: medicalStatus || latestLead.medicalStatus || ""
+          };
+          // Persist the updates to the local state and postgres DB!
+          handleLeadUpdate(latestLead.id, updates);
         }
       } catch (err) {
         console.error("Error analyzing live call notes on close:", err);
