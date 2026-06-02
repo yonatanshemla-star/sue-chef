@@ -445,7 +445,7 @@ export default function Home() {
     }
   };
 
-  const handleLeadUpdate = async (id: string, updates: Partial<Lead>) => {
+  const handleLeadUpdate = async (id: string, updates: Partial<Lead>, immediate = false) => {
     // Only 'נגמר' triggers the disqualification survey now. 'לא רלוונטי' stays in CRM.
     if (updates.status === 'נגמר') {
         setPendingDisqualification({ id, action: 'fail', targetStatus: updates.status });
@@ -486,7 +486,7 @@ export default function Home() {
     const debouncedFields = ['liveCallNotes', 'generalNotes', 'clientName', 'phone', 'salary', 'employmentStatus', 'medicalStatus'];
     const hasDebouncedField = Object.keys(updates).some(k => debouncedFields.includes(k));
 
-    if (hasDebouncedField) {
+    if (hasDebouncedField && !immediate) {
       if (leadUpdateTimeoutRef.current[id]) {
         clearTimeout(leadUpdateTimeoutRef.current[id]);
       }
@@ -721,30 +721,36 @@ export default function Home() {
 
   const handleCloseLiveNotes = async () => {
     const currentLead = liveNotesLead;
-    setLiveNotesLead(null);
     if (!currentLead) return;
 
-    // Get the absolute latest version of the lead from state to ensure no stale notes
-    const latestLead = leads.find(l => l.id === currentLead.id) || currentLead;
-    const notesToAnalyze = latestLead.liveCallNotes;
+    // 1. Get the absolute latest version of notes directly from the DOM before unmounting the modal
+    const textarea = document.getElementById('live-call-notes-textarea') as HTMLTextAreaElement | null;
+    const notesToAnalyze = textarea ? textarea.value : (currentLead.liveCallNotes || '');
 
+    // 2. Immediately save notes updates to state & PostgreSQL database (bypassing debounce)
+    await handleLeadUpdate(currentLead.id, { liveCallNotes: notesToAnalyze }, true);
+
+    // 3. Set to null to unmount the modal
+    setLiveNotesLead(null);
+
+    // 4. Trigger AI analysis asynchronously
     if (notesToAnalyze && notesToAnalyze.trim()) {
       try {
         const res = await fetch('/api/leads/analyze-call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: notesToAnalyze, id: latestLead.id })
+          body: JSON.stringify({ text: notesToAnalyze, id: currentLead.id })
         });
         const data = await res.json();
         if (data.success && data.data) {
           const { salary, employmentStatus, medicalStatus } = data.data;
           const updates = {
-            salary: salary || latestLead.salary || "",
-            employmentStatus: employmentStatus || latestLead.employmentStatus || "",
-            medicalStatus: medicalStatus || latestLead.medicalStatus || ""
+            salary: salary || currentLead.salary || "",
+            employmentStatus: employmentStatus || currentLead.employmentStatus || "",
+            medicalStatus: medicalStatus || currentLead.medicalStatus || ""
           };
-          // Persist the updates to the local state and postgres DB!
-          handleLeadUpdate(latestLead.id, updates);
+          // Persist the extracted AI fields to local state & PostgreSQL immediately
+          await handleLeadUpdate(currentLead.id, updates, true);
         }
       } catch (err) {
         console.error("Error analyzing live call notes on close:", err);
@@ -753,13 +759,20 @@ export default function Home() {
   };
 
   const handleManualAnalyzeCall = async () => {
-    if (!liveNotesLead || !liveNotesLead.liveCallNotes?.trim()) return;
+    if (!liveNotesLead) return;
+    const textarea = document.getElementById('live-call-notes-textarea') as HTMLTextAreaElement | null;
+    const notesToAnalyze = textarea ? textarea.value : (liveNotesLead.liveCallNotes || '');
+    if (!notesToAnalyze.trim()) return;
+
+    // Save notes immediately first
+    await handleLeadUpdate(liveNotesLead.id, { liveCallNotes: notesToAnalyze }, true);
+
     setIsAnalyzing(true);
     try {
       const res = await fetch('/api/leads/analyze-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: liveNotesLead.liveCallNotes, id: liveNotesLead.id })
+        body: JSON.stringify({ text: notesToAnalyze, id: liveNotesLead.id })
       });
       const data = await res.json();
       if (data.success && data.data) {
@@ -769,7 +782,7 @@ export default function Home() {
           employmentStatus: employmentStatus || liveNotesLead.employmentStatus || "",
           medicalStatus: medicalStatus || liveNotesLead.medicalStatus || ""
         };
-        handleLeadUpdate(liveNotesLead.id, updates);
+        await handleLeadUpdate(liveNotesLead.id, updates, true);
       }
     } catch (err) {
       console.error("Error running manual AI analysis:", err);
