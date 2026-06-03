@@ -25,3 +25,23 @@ export async function sendWhatsAppWelcome(phone: string, clientName: string) {
         return { success: false, error: err.message };
     }
 }
+
+export async function sendWhatsAppMessage(phone: string, message: string) {
+    if (!phone) return { success: false, error: 'No phone' };
+
+    try {
+        const response = await fetch(`${WHATSAPP_BOT_URL}/api/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${WHATSAPP_API_KEY}`
+            },
+            body: JSON.stringify({ phone, message })
+        });
+
+        return await response.json();
+    } catch (err: any) {
+        console.error('Error invoking WhatsApp bot for generic message:', err);
+        return { success: false, error: err.message };
+    }
+}
