@@ -7,6 +7,7 @@ import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TablePro
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
+import DisqualificationDonutChart from "@/components/DisqualificationDonutChart";
 
 // -- Simple CountUp Component --
 function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | string, suffix?: string, prefix?: string }) {
@@ -2184,15 +2185,8 @@ export default function Home() {
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-12 pb-12">
                       <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border dark:border-slate-800 shadow-xl group">
                          <h4 className="text-xl font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white">סיבות פסילה לתקופה <AlertTriangle className="text-red-500" /></h4>
-                         <div className="space-y-6">
-                            {Array.isArray(analyticsData.disqualificationReasons) && analyticsData.disqualificationReasons.length > 0 ? analyticsData.disqualificationReasons.map((r: any, idx: number) => (
-                              <div key={r.reason} className="space-y-2">
-                                <div className="flex justify-between text-xs font-black uppercase text-slate-400"><span>{r.reason}</span><span>{r.count}</span></div>
-                                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex flex-row-reverse">
-                                  <div className="bg-gradient-to-l from-red-600 to-red-400 h-full transition-all duration-1000" style={{ width: `${(r.count / Math.max(1, analyticsData.funnel?.total || 1) * 100)}%` }} />
-                                </div>
-                              </div>
-                            )) : <div className="flex flex-col items-center justify-center py-12 opacity-20"><HelpCircle size={48} /><p className="font-bold mt-4">אין נתונים לתקופה זו</p></div>}
+                         <div className="mt-4">
+                            <DisqualificationDonutChart data={analyticsData.disqualificationReasons || []} />
                          </div>
                       </div>
                       <div className="bg-indigo-600 rounded-[40px] p-8 text-white shadow-2xl flex flex-col justify-center relative overflow-hidden group min-h-[350px]">
