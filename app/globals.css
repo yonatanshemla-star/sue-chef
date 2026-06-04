@@ -87,23 +87,7 @@
   transition: none !important;
 }
 
-/* 
-=========================================
-  TEST DESIGN RULE: SUBTLE ROUNDED CORNERS (8px)
-  Change this value to try different roundings, or delete/comment out
-  this block to instantly revert to the original bubble/rounded design.
-=========================================
-*/
-*, ::before, ::after {
-  border-radius: 8px !important;
-}
 
-/* Keep perfect circles, status dots, and pill badges round */
-.rounded-full,
-[class*="rounded-full"],
-.rounded-full *,
-[class*="rounded-full"] * {
-  border-radius: 9999px !important;
-}
+
 
 
