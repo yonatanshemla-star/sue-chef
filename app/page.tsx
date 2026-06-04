@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles } from "lucide-react";
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
+import InteractiveSVGChart from "@/components/InteractiveSVGChart";
 
 // -- Simple CountUp Component --
 function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | string, suffix?: string, prefix?: string }) {
@@ -2092,7 +2093,25 @@ export default function Home() {
                    </div>
 
                    {/* Funnel & Relevance Progress Ring */}
-                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
+                   {/* Charts Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+                      <InteractiveSVGChart
+                        data={analyticsData.leadsTimeSeries || []}
+                        title="גרף כניסת לידים למערכת"
+                        type="line"
+                        color="indigo"
+                        yLabel="לידים חדשים"
+                      />
+                      <InteractiveSVGChart
+                        data={analyticsData.signaturesTimeSeries || []}
+                        title="גרף חתימות לקוחות (הסכמי ייצוג)"
+                        type="bar"
+                        color="emerald"
+                        yLabel="חתימות"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
                      {/* Left: Progress Ring */}
                      <div className="bg-slate-100/30 dark:bg-slate-800/20 p-8 rounded-3xl md:rounded-[48px] border dark:border-slate-800 shadow-inner flex flex-col items-center justify-center text-center relative overflow-hidden group min-h-[350px]">
                        <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />

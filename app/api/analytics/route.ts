@@ -88,6 +88,117 @@ export async function GET(request: NextRequest) {
       count: parseInt(r.count)
     }));
 
+    // 3. Time Series for Leads Received
+    let groupByFormat = 'DD/MM';
+    if (timeframe === 'lifetime') {
+      groupByFormat = 'MM/YYYY';
+    }
+
+    const leadsSeriesRes = await sql`
+      SELECT 
+        TO_CHAR(created_at, ${groupByFormat}) as period,
+        count(*) as count,
+        MIN(created_at) as min_date
+      FROM leads
+      WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval
+      GROUP BY period
+      ORDER BY min_date ASC
+    `;
+
+    // 4. Time Series for Signatures
+    const signaturesSeriesRes = await sql`
+      SELECT 
+        TO_CHAR(
+          COALESCE(
+            CASE 
+              WHEN (data->>'signedAt') IS NOT NULL AND (data->>'signedAt') != '' AND (data->>'signedAt') != 'null'
+              THEN (data->>'signedAt')::timestamp 
+              ELSE NULL 
+            END, 
+            created_at
+          ), 
+          ${groupByFormat}
+        ) as period,
+        count(*) as count,
+        MIN(created_at) as min_date
+      FROM leads
+      WHERE (data->>'status') = 'חתם'
+        AND COALESCE(
+          CASE 
+            WHEN (data->>'signedAt') IS NOT NULL AND (data->>'signedAt') != '' AND (data->>'signedAt') != 'null'
+            THEN (data->>'signedAt')::timestamp 
+            ELSE NULL 
+          END, 
+          created_at
+        ) >= NOW() - (${daysLimit} || ' days')::interval
+      GROUP BY period
+      ORDER BY min_date ASC
+    `;
+
+    let leadsTimeSeries = leadsSeriesRes.rows.map(r => ({
+      period: r.period,
+      count: parseInt(r.count) || 0
+    }));
+
+    let signaturesTimeSeries = signaturesSeriesRes.rows.map(r => ({
+      period: r.period,
+      count: parseInt(r.count) || 0
+    }));
+
+    // Fill missing periods
+    if (timeframe === 'lifetime') {
+      const earliestLeadRes = await sql`SELECT MIN(created_at) as earliest FROM leads`;
+      const earliestDate = earliestLeadRes.rows[0]?.earliest ? new Date(earliestLeadRes.rows[0].earliest) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      
+      const fillMissingMonths = (data: { period: string, count: number }[], start: Date) => {
+        const result = [];
+        const dataMap = new Map(data.map(item => [item.period, item.count]));
+        
+        const current = new Date(start.getFullYear(), start.getMonth(), 1);
+        const end = new Date();
+        
+        // Loop through all months from start to end
+        while (current <= end) {
+          const monthStr = String(current.getMonth() + 1).padStart(2, '0');
+          const yearStr = current.getFullYear();
+          const period = `${monthStr}/${yearStr}`;
+          result.push({
+            period,
+            count: dataMap.get(period) || 0
+          });
+          current.setMonth(current.getMonth() + 1);
+        }
+        return result;
+      };
+
+      leadsTimeSeries = fillMissingMonths(leadsTimeSeries, earliestDate);
+      signaturesTimeSeries = fillMissingMonths(signaturesTimeSeries, earliestDate);
+    } else {
+      // Days-based timeframe
+      const daysCount = timeframe === '7days' ? 7 : timeframe === '30days' ? 30 : daysLimit;
+      
+      const fillMissingDays = (data: { period: string, count: number }[], count: number) => {
+        const result = [];
+        const dataMap = new Map(data.map(item => [item.period, item.count]));
+        
+        for (let i = count - 1; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dayStr = String(d.getDate()).padStart(2, '0');
+          const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+          const period = `${dayStr}/${monthStr}`;
+          result.push({
+            period,
+            count: dataMap.get(period) || 0
+          });
+        }
+        return result;
+      };
+
+      leadsTimeSeries = fillMissingDays(leadsTimeSeries, daysCount);
+      signaturesTimeSeries = fillMissingDays(signaturesTimeSeries, daysCount);
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -103,7 +214,9 @@ export async function GET(request: NextRequest) {
           avgCallsNoAnswer,
           quickSignedRate: signedLeads > 0 ? Math.round((quickSignedLeads / signedLeads) * 100) : 0,
           leadQualityRatio: contactedLeads > 0 ? Math.round((relevantLeads / contactedLeads) * 100) : 0
-        }
+        },
+        leadsTimeSeries,
+        signaturesTimeSeries
       }
     });
 
