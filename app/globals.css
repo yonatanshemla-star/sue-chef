@@ -86,3 +86,14 @@
 .disable-transitions :not(.theme-toggle-icon) {
   transition: none !important;
 }
+
+/* 
+=========================================
+  TEST DESIGN RULE: SHARP SQUARE CORNERS
+  Delete or comment out this rule to instantly revert to the original rounded-corner theme.
+=========================================
+*/
+*, ::before, ::after {
+  border-radius: 0px !important;
+}
+
