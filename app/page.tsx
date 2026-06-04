@@ -86,6 +86,7 @@ export default function Home() {
   const [liveNotesLead, setLiveNotesLead] = useState<Lead | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'script' | 'fields'>('script');
@@ -1624,7 +1625,7 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto md:overflow-visible">
               <table className="hidden md:table w-full text-sm text-right border-collapse">
                 <thead className="bg-slate-50/50 dark:bg-slate-950/20 border-b border-indigo-500/10">
                   <tr>
@@ -1748,14 +1749,36 @@ export default function Home() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="relative group/select">
-                        <select 
-                          value={lead.status} 
-                          onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
-                          className={`text-[11px] font-black rounded-2xl px-4 py-3 outline-none border transition-all cursor-pointer w-full appearance-none shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border} group-hover/select:shadow-indigo-500/10`}
+                        <button
+                          onClick={() => setActiveStatusDropdownLeadId(activeStatusDropdownLeadId === lead.id ? null : lead.id)}
+                          className={`text-[11px] font-black rounded-2xl px-4 py-3 outline-none border transition-all cursor-pointer w-full flex items-center justify-between shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border} group-hover/select:shadow-indigo-500/10`}
                         >
-                          {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50"><ChevronDown size={14} /></div>
+                          <span className="truncate">{STATUS_CONFIG[lead.status]?.label || lead.status}</span>
+                          <ChevronDown size={14} className="opacity-70 flex-shrink-0" />
+                        </button>
+                        
+                        {activeStatusDropdownLeadId === lead.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
+                            <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl py-2 z-50 max-h-72 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                                <button
+                                  key={k}
+                                  onClick={() => {
+                                    handleLeadUpdate(lead.id, { status: k });
+                                    setActiveStatusDropdownLeadId(null);
+                                  }}
+                                  className={`w-full text-right px-4 py-2.5 text-xs font-black transition-colors flex items-center gap-2.5
+                                    ${lead.status === k 
+                                      ? 'bg-indigo-600 text-white' 
+                                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+                                >
+                                  <span>{v.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -1903,14 +1926,36 @@ export default function Home() {
                   {/* Bottom: Status & Modals */}
                   <div className="flex flex-col gap-3">
                     <div className="relative group/select w-full">
-                      <select 
-                        value={lead.status} 
-                        onChange={e => handleLeadUpdate(lead.id, { status: e.target.value })} 
-                        className={`text-sm font-black rounded-xl px-4 py-3 outline-none border transition-all cursor-pointer w-full appearance-none shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
+                      <button
+                        onClick={() => setActiveStatusDropdownLeadId(activeStatusDropdownLeadId === lead.id ? null : lead.id)}
+                        className={`text-sm font-black rounded-xl px-4 py-3 outline-none border transition-all cursor-pointer w-full flex items-center justify-between shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
                       >
-                        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                      </select>
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50"><ChevronDown size={18} /></div>
+                        <span className="truncate">{STATUS_CONFIG[lead.status]?.label || lead.status}</span>
+                        <ChevronDown size={18} className="opacity-70 flex-shrink-0" />
+                      </button>
+                      
+                      {activeStatusDropdownLeadId === lead.id && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
+                          <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl py-2 z-50 max-h-64 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                              <button
+                                key={k}
+                                onClick={() => {
+                                  handleLeadUpdate(lead.id, { status: k });
+                                  setActiveStatusDropdownLeadId(null);
+                                }}
+                                className={`w-full text-right px-4 py-3 text-sm font-black transition-colors flex items-center gap-2.5
+                                  ${lead.status === k 
+                                    ? 'bg-indigo-600 text-white' 
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+                              >
+                                <span>{v.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                     
                     <div className="flex gap-2">
