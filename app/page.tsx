@@ -1775,7 +1775,7 @@ export default function Home() {
                                   className={`w-full text-right px-4 py-2 text-xs font-bold font-assistant transition-colors flex items-center gap-2.5
                                     ${lead.status === k 
                                       ? 'bg-indigo-600 text-white' 
-                                      : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400'}`}
+                                      : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
                                 >
                                   <span>{v.label}</span>
                                 </button>
@@ -1952,7 +1952,7 @@ export default function Home() {
                                 className={`w-full text-right px-4 py-2.5 text-sm font-bold font-assistant transition-colors flex items-center gap-2.5
                                   ${lead.status === k 
                                     ? 'bg-indigo-600 text-white' 
-                                    : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400'}`}
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
                               >
                                 <span>{v.label}</span>
                               </button>
