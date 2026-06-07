@@ -54,7 +54,9 @@ export async function POST(req: Request) {
           try {
               const leads = await getLeads();
               const fromNormalized = fromStr.replace(/\D/g, '').slice(-9);
-              const matchedLead = leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(fromNormalized));
+              const matchedLead = (fromNormalized && fromNormalized.length >= 7)
+                  ? leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(fromNormalized))
+                  : undefined;
 
               let displayCallerNumber = fromStr;
               if (displayCallerNumber.startsWith('+972')) {

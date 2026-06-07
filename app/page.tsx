@@ -844,9 +844,11 @@ export default function Home() {
             let callerName = null;
             if (data.activeCall.from) {
               const normalized = data.activeCall.from.replace(/\D/g, '').slice(-9);
-              const matchedLead = leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalized));
-              if (matchedLead && matchedLead.clientName?.trim()) {
-                callerName = matchedLead.clientName.trim();
+              if (normalized && normalized.length >= 7) {
+                const matchedLead = leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalized));
+                if (matchedLead && matchedLead.clientName?.trim()) {
+                  callerName = matchedLead.clientName.trim();
+                }
               }
             }
             setIncomingCall({ ...data.activeCall, callerName });
@@ -1013,8 +1015,10 @@ export default function Home() {
 
   const getLeadByPhone = useCallback((phone: string) => {
     if (!phone) return null;
-    const normalized = phone.slice(-9);
-    return leads.find(l => l.phone?.includes(normalized));
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length < 7) return null;
+    const normalized = clean.slice(-9);
+    return leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalized));
   }, [leads]);
 
   // Duplicate detection: build a map of leadId -> duplicate info
