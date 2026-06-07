@@ -22,7 +22,7 @@ export default function DisqualificationDonutChart({ data }: DisqualificationPie
           <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4m0 4h.01" />
         </svg>
-        <p className="font-black text-sm">אין נתונים לתקופה זו</p>
+        <p className="font-bold text-sm">אין נתונים לתקופה זו</p>
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function DisqualificationDonutChart({ data }: DisqualificationPie
                 y={slice.ly}
                 textAnchor="middle"
                 dominantBaseline="central"
-                className="fill-white font-assistant font-black pointer-events-none select-none text-[8px]"
+                className="fill-white font-assistant font-bold pointer-events-none select-none text-[8px]"
                 style={{
                   fontSize: isHovered ? '9px' : '7.5px',
                   transform: isHovered ? `translate(${slice.dx}px, ${slice.dy}px)` : 'translate(0px, 0px)',
@@ -167,9 +167,9 @@ export default function DisqualificationDonutChart({ data }: DisqualificationPie
       {/* Side Legend List */}
       <div className="flex-1 w-full">
         {/* Total Summary Badge */}
-        <div className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/40 px-4 py-2.5 rounded-2xl border border-slate-100 dark:border-slate-850">
+        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/40 px-4 py-2.5 rounded-2xl border border-slate-100 dark:border-slate-850">
           <span className="font-assistant">סה"כ נפסלו בתקופה:</span>
-          <span className="font-mono text-xs font-black text-slate-800 dark:text-white px-2.5 py-0.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">
+          <span className="font-mono text-xs font-bold text-slate-800 dark:text-white px-2.5 py-0.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">
             {total} לידים
           </span>
         </div>
@@ -192,11 +192,11 @@ export default function DisqualificationDonutChart({ data }: DisqualificationPie
                     className="w-3.5 h-3.5 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: slice.color }} 
                   />
-                  <span className="text-xs font-black text-slate-700 dark:text-slate-300">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     {slice.label}
                   </span>
                 </div>
-                <span className="text-xs font-mono font-black text-slate-800 dark:text-white px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                <span className="text-xs font-mono font-bold text-slate-800 dark:text-white px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
                   {slice.value} ({Math.round(slice.percentage * 100)}%)
                 </span>
               </div>

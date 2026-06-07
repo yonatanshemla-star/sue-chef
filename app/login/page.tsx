@@ -54,7 +54,7 @@ export default function LoginPage() {
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-black tracking-tight text-white mb-2">Sue-Chef</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Sue-Chef</h1>
             <p className="text-gray-400 font-medium">הזן סיסמת גישה למערכת</p>
           </div>
 

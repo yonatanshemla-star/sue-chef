@@ -238,9 +238,9 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
           <div className="flex items-center gap-2.5">
-            <span className="text-white font-black text-xs tracking-tight">{targetName || incomingCallerId?.name || 'שיחה'}</span>
+            <span className="text-white font-bold text-xs tracking-tight">{targetName || incomingCallerId?.name || 'שיחה'}</span>
             <span className="h-3 w-px bg-white/10" />
-            <span className="text-white/40 font-mono text-[9px] uppercase font-black tracking-widest">{formatDuration(duration)}</span>
+            <span className="text-white/40 font-mono text-[9px] uppercase font-bold tracking-widest">{formatDuration(duration)}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -264,7 +264,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
             <ChevronDown className="w-6 h-6" />
           </button>
           
-          <div className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] border shadow-sm transition-all duration-500
+          <div className={`text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-[0.2em] border shadow-sm transition-all duration-500
                ${callStatus === 'connected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' : 
                  callStatus === 'calling' ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20 shadow-indigo-500/10' : 
                  callStatus === 'incoming' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10 animate-pulse' : 
@@ -281,7 +281,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
 
         {/* Contact Info */}
         <div className="flex flex-col items-center text-center mb-10">
-           <h2 className="text-3xl font-black text-white leading-tight tracking-tight text-glow">
+           <h2 className="text-3xl font-bold text-white leading-tight tracking-tight text-glow">
              {callStatus === 'incoming' && incomingCallerId ? incomingCallerId.name : (targetName || 'שיחה')}
            </h2>
            <p className="text-sm font-mono text-white/30 font-bold mt-2 tracking-widest opacity-60" dir="ltr">
@@ -289,7 +289,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
            </p>
            
            {errorMessage && (
-              <div className="mt-4 text-[10px] font-black text-red-400 bg-red-400/10 px-3 py-1.5 rounded-xl border border-red-400/20 animate-in fade-in zoom-in duration-300 uppercase tracking-widest">
+              <div className="mt-4 text-[10px] font-bold text-red-400 bg-red-400/10 px-3 py-1.5 rounded-xl border border-red-400/20 animate-in fade-in zoom-in duration-300 uppercase tracking-widest">
                 {errorMessage}
               </div>
            )}
@@ -297,7 +297,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
 
         {/* Duration & Wave */}
         <div className="flex flex-col items-center mb-10">
-          <div className="text-4xl font-mono font-black text-white mb-6 tracking-tighter">
+          <div className="text-4xl font-mono font-bold text-white mb-6 tracking-tighter">
             {formatDuration(duration)}
           </div>
           <div className="flex gap-1.5 h-6 items-center">
@@ -354,7 +354,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
 
         {/* Debug Logs for Troubleshooting */}
         <div className="mt-8 pt-6 border-t border-white/10 bg-black/20 rounded-2xl p-4 flex flex-col h-64">
-          <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-3">Live Debug Logs</div>
+          <div className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">Live Debug Logs</div>
           <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] custom-scrollbar mb-4">
             {debugLogs.length === 0 && <div className="text-white/30 italic">ממתין לאירועים...</div>}
             {debugLogs.map((log, i) => (
@@ -391,7 +391,7 @@ function ActionButton({ icon: Icon, label, active, onClick, disabled }: { icon: 
         className={`w-full h-12 rounded-2xl flex items-center justify-center transition-all duration-300 active:scale-95 border ${active ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-white/60 hover:text-white border-white/10 hover:bg-white/10'}`}
       >
         <Icon className={`w-5 h-5 ${active ? 'fill-slate-900' : ''}`} />
-        <span className="mr-2 text-[10px] font-black uppercase tracking-widest">{label}</span>
+        <span className="mr-2 text-[10px] font-bold uppercase tracking-widest">{label}</span>
       </button>
     </div>
   );

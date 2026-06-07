@@ -1265,10 +1265,10 @@ export default function Home() {
             <PhoneCall className="w-6 h-6 text-white animate-bounce" />
           </div>
           <div className="flex flex-col flex-1 text-right">
-            <span className="text-[10px] font-black tracking-widest bg-emerald-500/50 text-emerald-100 px-2.5 py-0.5 rounded-full w-max mb-1 uppercase">
+            <span className="text-[10px] font-bold tracking-widest bg-emerald-500/50 text-emerald-100 px-2.5 py-0.5 rounded-full w-max mb-1 uppercase">
               📞 שיחה נכנסת כעת
             </span>
-            <span className="text-lg font-black leading-tight text-white">
+            <span className="text-lg font-bold leading-tight text-white">
               {incomingCall.callerName ? incomingCall.callerName : "לקוח חדש / לא מזוהה"}
             </span>
             <span className="text-xs font-mono font-bold text-emerald-100/90 mt-0.5" dir="ltr">
@@ -1301,8 +1301,8 @@ export default function Home() {
         <div className="p-8 flex flex-col h-full">
           <div className="mb-10 flex items-center justify-between">
             <div className="flex flex-col">
-              <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400">תפריט Sue-Chef</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">ניהול מתקדם</p>
+              <h3 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">תפריט Sue-Chef</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ניהול מתקדם</p>
             </div>
             <button onClick={() => setIsDrawerOpen(false)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-all shadow-sm">
                <X className="w-5 h-5" />
@@ -1322,7 +1322,7 @@ export default function Home() {
                   if (item.action) item.action();
                   else { setActiveTab(item.id as any); setIsDrawerOpen(false); }
                 }}
-                className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-black text-base transition-all duration-200 group hover:scale-[1.02] border border-transparent hover:border-slate-100 dark:hover:border-slate-800 ${
+                className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-bold text-base transition-all duration-200 group hover:scale-[1.02] border border-transparent hover:border-slate-100 dark:hover:border-slate-800 ${
                   activeTab === item.id 
                     ? `${item.bg} ${item.color} shadow-[0_10px_30px_rgba(0,0,0,0.05)]` 
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-indigo-600 dark:hover:text-indigo-400'
@@ -1339,8 +1339,8 @@ export default function Home() {
 
           <div className="mt-auto pt-10 border-t dark:border-slate-800 flex items-center justify-between">
              <div className="flex flex-col">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Version</p>
-                <p className="text-xs font-black text-indigo-500">v5.9.5-drawer</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Version</p>
+                <p className="text-xs font-bold text-indigo-500">v5.9.5-drawer</p>
              </div>
              <div className="flex gap-2">
                 <button onClick={() => {
@@ -1369,9 +1369,9 @@ export default function Home() {
               <Menu size={24} />
             </button>
             <div className="flex flex-col">
-              <h1 onClick={handleTitleClick} className="text-4xl font-black tracking-tight text-gray-900 dark:text-slate-300 flex items-center gap-3 cursor-default select-none">
+              <h1 onClick={handleTitleClick} className="text-4xl font-bold tracking-tight text-gray-900 dark:text-slate-300 flex items-center gap-3 cursor-default select-none">
                 Sue-Chef 
-                <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-black tracking-widest uppercase">v5.9.5</span>
+                <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20 font-bold tracking-widest uppercase">v5.9.5</span>
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium opacity-70">מערכת ניהול לידים מתקדמת</p>
             </div>
@@ -1380,7 +1380,7 @@ export default function Home() {
           {/* Secret Profit Tracker Panel (Profit Only) */}
           {showSecretPanel && (
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-2 rounded-3xl border dark:border-white/5">
-              <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="h-12 px-6 rounded-2xl font-black text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
+              <button onClick={() => { setWeekOffset(0); fetchWeeklyProfit(0); setShowWeeklyReport(true); }} className="h-12 px-6 rounded-2xl font-bold text-sm bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 flex items-center gap-2 hover:scale-105 transition-all">
                 <TrendingUp size={16} /> רווח שבועי
               </button>
               <button onClick={() => setShowSecretPanel(false)} className="w-12 h-12 rounded-2xl bg-slate-200/50 dark:bg-slate-800/50 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 transition-all">
@@ -1396,7 +1396,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">יתרת טוויליו</p>
-                  <p className="text-xl font-black leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
+                  <p className="text-xl font-bold leading-none text-emerald-600 dark:text-emerald-400" dir="ltr">{twilioBalance || "..."}</p>
                 </div>
               </div>
               <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
@@ -1426,11 +1426,11 @@ export default function Home() {
         {notifications.length > 0 && (activeTab === 'crm' || activeTab === 'followup') && (
           <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[32px] relative shadow-inner">
             <button onClick={() => setNotifications([])} className="absolute left-6 top-6 text-amber-600 hover:rotate-90 transition-all z-10"><X size={20} /></button>
-            <h3 className="text-amber-800 dark:text-amber-300 font-black flex items-center gap-3 mb-2">
+            <h3 className="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-3 mb-2">
                <Clock size={18} className="animate-bounce" /> הגיע הזמן לחזור ללקוחות:
             </h3>
             <div className="flex flex-wrap gap-2">
-               {notifications.map(n => <span key={n.id} className="bg-white dark:bg-slate-900 px-4 py-1.5 rounded-xl border border-amber-200 text-xs font-black shadow-sm transform hover:scale-105 transition-all">{n.name} - {formatDate(n.time)}</span>)}
+               {notifications.map(n => <span key={n.id} className="bg-white dark:bg-slate-900 px-4 py-1.5 rounded-xl border border-amber-200 text-xs font-bold shadow-sm transform hover:scale-105 transition-all">{n.name} - {formatDate(n.time)}</span>)}
             </div>
           </div>
         )}
@@ -1441,7 +1441,7 @@ export default function Home() {
           <div className="hidden md:flex flex-wrap gap-2 p-2 w-fit rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none overflow-hidden backdrop-blur-xl relative z-10">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
             {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700 dark:text-indigo-300'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400'}] as const).map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-black transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
                 <span className="relative z-10">{tab.label}</span>
               </button>
             ))}
@@ -1455,7 +1455,7 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-4">
                   {/* Swapped ChevronLeft and ChevronRight logic for RTL */}
                   <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() - 1); const prev = d.toISOString().split('T')[0]; const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); if (d >= cutoff) { setStickyNoteDate(prev); fetchNote(prev); } }} className="p-1.5 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-all"><ChevronRight className="w-4 h-4 text-amber-700 dark:text-amber-400" /></button>
-                  <h4 className="text-sm font-black text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                     <StickyNote className="w-4 h-4" />
                     {stickyNoteDate === new Date().toISOString().split('T')[0] ? 'פתק להיום' : new Date(stickyNoteDate).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </h4>
@@ -1478,7 +1478,7 @@ export default function Home() {
                       isAddingStickyNote ? (
                         <form onSubmit={(e) => { e.preventDefault(); if (!newItemText.trim()) return; const updated = [...stickyItems, { id: Date.now().toString(), text: newItemText.trim(), done: false }]; setStickyItems(updated); saveNote(stickyNoteDate, updated); setNewItemText(''); setIsAddingStickyNote(false); }} className="flex gap-2">
                           <input autoFocus value={newItemText} onChange={e => setNewItemText(e.target.value)} placeholder="הוסף משימה..." className="flex-1 bg-white/50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-400/30 text-amber-900 dark:text-amber-200" />
-                          <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-3 py-1.5 rounded-xl font-black text-xs hover:scale-105 active:scale-95 transition-all"><Plus className="w-3.5 h-3.5" /></button>
+                          <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-3 py-1.5 rounded-xl font-bold text-xs hover:scale-105 active:scale-95 transition-all"><Plus className="w-3.5 h-3.5" /></button>
                           <button type="button" onClick={() => setIsAddingStickyNote(false)} className="px-2 text-amber-500 hover:bg-amber-200 rounded-xl"><X size={14}/></button>
                         </form>
                       ) : (
@@ -1501,7 +1501,7 @@ export default function Home() {
               <div className="w-12 h-1.5 bg-amber-300 dark:bg-amber-700 rounded-full mx-auto mb-4" />
               <div className="flex items-center justify-between mb-5">
                 <button onClick={() => { const d = new Date(stickyNoteDate); d.setDate(d.getDate() - 1); const prev = d.toISOString().split('T')[0]; const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); if (d >= cutoff) { setStickyNoteDate(prev); fetchNote(prev); } }} className="p-2 rounded-xl bg-amber-200 dark:bg-amber-800"><ChevronRight className="w-5 h-5 text-amber-700 dark:text-amber-300" /></button>
-                <h4 className="text-lg font-black text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <h4 className="text-lg font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                   <StickyNote className="w-5 h-5" />
                   {stickyNoteDate === new Date().toISOString().split('T')[0] ? 'פתק להיום' : new Date(stickyNoteDate).toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </h4>
@@ -1524,7 +1524,7 @@ export default function Home() {
                     isAddingStickyNote ? (
                       <form onSubmit={(e) => { e.preventDefault(); if (!newItemText.trim()) return; const updated = [...stickyItems, { id: Date.now().toString(), text: newItemText.trim(), done: false }]; setStickyItems(updated); saveNote(stickyNoteDate, updated); setNewItemText(''); setIsAddingStickyNote(false); }} className="flex gap-2 mt-2">
                         <input autoFocus value={newItemText} onChange={e => setNewItemText(e.target.value)} placeholder="הוסף משימה..." className="flex-1 bg-amber-50 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 rounded-xl px-4 py-3 text-base font-bold outline-none placeholder:text-amber-300 text-amber-900 dark:text-amber-200" />
-                        <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-4 py-3 rounded-xl font-black text-base"><Plus className="w-5 h-5" /></button>
+                        <button type="submit" className="bg-amber-400 dark:bg-amber-600 text-white px-4 py-3 rounded-xl font-bold text-base"><Plus className="w-5 h-5" /></button>
                       </form>
                     ) : (
                       <button onClick={() => setIsAddingStickyNote(true)} className="w-full mt-2 text-center py-3 text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-200/50 dark:hover:bg-amber-800/30 rounded-xl transition-colors border-2 border-dashed border-amber-300 dark:border-amber-700">
@@ -1545,12 +1545,12 @@ export default function Home() {
             <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start">
               {activeTab !== 'archive' && (
                 <div className="flex gap-2">
-                  <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                  <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
                     <Plus size={16} className="md:w-[20px] md:h-[20px] group-hover:rotate-90 transition-transform duration-300" /> <span className="hidden sm:inline">הוסף ליד</span><span className="sm:hidden">הוסף</span>
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                   {showSecretPanel && (
-                    <button onClick={() => setShowImportModal(true)} className="flex-shrink-0 bg-emerald-600 dark:bg-slate-900/40 dark:border dark:border-emerald-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black shadow-lg shadow-emerald-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                    <button onClick={() => setShowImportModal(true)} className="flex-shrink-0 bg-emerald-600 dark:bg-slate-900/40 dark:border dark:border-emerald-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-emerald-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
                       <Upload size={16} className="md:w-[20px] md:h-[20px] transition-transform duration-300" /> <span>ייבוא מ-CSV</span>
                       <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
@@ -1559,13 +1559,13 @@ export default function Home() {
               )}
               {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'noanswer') && (
                 <>
-                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
                     <Clock size={14} className="md:w-[18px] md:h-[18px]" /> במעקב
                   </button>
-                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
+                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
                     <Zap size={14} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
                   </button>
-                  <button onClick={() => setActiveTab(activeTab === 'noanswer' ? 'crm' : 'noanswer')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-black text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'noanswer' ? 'bg-gray-700 text-white border-gray-800 ring-4 ring-gray-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-gray-400'}`}>
+                  <button onClick={() => setActiveTab(activeTab === 'noanswer' ? 'crm' : 'noanswer')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'noanswer' ? 'bg-gray-700 text-white border-gray-800 ring-4 ring-gray-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-gray-400'}`}>
                     <PhoneOff size={14} className="md:w-[18px] md:h-[18px]" /> לא ענו ({noAnswerLeads.length})
                   </button>
                 </>
@@ -1592,8 +1592,8 @@ export default function Home() {
               {showSecretPanel && selectedLeadIds.length > 0 && (
                 <div className="bg-indigo-50/70 dark:bg-indigo-950/20 border-b border-indigo-100 dark:border-indigo-900/30 px-8 py-5 flex items-center justify-between gap-4 animate-in slide-in-from-top duration-300" dir="rtl">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm">{selectedLeadIds.length}</div>
-                    <span className="font-black text-slate-700 dark:text-slate-200 text-sm">לידים נבחרו לפעולה קבוצתית:</span>
+                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">{selectedLeadIds.length}</div>
+                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">לידים נבחרו לפעולה קבוצתית:</span>
                   </div>
                   <div className="flex items-center gap-4">
                     {/* Bulk Status Move Selector */}
@@ -1606,7 +1606,7 @@ export default function Home() {
                             e.target.value = ''; // Reset dropdown
                           }
                         }}
-                        className="text-xs font-black rounded-xl px-4 py-2.5 outline-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                        className="text-xs font-bold rounded-xl px-4 py-2.5 outline-none border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-pointer shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all"
                         defaultValue=""
                       >
                         <option value="" disabled>בחר סטטוס...</option>
@@ -1621,7 +1621,7 @@ export default function Home() {
                     {/* Bulk Delete Button */}
                     <button 
                       onClick={handleBulkDelete}
-                      className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-sm shadow-red-500/10 transition-all hover:scale-105 active:scale-95"
+                      className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm shadow-red-500/10 transition-all hover:scale-105 active:scale-95"
                     >
                       <Trash2 className="w-4 h-4" /> מחק {selectedLeadIds.length} לידים
                     </button>
@@ -1648,11 +1648,11 @@ export default function Home() {
                         />
                       </th>
                     )}
-                    <th className="px-8 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
+                    <th className="px-8 py-6 font-bold text-[10px] uppercase tracking-widest text-slate-400 min-w-[300px]">פרטי ליד וחיוג</th>
                   <th className="px-2 py-6 font-bold w-12 text-center"></th>
-                  <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[180px]">סטטוס טיפול</th>
-                  <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 min-w-[220px]">הערות ומעקב</th>
-                  <th className="px-6 py-6 font-black text-[10px] uppercase tracking-widest text-slate-400 text-center">מסך שיחה</th>
+                  <th className="px-6 py-6 font-bold text-[10px] uppercase tracking-widest text-slate-400 min-w-[180px]">סטטוס טיפול</th>
+                  <th className="px-6 py-6 font-bold text-[10px] uppercase tracking-widest text-slate-400 min-w-[220px]">הערות ומעקב</th>
+                  <th className="px-6 py-6 font-bold text-[10px] uppercase tracking-widest text-slate-400 text-center">מסך שיחה</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-indigo-500/5 opacity-100">
@@ -1678,7 +1678,7 @@ export default function Home() {
                         <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 dark:from-slate-800 dark:to-indigo-950 dark:border dark:border-indigo-500/30 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 dark:shadow-none active:scale-90 transition-all hover:scale-110 backdrop-blur-sm"><Phone className="w-6 h-6" /></button>
                         <div className="flex flex-col flex-1 gap-1">
                           {processingImageId === lead.id ? (
-                            <div className="flex items-center gap-3 py-2 text-indigo-600 font-black animate-pulse">
+                            <div className="flex items-center gap-3 py-2 text-indigo-600 font-bold animate-pulse">
                               <Loader2 className="animate-spin w-5 h-5" />
                               סורק תמונה מקומית...
                             </div>
@@ -1688,7 +1688,7 @@ export default function Home() {
                                 {lead.isStarred && (
                                   <Star size={18} className="text-amber-500 fill-amber-500 animate-in zoom-in duration-300 flex-shrink-0" />
                                 )}
-                                <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
+                                <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-bold text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
                                 {duplicateMap.has(lead.id) && (
                                   <div className="flex flex-col items-center gap-0.5">
                                     <button 
@@ -1699,7 +1699,7 @@ export default function Home() {
                                       <Star size={18} fill="currentColor" />
                                     </button>
                                     {duplicateMap.get(lead.id)!.matchType === 'phone' && (
-                                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/20 whitespace-nowrap leading-none select-none">
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/20 whitespace-nowrap leading-none select-none">
                                         {duplicateMap.get(lead.id)!.lead.status}
                                       </span>
                                     )}
@@ -1708,7 +1708,7 @@ export default function Home() {
                               </div>
                               <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
                               {lead.campaign && (
-                                <span className="text-[13px] font-black mt-1 inline-block">
+                                <span className="text-[13px] font-bold mt-1 inline-block">
                                   <span className="text-indigo-600 dark:text-indigo-400">קמפיין: </span>
                                   <span className="text-slate-800 dark:text-slate-200">{lead.campaign}</span>
                                 </span>
@@ -1795,8 +1795,8 @@ export default function Home() {
                     </td>
                     <td className="px-6 py-5 text-center">
                        <div className="flex items-center justify-center gap-2">
-                         <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-black text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
-                         <button onClick={() => setHistoryLead(lead)} className="inline-flex items-center gap-2 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-900/20 px-4 py-3 rounded-2xl border border-amber-200/60 dark:border-amber-700/30 transition-all hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 shadow-sm active:scale-95" title="היסטוריית ליד"><History className="w-4 h-4" /></button>
+                         <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
+                         <button onClick={() => setHistoryLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-900/20 px-4 py-3 rounded-2xl border border-amber-200/60 dark:border-amber-700/30 transition-all hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 shadow-sm active:scale-95" title="היסטוריית ליד"><History className="w-4 h-4" /></button>
                        </div>
                        {activeTab === 'archive' && lead.status === 'חתם' && (
                          <div className="mt-3 flex flex-col items-center gap-2">
@@ -1812,7 +1812,7 @@ export default function Home() {
                            </div>
                            <button
                              onClick={() => handleLeadUpdate(lead.id, { isPaid: !lead.isPaid, paidAt: !lead.isPaid ? new Date().toISOString() : undefined })}
-                             className={`inline-flex items-center gap-2 text-xs font-black px-5 py-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${
+                             className={`inline-flex items-center gap-2 text-xs font-bold px-5 py-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${
                                lead.isPaid
                                  ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20 hover:bg-emerald-600'
                                  : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400'
@@ -1891,7 +1891,7 @@ export default function Home() {
                         {lead.isStarred && (
                           <Star size={16} className="text-amber-500 fill-amber-500 animate-in zoom-in duration-300 flex-shrink-0" />
                         )}
-                        <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-black text-xl bg-transparent outline-none focus:text-indigo-600 flex-1 min-w-0 truncate" placeholder="שם הלקוח..." />
+                        <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-bold text-xl bg-transparent outline-none focus:text-indigo-600 flex-1 min-w-0 truncate" placeholder="שם הלקוח..." />
                         {duplicateMap.has(lead.id) && (
                           <div className="flex flex-col items-center gap-0.5">
                             <button 
@@ -1902,7 +1902,7 @@ export default function Home() {
                               <Star size={16} fill="currentColor" />
                             </button>
                             {duplicateMap.get(lead.id)!.matchType === 'phone' && (
-                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/20 whitespace-nowrap leading-none select-none">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-900/20 whitespace-nowrap leading-none select-none">
                                 {duplicateMap.get(lead.id)!.lead.status}
                               </span>
                             )}
@@ -1911,7 +1911,7 @@ export default function Home() {
                       </div>
                       <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono text-slate-500 bg-transparent outline-none text-base w-full text-right" placeholder="05..." dir="ltr" style={{ direction: 'rtl', textAlign: 'right' }} />
                       {lead.campaign && (
-                        <span className="text-[13px] font-black mt-1 block text-right">
+                        <span className="text-[13px] font-bold mt-1 block text-right">
                           <span className="text-indigo-600 dark:text-indigo-400">קמפיין: </span>
                           <span className="text-slate-800 dark:text-slate-200">{lead.campaign}</span>
                         </span>
@@ -1963,8 +1963,8 @@ export default function Home() {
                     </div>
                     
                     <div className="flex gap-2">
-                       <button onClick={() => setLiveNotesLead(lead)} className="flex-1 inline-flex justify-center items-center gap-2 text-xs font-black text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/30 px-4 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-indigo-200 dark:border-indigo-800"><Maximize2 className="w-4 h-4" /> פתח תיק נתונים</button>
-                       <button onClick={() => setHistoryLead(lead)} className="inline-flex justify-center items-center text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-5 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-amber-200 dark:border-amber-800"><History className="w-4 h-4" /></button>
+                       <button onClick={() => setLiveNotesLead(lead)} className="flex-1 inline-flex justify-center items-center gap-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/30 px-4 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-indigo-200 dark:border-indigo-800"><Maximize2 className="w-4 h-4" /> פתח תיק נתונים</button>
+                       <button onClick={() => setHistoryLead(lead)} className="inline-flex justify-center items-center text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-5 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-amber-200 dark:border-amber-800"><History className="w-4 h-4" /></button>
                     </div>
                   </div>
 
@@ -1982,7 +1982,7 @@ export default function Home() {
                       </div>
                       <button
                         onClick={() => handleLeadUpdate(lead.id, { isPaid: !lead.isPaid, paidAt: !lead.isPaid ? new Date().toISOString() : undefined })}
-                        className={`w-full inline-flex justify-center items-center gap-2 text-sm font-black px-5 py-3.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${
+                        className={`w-full inline-flex justify-center items-center gap-2 text-sm font-bold px-5 py-3.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${
                           lead.isPaid
                             ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20 hover:bg-emerald-600'
                             : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400'
@@ -2008,7 +2008,7 @@ export default function Home() {
           {activeTab === 'calls' && (
             <div className="p-8 max-w-4xl mx-auto space-y-4 h-full min-h-[500px]">
                {loadingCalls ? (
-                 <div className="flex flex-col items-center justify-center py-32 text-slate-400"><Loader2 className="animate-spin text-indigo-500 mb-4" size={48} /><p className="font-black">מעבד נתונים מטוויליו...</p></div>
+                 <div className="flex flex-col items-center justify-center py-32 text-slate-400"><Loader2 className="animate-spin text-indigo-500 mb-4" size={48} /><p className="font-bold">מעבד נתונים מטוויליו...</p></div>
                ) : Array.isArray(recentCalls) && recentCalls.length > 0 ? (
                 <div className="space-y-4 opacity-100">
                   {recentCalls.map((call, idx) => {
@@ -2026,20 +2026,20 @@ export default function Home() {
                           onClick={() => { if (lead) navigateToLead(lead); }}
                           title={lead ? "לחץ למעבר לליד" : ""}
                         >
-                          <p className="font-black text-xl group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight text-slate-900 dark:text-white">{lead?.clientName || 'ליד לא מזוהה'}</p>
+                          <p className="font-bold text-xl group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight text-slate-900 dark:text-white">{lead?.clientName || 'ליד לא מזוהה'}</p>
                           <p className="text-xs font-mono text-slate-400" dir="ltr">{call.direction==='inbound'?call.from:call.to}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end text-slate-800 dark:text-slate-100">
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">משך</p>
-                          <p className="font-black text-lg">{formatCallDuration(call.duration)}</p>
+                          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">משך</p>
+                          <p className="font-bold text-lg">{formatCallDuration(call.duration)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">עלות</p>
-                          <p className="font-black text-lg text-emerald-500 leading-none">{(Math.abs(parseFloat(call.price || "0"))).toFixed(2)}$</p>
+                          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">עלות</p>
+                          <p className="font-bold text-lg text-emerald-500 leading-none">{(Math.abs(parseFloat(call.price || "0"))).toFixed(2)}$</p>
                         </div>
-                        <span className="text-[10px] font-black uppercase bg-slate-50 dark:bg-slate-800 px-4 py-1.5 rounded-full text-slate-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950 group-hover:text-indigo-500 transition-all">{formatDate(call.startTime)}</span>
+                        <span className="text-[10px] font-bold uppercase bg-slate-50 dark:bg-slate-800 px-4 py-1.5 rounded-full text-slate-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950 group-hover:text-indigo-500 transition-all">{formatDate(call.startTime)}</span>
                       </div>
                     </div>
                   );})}
@@ -2047,7 +2047,7 @@ export default function Home() {
                ) : (
                 <div className="flex flex-col items-center justify-center py-32 text-slate-400">
                    <History size={64} className="mb-6 opacity-10" />
-                   <p className="font-black text-xl tracking-tight opacity-50">אין שיחות אחרונות להצגה</p>
+                   <p className="font-bold text-xl tracking-tight opacity-50">אין שיחות אחרונות להצגה</p>
                    <button onClick={fetchTwilioData} className="mt-6 text-indigo-500 font-bold hover:underline">רענן נתונים כעת</button>
                 </div>
                )}
@@ -2059,7 +2059,7 @@ export default function Home() {
                {/* Timeframe Selector & Title Row */}
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md p-6 rounded-[32px] border dark:border-slate-800/80 shadow-sm">
                  <div>
-                   <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">📊 אנליטיקה וביצועי משרד</h3>
+                   <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">📊 אנליטיקה וביצועי משרד</h3>
                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-1">מדדים סטטיסטיים מתקדמים לחילוץ וזיהוי מגמות</p>
                  </div>
                  
@@ -2077,7 +2077,7 @@ export default function Home() {
                          <button
                            key={tf.id}
                            onClick={() => setAnalyticsTimeframe(tf.id as any)}
-                           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
+                           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                              active
                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/40 hover:text-slate-800 dark:hover:text-slate-200'
@@ -2092,7 +2092,7 @@ export default function Home() {
 
                    <button
                      onClick={runAiAnalysis}
-                     className="flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all active:scale-95 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/20 border border-indigo-500/30 hover:shadow-indigo-500/40 cursor-pointer"
+                     className="flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold transition-all active:scale-95 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/20 border border-indigo-500/30 hover:shadow-indigo-500/40 cursor-pointer"
                    >
                      <Sparkles size={14} className="animate-pulse" />
                      נתח באמצעות בינה מלאכותית
@@ -2103,7 +2103,7 @@ export default function Home() {
                {loadingAnalytics ? (
                  <div className="flex flex-col items-center justify-center h-96 gap-6">
                    <Loader2 className="animate-spin text-indigo-500" size={64} />
-                   <p className="font-black text-slate-400 text-xl animate-pulse tracking-wide">מחשב מדדים דטרמיניסטיים...</p>
+                   <p className="font-bold text-slate-400 text-xl animate-pulse tracking-wide">מחשב מדדים דטרמיניסטיים...</p>
                  </div>
                ) : analyticsData ? (
                  <>
@@ -2135,8 +2135,8 @@ export default function Home() {
                      ].map((kpi, idx) => (
                        <div key={idx} className={`${kpi.bg} p-6 rounded-3xl border ${kpi.border} transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl`}>
                           <kpi.icon className={kpi.color + " mb-4"} size={26} />
-                          <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1.5">{kpi.label}</p>
-                          <p className={`text-4xl font-black ${kpi.color}`}><SimpleCountUp value={kpi.value || 0} suffix={kpi.isPercent ? "%" : ""} /></p>
+                          <p className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1.5">{kpi.label}</p>
+                          <p className={`text-4xl font-bold ${kpi.color}`}><SimpleCountUp value={kpi.value || 0} suffix={kpi.isPercent ? "%" : ""} /></p>
                           {kpi.sub && <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-3 flex items-center gap-1"><ArrowUpRight size={12} /> {kpi.sub}</p>}
                        </div>
                      ))}
@@ -2165,7 +2165,7 @@ export default function Home() {
                      {/* Left: Progress Ring */}
                      <div className="bg-slate-100/30 dark:bg-slate-800/20 p-8 rounded-3xl md:rounded-[48px] border dark:border-slate-800 shadow-inner flex flex-col items-center justify-center text-center relative overflow-hidden group min-h-[350px]">
                        <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
-                       <h4 className="text-base font-black mb-6 text-slate-800 dark:text-slate-200">איכות הלידים בטווח הנבחר</h4>
+                       <h4 className="text-base font-bold mb-6 text-slate-800 dark:text-slate-200">איכות הלידים בטווח הנבחר</h4>
                        <div className="relative flex items-center justify-center mb-6">
                          <svg className="w-44 h-44 transform -rotate-90">
                            <circle
@@ -2191,8 +2191,8 @@ export default function Home() {
                            />
                          </svg>
                          <div className="absolute inset-0 flex flex-col items-center justify-center">
-                           <span className="text-4xl font-black text-slate-800 dark:text-white">{analyticsData.insights?.leadQualityRatio || 0}%</span>
-                           <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">רלוונטיות לתקופה</span>
+                           <span className="text-4xl font-bold text-slate-800 dark:text-white">{analyticsData.insights?.leadQualityRatio || 0}%</span>
+                           <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">רלוונטיות לתקופה</span>
                          </div>
                        </div>
                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
@@ -2204,7 +2204,7 @@ export default function Home() {
 
                      {/* Right: Funnel (Spans 2 columns) */}
                      <div className="lg:col-span-2 bg-slate-100/30 dark:bg-slate-800/20 p-8 md:p-10 rounded-3xl md:rounded-[48px] border dark:border-slate-800 shadow-inner overflow-hidden flex flex-col justify-center">
-                       <h4 className="text-base font-black mb-6 flex items-center gap-3 text-slate-900 dark:text-white">משפך המרה דינמי <ArrowDownRight size={20} className="text-indigo-500" /></h4>
+                       <h4 className="text-base font-bold mb-6 flex items-center gap-3 text-slate-900 dark:text-white">משפך המרה דינמי <ArrowDownRight size={20} className="text-indigo-500" /></h4>
                        <div className="space-y-8">
                          {[
                            { label: "נוצר קשר (ענו)", count: analyticsData.funnel?.contacted || 0, drop: analyticsData.funnel?.total > 0 ? (100 - (analyticsData.funnel.contacted / analyticsData.funnel.total * 100)) : 0, dropVal: analyticsData.funnel?.total - analyticsData.funnel?.contacted, color: "bg-gradient-to-r from-indigo-600 to-indigo-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.contacted / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", desc: "לידים שענו לטלפון או שסטטוסם התקדם מעבר ל'חדש'." },
@@ -2212,16 +2212,16 @@ export default function Home() {
                            { label: "חתומים", count: analyticsData.funnel?.signed || 0, drop: analyticsData.funnel?.relevant > 0 ? (100 - (analyticsData.funnel.signed / analyticsData.funnel.relevant * 100)) : 0, dropVal: analyticsData.funnel?.relevant - analyticsData.funnel?.signed, color: "bg-gradient-to-r from-emerald-600 to-emerald-500", val: (analyticsData.funnel?.total > 0 ? (analyticsData.funnel.signed / analyticsData.funnel.total * 100).toFixed(1) : 0) + "%", shadow: "shadow-emerald-500/30", desc: "מטופלים שהמרו והפכו לייצוג רשמי." }
                          ].map((step, idx) => (
                            <div key={idx} className="relative group opacity-100">
-                              {idx > 0 && <div className="absolute -top-7 left-4 text-[9px] font-black bg-red-50 dark:bg-red-950/20 text-red-500 px-2.5 py-0.5 rounded-full z-10 border border-red-100 dark:border-red-900/30 flex items-center gap-1"><ArrowDownRight size={10}/> נשרו {step.drop.toFixed(1)}% ({step.dropVal} אבדו בשלב הקודם)</div>}
+                              {idx > 0 && <div className="absolute -top-7 left-4 text-[9px] font-bold bg-red-50 dark:bg-red-950/20 text-red-500 px-2.5 py-0.5 rounded-full z-10 border border-red-100 dark:border-red-900/30 flex items-center gap-1"><ArrowDownRight size={10}/> נשרו {step.drop.toFixed(1)}% ({step.dropVal} אבדו בשלב הקודם)</div>}
                               <div className="flex justify-between items-center mb-2 px-2 relative z-20">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-black text-slate-700 dark:text-slate-200 tracking-tight">{step.label}</span>
+                                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 tracking-tight">{step.label}</span>
                                   <span className="text-[10px] text-slate-400 font-bold mt-0.5 leading-none">{step.desc}</span>
                                 </div>
-                                <span className="text-xs font-black text-slate-800 dark:text-white px-3 py-1 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{step.count} ({step.val})</span>
+                                <span className="text-xs font-bold text-slate-800 dark:text-white px-3 py-1 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{step.count} ({step.val})</span>
                               </div>
                               <div className="w-full h-8 bg-slate-200/50 dark:bg-slate-800/60 rounded-full overflow-hidden flex flex-row-reverse shadow-inner relative z-20">
-                                <div className={`${step.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end px-6 text-xs font-black text-white ${step.shadow || 'shadow-lg'}`} style={{ width: step.val }}>
+                                <div className={`${step.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end px-6 text-xs font-bold text-white ${step.shadow || 'shadow-lg'}`} style={{ width: step.val }}>
                                 </div>
                               </div>
                            </div>
@@ -2233,7 +2233,7 @@ export default function Home() {
                    {/* Disqualification & Smart Insights */}
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-12 pb-12">
                       <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border dark:border-slate-800 shadow-xl group">
-                         <h4 className="text-xl font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white">סיבות פסילה לתקופה <AlertTriangle className="text-red-500" /></h4>
+                         <h4 className="text-xl font-bold mb-8 flex items-center gap-3 text-slate-900 dark:text-white">סיבות פסילה לתקופה <AlertTriangle className="text-red-500" /></h4>
                          <div className="mt-4">
                             <DisqualificationDonutChart data={analyticsData.disqualificationReasons || []} />
                          </div>
@@ -2242,7 +2242,7 @@ export default function Home() {
                          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-[120px] rounded-full translate-x-32 -translate-y-32 transition-transform duration-1000 group-hover:scale-110" />
                          
                          <div className="flex justify-between items-center mb-8 relative z-10">
-                            <h4 className="text-xl font-black flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[10px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
+                            <h4 className="text-xl font-bold flex items-center gap-3 bg-white/10 px-6 py-2 rounded-full uppercase tracking-widest text-[10px]"><Brain size={16} /> תובנות חכמות מבוססות נתונים</h4>
                             <div className="flex gap-2">
                                <button onClick={() => setCurrentInsightIndex(p => (p + 1) % 3)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"><ArrowUpRight size={14} className="rotate-45" /></button>
                                {[0, 1, 2].map(i => <button key={i} onClick={() => setCurrentInsightIndex(i)} className={`h-2 rounded-full transition-all duration-500 cursor-pointer hover:bg-white/60 ${currentInsightIndex === i ? 'bg-white w-6' : 'bg-white/30 w-2'}`} />)}
@@ -2254,7 +2254,7 @@ export default function Home() {
                             {currentInsightIndex === 0 && (
                                <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
                                    <Zap size={44} className="text-amber-400 mb-6 opacity-80" />
-                                   <p className="text-2xl font-black opacity-90 leading-tight font-assistant">
+                                   <p className="text-2xl font-bold opacity-90 leading-tight font-assistant">
                                       {analyticsData.insights?.quickSignedRate || 0}% מהחוזים נחתמים ב-<span className="text-amber-400">3 השיחות הראשונות</span>. נדרשות בממוצע {analyticsData.insights?.avgCallsPerSigned || 0} שיחות לסגירה.
                                    </p>
                                    <p className="mt-3 text-indigo-200 font-bold text-xs">מסקנה: השקעת מאמץ מעבר ל-4 צלצולים מפחיתה דרסטית את סיכויי ההמרה.</p>
@@ -2263,7 +2263,7 @@ export default function Home() {
                             {currentInsightIndex === 1 && (
                                <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
                                    <Star size={44} className="text-emerald-400 mb-6 opacity-80" />
-                                   <p className="text-2xl font-black opacity-90 leading-tight font-assistant">
+                                   <p className="text-2xl font-bold opacity-90 leading-tight font-assistant">
                                       מדד איכות הלידים שלך: <span className="text-emerald-400">{analyticsData.insights?.leadQualityRatio || 0}%</span> מאלו שענו באמת עברו את הסינון שלך והוגדרו כרלוונטיים.
                                    </p>
                                    <p className="mt-3 text-indigo-200 font-bold text-xs">מסקנה: זהו אחוז הלידים הבשלים שהתקדמו לבדיקה מתוך הסך הכל הכללי עמו הושג קשר.</p>
@@ -2272,7 +2272,7 @@ export default function Home() {
                             {currentInsightIndex === 2 && (
                                <div className="absolute inset-0 animate-in fade-in slide-in-from-right-8 duration-500">
                                    <PhoneOff size={44} className="text-red-400 mb-6 opacity-80" />
-                                   <p className="text-2xl font-black opacity-90 leading-tight font-assistant">
+                                   <p className="text-2xl font-bold opacity-90 leading-tight font-assistant">
                                       לידים שנפסלו על 'אין מענה' קיבלו בממוצע רק <span className="text-red-400">{analyticsData.insights?.avgCallsNoAnswer || 0}</span> צלצולים בלבד.
                                    </p>
                                    <p className="mt-3 text-indigo-200 font-bold text-xs">מסקנה: ייתכן ואנחנו ממהרים מדי לפסול. מומלץ להגדיל מספר ניסיונות לפני פסילה סופית.</p>
@@ -2282,7 +2282,7 @@ export default function Home() {
                       </div>
                    </div>
                  </>
-               ) : <div className="flex flex-col items-center justify-center h-96 text-slate-400"><AlertTriangle size={64} className="mb-6 opacity-20" /><p className="font-black text-xl">שגיאה בטעינת האנליטיקה</p></div>}
+               ) : <div className="flex flex-col items-center justify-center h-96 text-slate-400"><AlertTriangle size={64} className="mb-6 opacity-20" /><p className="font-bold text-xl">שגיאה בטעינת האנליטיקה</p></div>}
             </div>
           )}
           
@@ -2290,12 +2290,12 @@ export default function Home() {
           
           {activeTab === 'settings' && (
             <div className="p-4 md:p-10 max-w-2xl mx-auto h-full min-h-[500px] space-y-8">
-              <h2 className="text-3xl font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white"><Settings className="text-indigo-500" /> הגדרות מערכת</h2>
+              <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-slate-900 dark:text-white"><Settings className="text-indigo-500" /> הגדרות מערכת</h2>
               
               {/* Agent Phone Section */}
               <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
-                <h3 className="text-xl font-black mb-2 text-slate-900 dark:text-white">מספר נייד של הנציג</h3>
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">מספר נייד של הנציג</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">על מנת שהמערכת תחייג אליך כראוי, יש להזין את המספר שממנו תבצע את השיחות. אם נשאר ריק, החיוג יתבצע למספר הברירת מחדל של המערכת.</p>
                 <input 
                   type="text" 
@@ -2307,14 +2307,14 @@ export default function Home() {
                     setAgentPhone(val);
                     localStorage.setItem('agentPhone', val);
                   }} 
-                  className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-black outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
+                  className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
                 />
               </div>
 
               {/* Backup & Restore Section */}
               <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full -translate-x-10 -translate-y-10" />
-                <h3 className="text-xl font-black mb-2 text-slate-900 dark:text-white flex items-center gap-3"><Shield className="w-6 h-6 text-emerald-500" /> גיבוי ושחזור נתונים</h3>
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white flex items-center gap-3"><Shield className="w-6 h-6 text-emerald-500" /> גיבוי ושחזור נתונים</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">הורד את כל הנתונים כקובץ JSON, או שחזר מגיבוי קודם. הגיבוי האוטומטי רץ כל יום ב-06:00 ושומר לדרייב.</p>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -2333,14 +2333,14 @@ export default function Home() {
                         URL.revokeObjectURL(url);
                       } catch (e) { alert('שגיאה בהורדת הגיבוי'); console.error(e); }
                     }}
-                    className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-emerald-600 text-white font-black text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all group"
+                    className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-emerald-600 text-white font-bold text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all group"
                   >
                     <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
                     הורד גיבוי
                   </button>
 
                   {/* Restore from Backup */}
-                  <label className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-amber-500 text-white font-black text-base shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group">
+                  <label className="flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-amber-500 text-white font-bold text-base shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group">
                     <Upload className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                     שחזר מגיבוי
                     <input
@@ -2393,14 +2393,14 @@ export default function Home() {
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm p-6 rounded-3xl shadow-2xl" dir="rtl">
             <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center text-red-600 mb-4 mx-auto"><AlertTriangle size={24} /></div>
-            <h3 className="text-xl font-black mb-1 text-center text-slate-900 dark:text-white">מדוע הליד נפסל?</h3>
+            <h3 className="text-xl font-bold mb-1 text-center text-slate-900 dark:text-white">מדוע הליד נפסל?</h3>
             <p className="text-xs font-bold text-slate-400 mb-5 text-center">בחר סיבה לסיום הטיפול</p>
             <div className="grid grid-cols-1 gap-2">
                {LOST_REASONS.map((reason, idx) => (
-                 <button key={reason} onClick={() => finalizeDisqualification(reason)} className="w-full text-right px-5 py-3 rounded-2xl border dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-900/10 font-black text-sm transition-all hover:border-red-500 hover:text-red-600 text-slate-700 dark:text-slate-200">{reason}</button>
+                 <button key={reason} onClick={() => finalizeDisqualification(reason)} className="w-full text-right px-5 py-3 rounded-2xl border dark:border-slate-800 hover:bg-red-50 dark:hover:bg-red-900/10 font-bold text-sm transition-all hover:border-red-500 hover:text-red-600 text-slate-700 dark:text-slate-200">{reason}</button>
                ))}
             </div>
-            <button onClick={() => setPendingDisqualification(null)} className="w-full mt-5 py-3 text-xs font-black text-slate-300 hover:text-slate-500 transition-colors uppercase">ביטול</button>
+            <button onClick={() => setPendingDisqualification(null)} className="w-full mt-5 py-3 text-xs font-bold text-slate-300 hover:text-slate-500 transition-colors uppercase">ביטול</button>
           </div>
         </div>
       )}
@@ -2441,11 +2441,11 @@ export default function Home() {
                 </button>
                 <div>
                   <div className="flex items-center gap-2.5 mb-1">
-                    <h2 className="text-2xl font-black tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
+                    <h2 className="text-2xl font-bold tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
                       {liveNotesLead?.clientName || 'לקוח בשיחה'}
                     </h2>
                     {liveNotesLead?.campaign && (
-                      <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30 whitespace-nowrap self-center">
+                      <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30 whitespace-nowrap self-center">
                         קמפיין: {liveNotesLead.campaign}
                       </span>
                     )}
@@ -2454,7 +2454,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-6 py-2.5 rounded-2xl border font-black text-xs transition-all flex items-center gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-6 py-2.5 rounded-2xl border font-bold text-xs transition-all flex items-center gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
                   <ClipboardList size={18} /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
                 </button>
                 <button onClick={handleCloseLiveNotes} className="w-10 h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={24} /></button>
@@ -2471,12 +2471,12 @@ export default function Home() {
                     <div className="flex-[2] flex flex-col p-4 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[40vh] md:min-h-0">
                        <div className="flex justify-between items-center mb-3">
                          <div className="flex items-center gap-3">
-                            <label className="text-xs font-black uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-2 group">
+                            <label className="text-xs font-bold uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-2 group">
                                תיעוד שיחה <span className="animate-pulse">●</span>
                             </label>
                             <span className="text-[10px] font-bold text-slate-300 italic">הטקסט נשמר אוטומטית</span>
                          </div>
-                         <button onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} className="flex items-center gap-2 text-[10px] font-black text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-5 py-2.5 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group">
+                         <button onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-5 py-2.5 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group">
                            <Copy size={12} className="group-hover:scale-110 transition-transform" /> העתק סיכום (Ctrl+C)
                          </button>
                        </div>
@@ -2496,13 +2496,13 @@ export default function Home() {
                        <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[22px] mb-6 border dark:border-slate-700/50 shadow-inner">
                          <button 
                            onClick={() => setLeftPanelTab('script')}
-                           className={`flex-1 py-3 text-center text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2.5 ${leftPanelTab === 'script' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md border dark:border-slate-800' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                           className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2.5 ${leftPanelTab === 'script' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md border dark:border-slate-800' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
                          >
                            <FileText size={16} /> תסריט שיחה
                          </button>
                          <button 
                            onClick={() => setLeftPanelTab('fields')}
-                           className={`flex-1 py-3 text-center text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2.5 ${leftPanelTab === 'fields' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md border dark:border-slate-800' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                           className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2.5 ${leftPanelTab === 'fields' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md border dark:border-slate-800' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
                          >
                            <Settings size={16} /> שדות מפתח
                          </button>
@@ -2510,35 +2510,35 @@ export default function Home() {
 
                        {isNegligenceActive ? (
                          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-red-500/20 dark:border-red-900/40 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300">
-                           <h4 className="text-xl font-black text-red-600 dark:text-red-400 mb-6 flex items-center gap-3 underline decoration-red-500/30 underline-offset-8">
+                           <h4 className="text-xl font-bold text-red-600 dark:text-red-400 mb-6 flex items-center gap-3 underline decoration-red-500/30 underline-offset-8">
                              <ClipboardList size={24} /> במקרה של רשלנות
                            </h4>
                            
                            <div className="space-y-8 text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-assistant animate-in fade-in duration-300" dir="rtl">
                              <section className="space-y-5">
                                <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
-                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">1</span>
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">1</span>
                                  <p className="text-base text-slate-800 dark:text-slate-200">
                                    גיל עד 65 רלוונטי לתביעות
                                  </p>
                                </div>
 
                                <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
-                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">2</span>
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">2</span>
                                  <p className="text-base text-slate-800 dark:text-slate-200">
                                    מה האבחנה
                                  </p>
                                </div>
 
                                <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
-                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">3</span>
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">3</span>
                                  <p className="text-base text-slate-800 dark:text-slate-200">
                                    באיזה שלב אובחנה המחלה? אנחנו מחפשים את אלו שאובחנו בשלב 4 או סרטן גרורתי
                                  </p>
                                </div>
 
                                <div className="flex gap-4 items-start bg-red-50/30 dark:bg-red-950/10 p-5 rounded-2xl border border-red-100/30 dark:border-red-900/20">
-                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-black shadow-sm">4</span>
+                                 <span className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">4</span>
                                  <p className="text-base text-slate-800 dark:text-slate-200">
                                    התביעות האלה גם רלוונטיות לנפטרים - היורשים תובעים.
                                  </p>
@@ -2548,31 +2548,31 @@ export default function Home() {
                          </div>
                        ) : leftPanelTab === 'script' ? (
                          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300">
-                            <h4 className="text-xl font-black text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
+                            <h4 className="text-xl font-bold text-indigo-600 mb-6 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
                               <FileText size={24} /> תסריט שיחה מלא
                             </h4>
                             
                             <div className="space-y-8 text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed font-assistant" dir="rtl">
                               <section>
-                                <h5 className="text-indigo-500 font-black text-lg mb-2">פתיחה</h5>
+                                <h5 className="text-indigo-500 font-bold text-lg mb-2">פתיחה</h5>
                                 <p className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
                                   היי, קוראים לי יונתן אני ממשרד עורכי הדין HBA. השארת אצלנו פרטים לגבי זכויות רפואיות. אם יש לך כמה דקות אני אשמח לשאול אותך כמה שאלות ולראות אם נוכל לעזור.
                                 </p>
                               </section>
 
                               <section className="space-y-4">
-                                <h5 className="text-indigo-500 font-black text-lg mb-2">שאלות סינון</h5>
+                                <h5 className="text-indigo-500 font-bold text-lg mb-2">שאלות סינון</h5>
                                 <div className="space-y-4">
                                   <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
+                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
                                     <p>מה שמך המלא? ומה גילך?</p>
                                   </div>
                                   <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
+                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
                                     <p>תוכל לספר לי קצת על מצבך הרפואי?</p>
                                   </div>
                                   <div className="flex gap-3">
-                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
+                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
                                     <div>
                                       <p>יש לך כרגע הכנסות? אם כן – מאיפה הן מגיעות (קצבה, עבודה, פנסיה וכו') ומה הסכום בערך?</p>
                                       <p className="text-[10px] text-slate-400 mt-2 italic">(לבדוק אם משלם מס הכנסה וכמה)</p>
@@ -2580,13 +2580,13 @@ export default function Home() {
                                   </div>
                                   <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
                                     <div className="flex gap-3">
-                                      <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
+                                      <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-bold">4</span>
                                       <p>האם יש קושי בפעולות יומיומיות (לבוש, רחצה, תפקוד בסיסי)? תשאלו רק אם אתה שומע תיאור שמעיד על מצב תפקודי קשה.</p>
                                     </div>
                                   </div>
                                   <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/30 text-red-600 dark:text-red-400">
                                     <div className="flex gap-3">
-                                      <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
+                                      <span className="flex-shrink-0 w-6 h-6 bg-red-100 dark:bg-red-900/50 text-red-600 rounded-full flex items-center justify-center text-xs font-bold">5</span>
                                       <p>האם יש לך ביטוח סיעודי בקופת חולים?</p>
                                     </div>
                                   </div>
@@ -2596,7 +2596,7 @@ export default function Home() {
                          </div>
                        ) : (
                          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-sm border-indigo-500/10 animate-in fade-in slide-in-from-left-4 duration-300 flex flex-col gap-6">
-                            <h4 className="text-xl font-black text-indigo-600 mb-2 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
+                            <h4 className="text-xl font-bold text-indigo-600 mb-2 flex items-center gap-3 underline decoration-indigo-500/30 underline-offset-8">
                               <Settings size={24} /> שדות מפתח לשיחה
                             </h4>
                             <p className="text-xs text-slate-400 dark:text-slate-500 font-bold -mt-2 leading-relaxed">
@@ -2606,7 +2606,7 @@ export default function Home() {
                             <button
                               onClick={handleManualAnalyzeCall}
                               disabled={isAnalyzing || !liveNotesLead.liveCallNotes?.trim()}
-                              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 border transition-all duration-300 ${
+                              className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border transition-all duration-300 ${
                                 isAnalyzing 
                                   ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed'
                                   : !liveNotesLead.liveCallNotes?.trim()
@@ -2629,7 +2629,7 @@ export default function Home() {
                             <div className="space-y-5 mt-2">
                               {/* Salary Field */}
                               <div>
-                                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
                                   <DollarSign size={14} className="text-indigo-500" /> שכר חודשי מוערך
                                 </label>
                                 <input 
@@ -2643,7 +2643,7 @@ export default function Home() {
 
                               {/* Employment Status */}
                               <div>
-                                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
                                   <Briefcase size={14} className="text-indigo-500" /> מצב תעסוקתי
                                 </label>
                                 <input 
@@ -2657,7 +2657,7 @@ export default function Home() {
 
                               {/* Medical Status */}
                               <div>
-                                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
                                   <Brain size={14} className="text-indigo-500" /> מצב רפואי ואבחנה
                                 </label>
                                 <textarea 
@@ -2672,7 +2672,7 @@ export default function Home() {
                          </div>
                        )}
 
-                       <div className="mt-8 opacity-20 text-[9px] items-center flex gap-2 font-black text-slate-400 uppercase tracking-tighter self-center">
+                       <div className="mt-8 opacity-20 text-[9px] items-center flex gap-2 font-bold text-slate-400 uppercase tracking-tighter self-center">
                           <Zap size={10} /> Sue-Chef v5.9 Master
                        </div>
                     </div>
@@ -2683,13 +2683,13 @@ export default function Home() {
             {/* Footer - Compact */}
             <div className="p-4 border-t dark:border-slate-800 bg-white dark:bg-slate-900 z-10 flex justify-between items-center px-8" dir="rtl">
                <div className="flex items-center gap-6">
-                 <div className="hidden sm:flex items-center gap-3 uppercase font-black text-[9px] tracking-widest text-slate-300 pointer-events-none">
+                 <div className="hidden sm:flex items-center gap-3 uppercase font-bold text-[9px] tracking-widest text-slate-300 pointer-events-none">
                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
                    <span>Secure Connection</span>
                  </div>
                  <button 
                    onClick={() => setIsNegligenceActive(!isNegligenceActive)}
-                   className={`px-6 py-2.5 rounded-2xl border font-black text-xs transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-sm
+                   className={`px-6 py-2.5 rounded-2xl border font-bold text-xs transition-all flex items-center gap-2 hover:scale-105 active:scale-95 shadow-sm
                      ${isNegligenceActive 
                        ? 'bg-red-500 text-white border-red-600 shadow-red-500/20 hover:bg-red-600' 
                        : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
@@ -2697,8 +2697,8 @@ export default function Home() {
                    <ClipboardList size={14} /> במקרה של רשלנות
                  </button>
                </div>
-               <button onClick={handleCloseLiveNotes} className="px-16 py-3.5 rounded-2xl bg-indigo-600 text-white font-black shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/20">
-                 <span className="relative z-10 flex items-center gap-3 font-black"><Check size={24} /> סיום ועדכון</span>
+               <button onClick={handleCloseLiveNotes} className="px-16 py-3.5 rounded-2xl bg-indigo-600 text-white font-bold shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 font-assistant text-xl group overflow-hidden relative shadow-indigo-500/20">
+                 <span className="relative z-10 flex items-center gap-3 font-bold"><Check size={24} /> סיום ועדכון</span>
                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                </button>
             </div>
@@ -2718,7 +2718,7 @@ export default function Home() {
                     <History size={28} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{historyLead.clientName || 'ליד'}</h3>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{historyLead.clientName || 'ליד'}</h3>
                     <p className="text-sm font-mono text-slate-400" dir="ltr">{historyLead.phone || '---'}</p>
                   </div>
                 </div>
@@ -2735,31 +2735,31 @@ export default function Home() {
                     <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                       <Brain size={16} />
                     </div>
-                    <span className="text-sm font-black text-indigo-950 dark:text-white">נתוני מפתח לתיק</span>
+                    <span className="text-sm font-bold text-indigo-950 dark:text-white">נתוני מפתח לתיק</span>
                   </div>
                   
                   <div className="grid grid-cols-1 gap-3.5">
                     {historyLead.salary && (
                       <div className="flex items-center justify-between bg-white/70 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                           <DollarSign size={14} className="text-indigo-500" /> שכר חודשי:
                         </span>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">{historyLead.salary}</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{historyLead.salary}</span>
                       </div>
                     )}
 
                     {historyLead.employmentStatus && (
                       <div className="flex items-center justify-between bg-white/70 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                           <Briefcase size={14} className="text-indigo-500" /> מצב תעסוקתי:
                         </span>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-200">{historyLead.employmentStatus}</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{historyLead.employmentStatus}</span>
                       </div>
                     )}
 
                     {historyLead.medicalStatus && (
                       <div className="bg-white/70 dark:bg-slate-900/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                        <span className="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
                           <Brain size={14} className="text-indigo-500" /> מצב רפואי ואבחנה:
                         </span>
                         <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed pr-5 whitespace-pre-line">{historyLead.medicalStatus}</p>
@@ -2773,7 +2773,7 @@ export default function Home() {
                 {/* Created */}
                 <div className="relative">
                   <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white dark:border-slate-900 shadow-md" />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">נוצר</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">נוצר</p>
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatDate(historyLead.createdAt)}</p>
                   <p className="text-xs text-slate-400">מקור: {historyLead.source}</p>
                 </div>
@@ -2782,7 +2782,7 @@ export default function Home() {
                 {historyLead.whatsappSentAt && (
                   <div className="relative">
                     <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white dark:border-slate-900 shadow-md" />
-                    <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">וואטסאפ 💬</p>
+                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">וואטסאפ 💬</p>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">נשלחה הודעת פתיחה אוטומטית</p>
                     <p className="text-xs text-slate-400">נשלחה ב: {formatDate(historyLead.whatsappSentAt)}</p>
                   </div>
@@ -2792,11 +2792,11 @@ export default function Home() {
                 {(historyLead.statusHistory || []).map((entry, idx) => (
                   <div key={idx} className="relative animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${idx * 80}ms` }}>
                     <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-amber-400 border-4 border-white dark:border-slate-900 shadow-md" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">{formatDate(entry.timestamp)}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{formatDate(entry.timestamp)}</p>
                     <div className="flex items-center gap-2 text-sm font-bold">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${getStatusStyle(entry.from).bg} ${getStatusStyle(entry.from).color}`}>{STATUS_CONFIG[entry.from]?.label || entry.from}</span>
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${getStatusStyle(entry.from).bg} ${getStatusStyle(entry.from).color}`}>{STATUS_CONFIG[entry.from]?.label || entry.from}</span>
                       <ArrowRight size={14} className="text-slate-300 flex-shrink-0" />
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${getStatusStyle(entry.to).bg} ${getStatusStyle(entry.to).color}`}>{STATUS_CONFIG[entry.to]?.label || entry.to}</span>
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${getStatusStyle(entry.to).bg} ${getStatusStyle(entry.to).color}`}>{STATUS_CONFIG[entry.to]?.label || entry.to}</span>
                     </div>
                     {entry.to === 'נגמר' && historyLead.disqualificationReason && idx === (historyLead.statusHistory || []).length - 1 && (
                       <p className="text-xs text-red-500 font-bold mt-1">סיבה: {historyLead.disqualificationReason}</p>
@@ -2808,7 +2808,7 @@ export default function Home() {
                 {(historyLead.callCount || 0) > 0 && (
                   <div className="relative">
                     <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white dark:border-slate-900 shadow-md" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">שיחות</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">שיחות</p>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">בוצעו {historyLead.callCount} שיחות</p>
                     {historyLead.lastContacted && <p className="text-xs text-slate-400">שיחה אחרונה: {formatDate(historyLead.lastContacted)}</p>}
                   </div>
@@ -2822,7 +2822,7 @@ export default function Home() {
                 }).map((call, idx) => (
                   <div key={call.sid} className="relative animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${idx * 60}ms` }}>
                     <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-blue-400 border-4 border-white dark:border-slate-900 shadow-md" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">{formatDate(call.startTime)}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{formatDate(call.startTime)}</p>
                     <div className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
                       <Phone size={14} className="text-blue-500" />
                       <span>{call.direction === 'inbound' ? 'שיחה נכנסת' : 'שיחה יוצאת'}</span>
@@ -2835,7 +2835,7 @@ export default function Home() {
                 {historyLead.isSigned && (
                   <div className="relative">
                     <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-yellow-400 border-4 border-white dark:border-slate-900 shadow-md" />
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1">חתימה 🏆</p>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">חתימה 🏆</p>
                     <p className="text-sm font-bold text-emerald-600">{formatDate(historyLead.signedAt || null)}</p>
                   </div>
                 )}
@@ -2868,7 +2868,7 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center"><DollarSign size={24} /></div>
                   <div>
-                    <h3 className="text-2xl font-black">דוח רווח שבועי</h3>
+                    <h3 className="text-2xl font-bold">דוח רווח שבועי</h3>
                     <p className="text-indigo-200 text-xs font-bold">{weekOffset === 0 ? 'השבוע הנוכחי' : `${Math.abs(weekOffset)} שבועות אחורה`}</p>
                   </div>
                 </div>
@@ -2885,19 +2885,19 @@ export default function Home() {
                 <div className="mt-8 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white/10 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">חתימות השבוע</p>
-                      <p className="text-3xl font-black text-emerald-400">{weeklyData.signedThisWeek}</p>
+                      <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider mb-1">חתימות השבוע</p>
+                      <p className="text-3xl font-bold text-emerald-400">{weeklyData.signedThisWeek}</p>
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-1">בזבוז Twilio</p>
-                      <p className="text-3xl font-black text-red-400">${weeklyData.twilioCostUSD.toFixed(2)}</p>
+                      <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider mb-1">בזבוז Twilio</p>
+                      <p className="text-3xl font-bold text-red-400">${weeklyData.twilioCostUSD.toFixed(2)}</p>
                       <p className="text-[10px] text-indigo-300 mt-1">₪{weeklyData.twilioCostNIS.toFixed(0)}</p>
                     </div>
                   </div>
                   
                   <div className="bg-white/15 rounded-3xl p-6 border border-white/10 mt-6">
-                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-wider mb-2">הכנסה שבועית</p>
-                    <p className="text-5xl font-black text-emerald-400">₪{weeklyData.grossRevenue.toLocaleString()}</p>
+                    <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider mb-2">הכנסה שבועית</p>
+                    <p className="text-5xl font-bold text-emerald-400">₪{weeklyData.grossRevenue.toLocaleString()}</p>
                   </div>
                 </div>
               ) : (
@@ -2913,15 +2913,15 @@ export default function Home() {
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm p-10 rounded-[48px] shadow-2xl border dark:border-white/5" dir="rtl">
             <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-3xl flex items-center justify-center text-emerald-600 mb-6 mx-auto"><Lock className="w-8 h-8" /></div>
-            <h3 className="text-2xl font-black mb-2 text-center">מעבר לדשבורד עו"ד</h3>
+            <h3 className="text-2xl font-bold mb-2 text-center">מעבר לדשבורד עו"ד</h3>
             <p className="text-sm font-bold text-slate-400 mb-8 text-center">הזן סיסמת גישה</p>
             <form onSubmit={handleSwitchRole} className="space-y-4">
-              <input type="password" value={switchPassword} onChange={e => setSwitchPassword(e.target.value)} autoFocus placeholder="סיסמה..." className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl px-6 py-4 text-center text-lg font-black outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all" dir="ltr" />
-              {switchError && <p className="text-xs font-black text-red-500 text-center">{switchError}</p>}
-              <button type="submit" disabled={switchLoading || !switchPassword} className="w-full bg-emerald-600 text-white rounded-2xl py-4 font-black text-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center">
+              <input type="password" value={switchPassword} onChange={e => setSwitchPassword(e.target.value)} autoFocus placeholder="סיסמה..." className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl px-6 py-4 text-center text-lg font-bold outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all" dir="ltr" />
+              {switchError && <p className="text-xs font-bold text-red-500 text-center">{switchError}</p>}
+              <button type="submit" disabled={switchLoading || !switchPassword} className="w-full bg-emerald-600 text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center">
                 {switchLoading ? <Loader2 className="animate-spin" /> : "כניסה"}
               </button>
-              <button type="button" onClick={() => { setShowSwitchModal(false); setSwitchError(""); setSwitchPassword(""); }} className="w-full py-2 text-xs font-black text-slate-400 hover:text-slate-600 transition-colors">ביטול</button>
+              <button type="button" onClick={() => { setShowSwitchModal(false); setSwitchError(""); setSwitchPassword(""); }} className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">ביטול</button>
             </form>
           </div>
         </div>
@@ -2935,7 +2935,7 @@ export default function Home() {
           return (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as 'crm'|'calls'|'archive')} className={`flex flex-col items-center gap-1 p-2 w-20 rounded-2xl transition-all ${isActive ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
             <Icon size={20} className={isActive ? 'animate-bounce' : ''} />
-            <span className="text-[10px] font-black">{tab.label}</span>
+            <span className="text-[10px] font-bold">{tab.label}</span>
           </button>
         )})}
       </div>
@@ -2981,13 +2981,13 @@ export default function Home() {
                 <Sparkles className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-xl md:text-2xl font-black bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-indigo-400">סו-שף AI • אבחון אסטרטגי</h3>
+                <h3 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-indigo-400">סו-שף AI • אבחון אסטרטגי</h3>
                 <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-0.5">ניתוח דטרמיניסטי מתקדם והמלצות ייעול אופרטיביות</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              <span className="text-xs font-black px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+              <span className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
                 {analyticsTimeframe === '7days' && '7 ימים אחרונים'}
                 {analyticsTimeframe === '30days' && '30 ימים אחרונים'}
                 {analyticsTimeframe === 'currentMonth' && 'החודש הנוכחי'}
@@ -3014,7 +3014,7 @@ export default function Home() {
                 <Brain className="w-8 h-8 text-indigo-500 animate-pulse" />
               </div>
               <div className="text-center space-y-2 max-w-sm">
-                <h4 className="font-black text-slate-700 dark:text-slate-200 text-lg">סו-שף AI מנתח את הנתונים...</h4>
+                <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">סו-שף AI מנתח את הנתונים...</h4>
                 <p className="text-sm font-bold text-violet-600 dark:text-violet-400 animate-pulse min-h-[20px]">{loadingAiStatus}</p>
                 <p className="text-xs font-bold text-slate-400 mt-2">אנחנו מחשבים סיבות פסילה, עלויות שיחות, ויחסי המרה אקטיביים לתקופה הנבחרת.</p>
               </div>
@@ -3026,12 +3026,12 @@ export default function Home() {
                 <AlertTriangle size={32} />
               </div>
               <div className="max-w-md space-y-2">
-                <h4 className="text-lg font-black text-slate-800 dark:text-slate-200">לא הצלחנו לייצר ניתוח בינה מלאכותית</h4>
+                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200">לא הצלחנו לייצר ניתוח בינה מלאכותית</h4>
                 <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{aiAnalysis.message}</p>
               </div>
               <button 
                 onClick={runAiAnalysis} 
-                className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-xs rounded-xl shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
+                className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
               >
                 נסה שוב
               </button>
@@ -3043,8 +3043,8 @@ export default function Home() {
               {/* Executive Summary */}
               <div className="p-6 rounded-3xl bg-gradient-to-br from-violet-50/50 to-indigo-50/30 dark:from-violet-950/10 dark:to-indigo-950/5 border border-violet-100/50 dark:border-violet-900/20 relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-24 h-24 bg-violet-500/5 blur-[30px] rounded-full" />
-                <h4 className="text-xs font-black uppercase text-violet-600 dark:text-violet-400 tracking-wider mb-2 flex items-center gap-1.5"><Sparkles size={12}/> סיכום מנהלים אסטרטגי</h4>
-                <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).summary}</p>
+                <h4 className="text-xs font-bold uppercase text-violet-600 dark:text-violet-400 tracking-wider mb-2 flex items-center gap-1.5"><Sparkles size={12}/> סיכום מנהלים אסטרטגי</h4>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).summary}</p>
               </div>
 
               {/* Premium Score Speedometers / SVG Gauges */}
@@ -3060,8 +3060,8 @@ export default function Home() {
                     {/* Gauge 1: Relevance Score */}
                     <div className="p-6 rounded-3xl border dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md flex items-center justify-between gap-6 shadow-inner relative overflow-hidden group">
                       <div className="space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">מדד איכות הלידים (רלוונטיות)</span>
-                        <h4 className="text-lg font-black text-slate-800 dark:text-white">ציון איכות תקופתי</h4>
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">מדד איכות הלידים (רלוונטיות)</span>
+                        <h4 className="text-lg font-bold text-slate-800 dark:text-white">ציון איכות תקופתי</h4>
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed mt-1">אחוז הלידים שענו והיו בעלי עילה רלוונטית בתקופה הנוכחית.</p>
                       </div>
                       <div className="relative flex items-center justify-center flex-shrink-0">
@@ -3070,8 +3070,8 @@ export default function Home() {
                           <circle cx="48" cy="48" r="40" className="text-purple-600 dark:text-purple-500 transition-all duration-[1500ms] ease-out" strokeWidth="6" strokeDasharray={251.2} strokeDashoffset={251.2 - (relRate / 100) * 251.2} strokeLinecap="round" stroke="currentColor" fill="transparent" />
                         </svg>
                         <div className="absolute flex flex-col items-center">
-                          <span className="text-2xl font-black text-slate-800 dark:text-white">{relRate}%</span>
-                          <span className="text-[8px] font-black text-purple-500 uppercase tracking-widest mt-0.5">{relRate >= 35 ? 'מעולה' : 'טעון שיפור'}</span>
+                          <span className="text-2xl font-bold text-slate-800 dark:text-white">{relRate}%</span>
+                          <span className="text-[8px] font-bold text-purple-500 uppercase tracking-widest mt-0.5">{relRate >= 35 ? 'מעולה' : 'טעון שיפור'}</span>
                         </div>
                       </div>
                     </div>
@@ -3079,8 +3079,8 @@ export default function Home() {
                     {/* Gauge 2: Operational Efficiency */}
                     <div className="p-6 rounded-3xl border dark:border-slate-800/80 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md flex items-center justify-between gap-6 shadow-inner relative overflow-hidden group">
                       <div className="space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">מדד יעילות תפעולית (שיחות סרק)</span>
-                        <h4 className="text-lg font-black text-slate-800 dark:text-white">יעילות תפעול שיחות</h4>
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">מדד יעילות תפעולית (שיחות סרק)</span>
+                        <h4 className="text-lg font-bold text-slate-800 dark:text-white">יעילות תפעול שיחות</h4>
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed mt-1">מדידת האנרגיה שהושקעה בשיחות ללא מענה חוזר מול סגירות.</p>
                       </div>
                       <div className="relative flex items-center justify-center flex-shrink-0">
@@ -3089,8 +3089,8 @@ export default function Home() {
                           <circle cx="48" cy="48" r="40" className="text-blue-600 dark:text-blue-500 transition-all duration-[1500ms] ease-out" strokeWidth="6" strokeDasharray={251.2} strokeDashoffset={251.2 - (opEfficiency / 100) * 251.2} strokeLinecap="round" stroke="currentColor" fill="transparent" />
                         </svg>
                         <div className="absolute flex flex-col items-center">
-                          <span className="text-2xl font-black text-slate-800 dark:text-white">{opEfficiency}%</span>
-                          <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-0.5">{opEfficiency >= 75 ? 'מצוין' : 'עמוס שיחות'}</span>
+                          <span className="text-2xl font-bold text-slate-800 dark:text-white">{opEfficiency}%</span>
+                          <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest mt-0.5">{opEfficiency >= 75 ? 'מצוין' : 'עמוס שיחות'}</span>
                         </div>
                       </div>
                     </div>
@@ -3101,19 +3101,19 @@ export default function Home() {
               {/* Commentary Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-5 rounded-2xl border dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md">
-                  <h5 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider mb-2">אבחון איכות הלידים (רלוונטיות)</h5>
+                  <h5 className="text-xs font-bold uppercase text-purple-600 dark:text-purple-400 tracking-wider mb-2">אבחון איכות הלידים (רלוונטיות)</h5>
                   <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).metrics_evaluation?.relevance_rate_commentary}</p>
                 </div>
                 
                 <div className="p-5 rounded-2xl border dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md">
-                  <h5 className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-2">אבחון יחס סגירה (מתוך רלוונטיים)</h5>
+                  <h5 className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-2">אבחון יחס סגירה (מתוך רלוונטיים)</h5>
                   <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{(aiAnalysis.analysis || aiAnalysis).metrics_evaluation?.conversion_rate_commentary}</p>
                 </div>
               </div>
 
               {/* Deep AI Diagnostics Grid */}
               <div className="space-y-4">
-                <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">🔍 אבחון עומק תפעולי</h4>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">🔍 אבחון עומק תפעולי</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {(aiAnalysis.analysis || aiAnalysis).diagnostics?.map((diag: any, idx: number) => {
                     const statusStyles: Record<string, string> = {
@@ -3133,8 +3133,8 @@ export default function Home() {
                       <div key={idx} className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between gap-3 mb-4">
-                            <span className="text-xs font-black text-slate-800 dark:text-slate-100 leading-tight">{diag.title}</span>
-                            <span className={"text-[9px] font-black px-2.5 py-1 rounded-full border " + statusClass}>{statusLabel}</span>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">{diag.title}</span>
+                            <span className={"text-[9px] font-bold px-2.5 py-1 rounded-full border " + statusClass}>{statusLabel}</span>
                           </div>
                           <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">{diag.explanation}</p>
                         </div>
@@ -3159,13 +3159,13 @@ export default function Home() {
                 
                 return (
                   <div className="space-y-6">
-                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">📊 פילוח נתונים כמותי (מתוך בסיס הנתונים)</h4>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">📊 פילוח נתונים כמותי (מתוך בסיס הנתונים)</h4>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       
                       {/* Employment Status Chart */}
                       <div className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-4">
                         <div>
-                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-200">פילוח תעסוקתי של הלידים</h5>
+                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">פילוח תעסוקתי של הלידים</h5>
                           <p className="text-[9px] font-bold text-slate-400 mt-0.5">התפלגות מקום עבודה המדווחת בשיחות</p>
                         </div>
                         <div className="space-y-3.5">
@@ -3175,7 +3175,7 @@ export default function Home() {
                               <div key={idx} className="space-y-1.5">
                                 <div className="flex justify-between items-center text-[10px] font-bold">
                                   <span className="text-slate-700 dark:text-slate-300">👤 {item.status || 'לא צוין'}</span>
-                                  <span className="text-indigo-600 dark:text-indigo-400 font-black">{item.count} לידים ({pct}%)</span>
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">{item.count} לידים ({pct}%)</span>
                                 </div>
                                 <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
                                   <div className="bg-gradient-to-r from-violet-600 to-indigo-600 h-full rounded-full transition-all duration-[1500ms] ease-out" style={{ width: pct + "%" }} />
@@ -3189,7 +3189,7 @@ export default function Home() {
                       {/* Salary Levels Chart */}
                       <div className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-4">
                         <div>
-                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-200">פילוח רמות שכר מדווחות</h5>
+                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">פילוח רמות שכר מדווחות</h5>
                           <p className="text-[9px] font-bold text-slate-400 mt-0.5">פוטנציאל החזר מס ע"פ גובה שכר</p>
                         </div>
                         <div className="space-y-3.5">
@@ -3201,7 +3201,7 @@ export default function Home() {
                               <div key={idx} className="space-y-1.5">
                                 <div className="flex justify-between items-center text-[10px] font-bold">
                                   <span className="text-slate-700 dark:text-slate-300">💰 {item.salary || 'לא צוין'}</span>
-                                  <span className="text-emerald-600 dark:text-emerald-400 font-black">{item.count} ({pct}%)</span>
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">{item.count} ({pct}%)</span>
                                 </div>
                                 <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
                                   <div className={"bg-gradient-to-r h-full rounded-full transition-all duration-[1500ms] ease-out " + color} style={{ width: pct + "%" }} />
@@ -3215,7 +3215,7 @@ export default function Home() {
                       {/* Disqualifications & Alternative channels Chart */}
                       <div className="p-6 rounded-3xl border dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-4">
                         <div>
-                          <h5 className="text-xs font-black text-slate-800 dark:text-slate-200">סיבות פסילת לידים ותעלות חלופיות</h5>
+                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">סיבות פסילת לידים ותעלות חלופיות</h5>
                           <p className="text-[9px] font-bold text-slate-400 mt-0.5">זיהוי אובדן פוטנציאל עסקי מסיבות פסילה</p>
                         </div>
                         <div className="space-y-3.5">
@@ -3238,8 +3238,8 @@ export default function Home() {
                                 <div className="flex justify-between items-center text-[10px] font-bold">
                                   <span className="text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={item.reason}>⚠️ {item.reason || 'אחר'}</span>
                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                    {tip && <span className="text-[8px] font-black bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-100/50 dark:border-indigo-900/30">{tip}</span>}
-                                    <span className="text-rose-500 font-black">{item.count}</span>
+                                    {tip && <span className="text-[8px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-100/50 dark:border-indigo-900/30">{tip}</span>}
+                                    <span className="text-rose-500 font-bold">{item.count}</span>
                                   </div>
                                 </div>
                                 <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
@@ -3258,7 +3258,7 @@ export default function Home() {
 
               {/* Action items checklist */}
               <div className="space-y-4">
-                <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">⚡ צ'קליסט משימות אופרטיבי לגילי</h4>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest border-r-4 border-indigo-500 pr-3.5">⚡ צ'קליסט משימות אופרטיבי לגילי</h4>
                 <div className="space-y-4">
                   {(aiAnalysis.analysis || aiAnalysis).action_items?.map((item: any, idx: number) => {
                     const checked = !!checkedActionItems[idx];
@@ -3291,9 +3291,9 @@ export default function Home() {
                         
                         <div className="flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2.5">
-                            <span className={"text-sm font-black " + (checked ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-100")}>{item.action}</span>
-                            <span className={"text-[9px] font-black px-2.5 py-0.5 rounded-full border " + pClass}>{pLabel}</span>
-                            <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/25 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/20">השפעה: {item.impact}</span>
+                            <span className={"text-sm font-bold " + (checked ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-100")}>{item.action}</span>
+                            <span className={"text-[9px] font-bold px-2.5 py-0.5 rounded-full border " + pClass}>{pLabel}</span>
+                            <span className="text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/25 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/20">השפעה: {item.impact}</span>
                           </div>
                           
                           <p className={"text-xs font-bold leading-relaxed " + (checked ? "text-slate-400 dark:text-slate-500" : "text-slate-500 dark:text-slate-400")}>{item.explanation}</p>
@@ -3307,7 +3307,7 @@ export default function Home() {
               <div className="p-6 rounded-2xl bg-slate-950 text-slate-100 border border-slate-800 shadow-xl flex items-start gap-4">
                 <Brain className="w-8 h-8 text-indigo-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h5 className="text-xs font-black text-indigo-300 uppercase tracking-wider">תובנת מגמה רוחבית (סו-שף Insights)</h5>
+                  <h5 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">תובנת מגמה רוחבית (סו-שף Insights)</h5>
                   <p className="text-xs font-bold leading-relaxed text-slate-300">{aiAnalysis.leads_trend_insight}</p>
                 </div>
               </div>
@@ -3501,7 +3501,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center"><Upload className="w-5 h-5" /></div>
             <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">ייבוא לידים מקובץ CSV</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">ייבוא לידים מקובץ CSV</h3>
               <p className="text-xs font-bold text-slate-400">ייבוא המוני של לקוחות ישירות למערכת</p>
             </div>
           </div>
@@ -3527,7 +3527,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
             <Upload className="w-16 h-16 text-slate-300 dark:text-slate-700 group-hover:text-emerald-500 transition-colors mb-4" />
-            <h4 className="font-black text-slate-700 dark:text-slate-200 text-lg mb-1">לחץ לבחירת קובץ או גרור לכאן</h4>
+            <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg mb-1">לחץ לבחירת קובץ או גרור לכאן</h4>
             <p className="text-xs font-bold text-slate-400">קובץ CSV בלבד (.csv)</p>
           </div>
         ) : isImporting ? (
@@ -3535,7 +3535,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
           <div className="flex flex-col items-center justify-center py-12 gap-5">
             <Loader2 className="animate-spin text-emerald-500 w-12 h-12" />
             <div className="text-center">
-              <h4 className="font-black text-slate-700 dark:text-slate-200 text-lg">מייבא לידים למסד הנתונים...</h4>
+              <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">מייבא לידים למסד הנתונים...</h4>
               <p className="text-xs font-bold text-slate-400 mt-1">נא לא לסגור חלון זה</p>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden mt-2 max-w-sm">
@@ -3544,19 +3544,19 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
                 style={{ width: `${importProgress}%` }}
               />
             </div>
-            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{importProgress}%</span>
+            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{importProgress}%</span>
           </div>
         ) : (
           /* Step 2: Mapping Columns */
           <div className="flex flex-col gap-6 overflow-y-auto">
             <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/30 border dark:border-slate-800 p-4 rounded-2xl">
               <div>
-                <h4 className="font-black text-sm text-slate-700 dark:text-slate-200">{file.name}</h4>
+                <h4 className="font-bold text-sm text-slate-700 dark:text-slate-200">{file.name}</h4>
                 <p className="text-xs text-slate-400 font-bold mt-0.5">גודל: {(file.size / 1024).toFixed(1)} KB | נמצאו {rows.length} שורות</p>
               </div>
               <button 
                 onClick={() => { setFile(null); setHeaders([]); setRows([]); }}
-                className="text-xs font-black text-slate-400 hover:text-red-500 transition-all underline"
+                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-all underline"
               >
                 החלף קובץ
               </button>
@@ -3565,7 +3565,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Name Selection */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-black text-slate-500">עמודת שם לקוח (Client Name)</label>
+                <label className="text-xs font-bold text-slate-500">עמודת שם לקוח (Client Name)</label>
                 <select 
                   value={selectedNameHeader}
                   onChange={(e) => setSelectedNameHeader(e.target.value)}
@@ -3578,7 +3578,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
 
               {/* Phone Selection */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-black text-slate-500">עמודת מספר טלפון (Phone)</label>
+                <label className="text-xs font-bold text-slate-500">עמודת מספר טלפון (Phone)</label>
                 <select 
                   value={selectedPhoneHeader}
                   onChange={(e) => setSelectedPhoneHeader(e.target.value)}
@@ -3591,7 +3591,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
 
               {/* Campaign Selection */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-black text-slate-500">עמודת קמפיין (Campaign - אופציונלי)</label>
+                <label className="text-xs font-bold text-slate-500">עמודת קמפיין (Campaign - אופציונלי)</label>
                 <select 
                   value={selectedCampaignHeader}
                   onChange={(e) => setSelectedCampaignHeader(e.target.value)}
@@ -3606,7 +3606,7 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
             {/* Live Preview */}
             {selectedNameHeader && selectedPhoneHeader && (
               <div className="flex flex-col gap-3 border-2 border-dashed dark:border-slate-800 rounded-2xl p-4">
-                <h5 className="text-xs font-black text-slate-400">תצוגה מקדימה של 3 השורות הראשונות:</h5>
+                <h5 className="text-xs font-bold text-slate-400">תצוגה מקדימה של 3 השורות הראשונות:</h5>
                 <div className="divide-y dark:divide-slate-800">
                   {rows.slice(0, 3).map((row, idx) => {
                     const nameVal = row[headers.indexOf(selectedNameHeader)] || "";
@@ -3634,14 +3634,14 @@ function CsvImportModal({ onClose, onImportComplete, leadsList }: CsvImportModal
             <div className="flex gap-3 justify-end mt-4">
               <button 
                 onClick={onClose}
-                className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-black transition-all"
+                className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold transition-all"
               >
                 ביטול
               </button>
               <button 
                 onClick={handleStartImport}
                 disabled={!selectedNameHeader || !selectedPhoneHeader}
-                className="px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/15 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                className="px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/15 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
               >
                 ייבא {rows.length} לידים
               </button>

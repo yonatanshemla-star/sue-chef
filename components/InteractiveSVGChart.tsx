@@ -94,7 +94,7 @@ export default function InteractiveSVGChart({
     <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col w-full h-full select-none" dir="rtl">
       {/* Title */}
       <div className="flex justify-between items-center mb-4">
-        <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">{title}</h4>
+        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{title}</h4>
         <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">{yLabel}</span>
       </div>
 
@@ -112,7 +112,7 @@ export default function InteractiveSVGChart({
             className="z-30 bg-white/95 dark:bg-slate-950/95 border border-slate-100 dark:border-slate-800/80 px-4 py-2.5 rounded-2xl shadow-xl backdrop-blur-md pointer-events-none flex flex-col items-center gap-0.5 text-center min-w-[80px] transition-all duration-75"
           >
             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{points[hoveredIdx].label}</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{points[hoveredIdx].value} לידים</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{points[hoveredIdx].value} לידים</span>
           </div>
         )}
 
