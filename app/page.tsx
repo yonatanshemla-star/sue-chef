@@ -155,8 +155,8 @@ export default function Home() {
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      // If less than 280px space below, open upwards
-      setDropdownDirection(spaceBelow < 280 ? 'up' : 'down');
+      // If less than 380px space below, open upwards
+      setDropdownDirection(spaceBelow < 380 ? 'up' : 'down');
       setActiveStatusDropdownLeadId(leadId);
     }
   };
@@ -1781,7 +1781,7 @@ export default function Home() {
                         {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                            <div className={`absolute right-0 min-w-[200px] z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -1789,7 +1789,7 @@ export default function Home() {
                                     handleLeadUpdate(lead.id, { status: k });
                                     setActiveStatusDropdownLeadId(null);
                                   }}
-                                  className={`w-full text-right px-4 py-2 text-[11px] rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
+                                  className={`w-full text-right px-4 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
                                     ${lead.status === k 
                                       ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
                                       : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
@@ -1958,7 +1958,7 @@ export default function Home() {
                       {activeStatusDropdownLeadId === lead.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                          <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                               <button
                                 key={k}
@@ -1966,7 +1966,7 @@ export default function Home() {
                                   handleLeadUpdate(lead.id, { status: k });
                                   setActiveStatusDropdownLeadId(null);
                                 }}
-                                className={`w-full text-right px-4 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
+                                className={`w-full text-right px-4 py-2.5 text-sm rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
                                   ${lead.status === k 
                                     ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
                                     : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
