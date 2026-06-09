@@ -68,6 +68,16 @@ function formatDate(d: string | null) {
   return new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
+function matchesSearch(l: any, q: string) {
+  if (!q) return true;
+  const nameMatch = l.clientName?.toLowerCase().includes(q);
+  const phoneMatch = l.phone?.includes(q);
+  const generalNotesMatch = l.generalNotes?.toLowerCase().includes(q);
+  const liveCallNotesMatch = l.liveCallNotes?.toLowerCase().includes(q);
+  const campaignMatch = l.campaign?.toLowerCase().includes(q);
+  return !!(nameMatch || phoneMatch || generalNotesMatch || liveCallNotesMatch || campaignMatch);
+}
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup' | 'settings' | 'noanswer'>('crm');
@@ -1164,10 +1174,7 @@ export default function Home() {
     })
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
-      if (!q) return true;
-      const nameMatch = l.clientName?.toLowerCase().includes(q);
-      const phoneMatch = l.phone?.includes(q);
-      return nameMatch || phoneMatch;
+      return matchesSearch(l, q);
     })
     .sort((a, b) => {
         if (showAdvancedStageOnly) {
@@ -1182,8 +1189,7 @@ export default function Home() {
     .filter(l => globalSearch.trim() ? true : l.status === 'במעקב')
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
-      if (!q) return true;
-      return l.clientName?.toLowerCase().includes(q) || l.phone?.includes(q);
+      return matchesSearch(l, q);
     })
     .sort((a, b) => new Date(a.followUpDate || a.createdAt).getTime() - new Date(b.followUpDate || b.createdAt).getTime()), [leads, globalSearch]);
 
@@ -1206,8 +1212,7 @@ export default function Home() {
     })
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
-      if (!q) return true;
-      return l.clientName?.toLowerCase().includes(q) || l.phone?.includes(q);
+      return matchesSearch(l, q);
     })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [leads, globalSearch]);
 
@@ -1215,10 +1220,7 @@ export default function Home() {
     .filter(l => globalSearch.trim() ? true : (l.status === 'חתם' || l.status === 'נגמר'))
     .filter(l => {
       const q = globalSearch.toLowerCase().trim();
-      if (!q) return true;
-      const nameMatch = l.clientName?.toLowerCase().includes(q);
-      const phoneMatch = l.phone?.includes(q);
-      return nameMatch || phoneMatch;
+      return matchesSearch(l, q);
     })
     .sort((a, b) => {
         if (a.status === 'חתם' && b.status !== 'חתם') return -1;
