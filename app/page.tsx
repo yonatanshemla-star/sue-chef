@@ -3,7 +3,6 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles } from "lucide-react";
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
@@ -100,7 +99,6 @@ export default function Home() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
   const [dropdownDirection, setDropdownDirection] = useState<'up' | 'down'>('down');
-  const [dropdownCoords, setDropdownCoords] = useState<{ top: number; bottom: number; left: number; right: number; width: number }>({ top: 0, bottom: 0, left: 0, right: 0, width: 0 });
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'script' | 'fields'>('script');
@@ -156,13 +154,6 @@ export default function Home() {
       setActiveStatusDropdownLeadId(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      setDropdownCoords({
-        top: rect.top,
-        bottom: rect.bottom,
-        left: rect.left,
-        right: rect.right,
-        width: rect.width
-      });
       const spaceBelow = window.innerHeight - rect.bottom;
       // If less than 380px space below, open upwards
       setDropdownDirection(spaceBelow < 380 ? 'up' : 'down');
@@ -1611,7 +1602,7 @@ export default function Home() {
         )}
 
         {/* Main Content Area */}
-        <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-hidden min-h-[500px]">
+        <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border dark:border-slate-800 overflow-visible min-h-[500px]">
           {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
             <>
               {/* Bulk Actions Panel */}
@@ -1787,19 +1778,10 @@ export default function Home() {
                           <ChevronDown size={14} className="opacity-70 flex-shrink-0" />
                         </button>
                         
-                        {activeStatusDropdownLeadId === lead.id && typeof document !== 'undefined' && createPortal(
+                        {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div 
-                              className={`fixed z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200`}
-                              style={{
-                                top: dropdownDirection === 'down' ? `${dropdownCoords.bottom + 8}px` : 'auto',
-                                bottom: dropdownDirection === 'up' ? `${window.innerHeight - dropdownCoords.top + 8}px` : 'auto',
-                                right: `${window.innerWidth - dropdownCoords.right}px`,
-                                width: `${dropdownCoords.width}px`,
-                                minWidth: '200px'
-                              }}
-                            >
+                            <div className={`absolute right-0 min-w-[200px] z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -1816,8 +1798,7 @@ export default function Home() {
                                 </button>
                               ))}
                             </div>
-                          </>,
-                          document.body
+                          </>
                         )}
                       </div>
                     </td>
@@ -1974,18 +1955,10 @@ export default function Home() {
                         <ChevronDown size={18} className="opacity-70 flex-shrink-0" />
                       </button>
                       
-                      {activeStatusDropdownLeadId === lead.id && typeof document !== 'undefined' && createPortal(
+                      {activeStatusDropdownLeadId === lead.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div 
-                            className={`fixed z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200`}
-                            style={{
-                              top: dropdownDirection === 'down' ? `${dropdownCoords.bottom + 8}px` : 'auto',
-                              bottom: dropdownDirection === 'up' ? `${window.innerHeight - dropdownCoords.top + 8}px` : 'auto',
-                              right: `${window.innerWidth - dropdownCoords.right}px`,
-                              width: `${dropdownCoords.width}px`
-                            }}
-                          >
+                          <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                               <button
                                 key={k}
@@ -2002,8 +1975,7 @@ export default function Home() {
                               </button>
                             ))}
                           </div>
-                        </>,
-                        document.body
+                        </>
                       )}
                     </div>
                     
