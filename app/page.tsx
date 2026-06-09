@@ -87,6 +87,7 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
+  const [dropdownDirection, setDropdownDirection] = useState<'up' | 'down'>('down');
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'script' | 'fields'>('script');
@@ -135,6 +136,19 @@ export default function Home() {
   const [isAddingStickyNote, setIsAddingStickyNote] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ from: string, callerName: string | null, timestamp: string } | null>(null);
+
+  const openStatusDropdown = (e: React.MouseEvent, leadId: string) => {
+    e.stopPropagation();
+    if (activeStatusDropdownLeadId === leadId) {
+      setActiveStatusDropdownLeadId(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      // If less than 480px space below, open upwards
+      setDropdownDirection(spaceBelow < 480 ? 'up' : 'down');
+      setActiveStatusDropdownLeadId(leadId);
+    }
+  };
 
   const handleSwitchRole = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1754,7 +1768,7 @@ export default function Home() {
                     <td className="px-6 py-5">
                       <div className="relative group/select">
                         <button
-                          onClick={() => setActiveStatusDropdownLeadId(activeStatusDropdownLeadId === lead.id ? null : lead.id)}
+                          onClick={(e) => openStatusDropdown(e, lead.id)}
                           className={`text-[11px] font-bold font-assistant rounded-2xl px-4 py-3 outline-none border transition-all cursor-pointer w-full flex items-center justify-between shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border} group-hover/select:shadow-indigo-500/10`}
                         >
                           <span className="truncate">{STATUS_CONFIG[lead.status]?.label || lead.status}</span>
@@ -1764,7 +1778,7 @@ export default function Home() {
                         {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -1931,7 +1945,7 @@ export default function Home() {
                   <div className="flex flex-col gap-3">
                     <div className="relative group/select w-full">
                       <button
-                        onClick={() => setActiveStatusDropdownLeadId(activeStatusDropdownLeadId === lead.id ? null : lead.id)}
+                        onClick={(e) => openStatusDropdown(e, lead.id)}
                         className={`text-sm font-bold font-assistant rounded-xl px-4 py-3 outline-none border transition-all cursor-pointer w-full flex items-center justify-between shadow-sm ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
                       >
                         <span className="truncate">{STATUS_CONFIG[lead.status]?.label || lead.status}</span>
@@ -1941,7 +1955,7 @@ export default function Home() {
                       {activeStatusDropdownLeadId === lead.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div className="absolute right-0 left-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                               <button
                                 key={k}
