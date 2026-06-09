@@ -74,8 +74,9 @@ function matchesSearch(l: any, q: string) {
   const phoneMatch = l.phone?.includes(q);
   const generalNotesMatch = l.generalNotes?.toLowerCase().includes(q);
   const liveCallNotesMatch = l.liveCallNotes?.toLowerCase().includes(q);
+  const lawyerNotesMatch = l.lawyerNotes?.toLowerCase().includes(q);
   const campaignMatch = l.campaign?.toLowerCase().includes(q);
-  return !!(nameMatch || phoneMatch || generalNotesMatch || liveCallNotesMatch || campaignMatch);
+  return !!(nameMatch || phoneMatch || generalNotesMatch || liveCallNotesMatch || lawyerNotesMatch || campaignMatch);
 }
 
 export default function Home() {
@@ -1590,7 +1591,7 @@ export default function Home() {
 
             <div className="relative flex-1 group">
               <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-              <input type="text" placeholder="חיפוש לפי שם או טלפון..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
+              <input type="text" placeholder="חיפוש לפי שם, טלפון או הערות..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
               {globalSearch && (
                 <button onClick={() => setGlobalSearch('')} className="absolute left-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 transition-all">
                   <X size={14} />

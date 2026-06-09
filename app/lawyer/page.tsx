@@ -116,7 +116,11 @@ export default function LawyerDashboard() {
     if (!q) return leads;
     return leads.filter(l =>
       l.clientName?.toLowerCase().includes(q) ||
-      l.phone?.includes(q)
+      l.phone?.includes(q) ||
+      l.generalNotes?.toLowerCase().includes(q) ||
+      l.liveCallNotes?.toLowerCase().includes(q) ||
+      l.lawyerNotes?.toLowerCase().includes(q) ||
+      l.campaign?.toLowerCase().includes(q)
     );
   }, [leads, search]);
 
@@ -224,7 +228,7 @@ export default function LawyerDashboard() {
           <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={20} />
           <input
             type="text"
-            placeholder="חיפוש לפי שם או טלפון..."
+            placeholder="חיפוש לפי שם, טלפון או הערות..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-6 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-emerald-500/10 transition-all text-slate-900 dark:text-white"
