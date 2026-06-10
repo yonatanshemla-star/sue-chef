@@ -237,6 +237,52 @@ export async function GET(request: NextRequest) {
       return 'מעל 20,000 ₪';
     }
 
+    function getNormalizedEmploymentStatus(empStr: string): string {
+      if (!empStr) return 'לא צוין';
+      const clean = empStr.trim().toLowerCase();
+      if (clean === '' || clean === 'null' || clean === 'undefined' || clean === 'לא צוין') {
+        return 'לא צוין';
+      }
+
+      // Check for stipends/disability
+      if (clean.includes('קצב') || clean.includes('נכות') || clean.includes('ביטוח לאומי') || clean.includes('אובדן כושר')) {
+        return 'מקבל/ת קצבה';
+      }
+      
+      // Unemployed/not working
+      if (clean.includes('מובטל') || clean.includes('לא עובד') || clean.includes('אבטלה') || clean.includes('בלי עבודה') || clean.includes('לא עובדת')) {
+        return 'לא עובד/ת';
+      }
+
+      // Employed
+      if (clean.includes('שכיר') || clean.includes('שכירה')) {
+        return 'שכיר/ה';
+      }
+
+      // Self-employed
+      if (clean.includes('עצמאי') || clean.includes('עצמאית') || clean.includes('עסק')) {
+        return 'עצמאי/ת';
+      }
+
+      // Pensioner
+      if (clean.includes('פנסיונ') || clean.includes('פנסיה')) {
+        return 'פנסיונר/ית';
+      }
+
+      // Student
+      if (clean.includes('סטודנט')) {
+        return 'סטודנט/ית';
+      }
+
+      // Soldier / National Service
+      if (clean.includes('חייל') || clean.includes('חיילת') || clean.includes('צבא') || clean.includes('שירות לאומי')) {
+        return 'חייל/ת או שירות לאומי';
+      }
+
+      // Return clean original capitalised or styled word
+      return empStr.charAt(0).toUpperCase() + empStr.slice(1);
+    }
+
     for (const row of rawLeads) {
       const isSigned = row.status === 'חתם';
 
@@ -248,7 +294,7 @@ export async function GET(request: NextRequest) {
       campaignsMap.set(campName, campData);
 
       // 2. Employment
-      const empName = row.employment_status.trim() || 'לא צוין';
+      const empName = getNormalizedEmploymentStatus(row.employment_status);
       const empData = employmentMap.get(empName) || { status: empName, total: 0, signed: 0 };
       empData.total += 1;
       if (isSigned) empData.signed += 1;
