@@ -2154,7 +2154,7 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                           {[
                             { icon: Users, label: 'סה"כ לידים', value: analyticsData.funnel?.total || 0, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50/50 dark:bg-indigo-950/20', border: 'border-indigo-100/80 dark:border-indigo-900/30' },
-                            { icon: TrendingUp, label: 'איכות הלידים (רלוונטיות)', value: analyticsData.insights?.leadQualityRatio || 0, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50/50 dark:bg-purple-950/20', border: 'border-purple-100/80 dark:border-purple-900/30', isPercent: true },
+                            { icon: TrendingUp, label: 'איכות הלידים (רלוונטיות)', value: analyticsData.insights?.leadQualityRatio || 0, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50/50 dark:bg-purple-950/20', border: 'border-purple-100/80 dark:border-purple-900/30', isPercent: true, sub: 'מתוך הלידים שנוצר עימם קשר' },
                             { 
                               icon: Star, 
                               label: 'יחס סגירה מרלוונטיים', 
@@ -2234,7 +2234,7 @@ export default function Home() {
                               </svg>
                               <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-4xl font-bold text-slate-800 dark:text-white">{analyticsData.insights?.leadQualityRatio || 0}%</span>
-                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">רלוונטיות לתקופה</span>
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">מתוך לידים שנוצר קשר</span>
                               </div>
                             </div>
                             <p className="text-xs font-bold text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
