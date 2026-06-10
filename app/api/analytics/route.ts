@@ -83,12 +83,20 @@ export async function GET(request: NextRequest) {
       const currentStatus = lead.status;
       const relevantStatuses = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בבדיקה עם גילי'];
       
-      if (relevantStatuses.includes(currentStatus)) {
-        return true;
+      // Check if current status is relevant, or if it has the wasRelevant marker
+      let isRelevant = relevantStatuses.includes(currentStatus) || 
+                       lead.wasRelevant === true || 
+                       lead.wasRelevant === 'true';
+                       
+      // Fallback: check history if they ever transitioned to a relevant status
+      if (!isRelevant && lead.statusHistory && Array.isArray(lead.statusHistory)) {
+        isRelevant = lead.statusHistory.some((entry: any) => 
+          relevantStatuses.includes(entry.to)
+        );
       }
       
-      if (lead.wasRelevant === true || lead.wasRelevant === 'true') {
-        return true;
+      if (!isRelevant) {
+        return false;
       }
       
       if (currentStatus === 'לא רלוונטי') {

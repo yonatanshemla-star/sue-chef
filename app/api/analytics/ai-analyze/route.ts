@@ -17,126 +17,184 @@ export async function GET(request: NextRequest) {
       daysLimit = Math.ceil((now.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     }
 
-    // 1. Fetch KPI metrics and funnel stages filtered by timeframe
-    const statsRes = await sql`
+    // Fetch all leads from the database
+    const rawLeadsRes = await sql`
       SELECT 
-        count(*) FILTER (WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval) as total,
-        count(*) FILTER (
-          WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval 
-            AND (data->>'status' NOT IN ('חדש', 'לא ענה', 'אין מענה חוזר', 'מספר שגוי') 
-                 OR (data->>'callCount')::int > 0 
-                 AND data->>'status' NOT IN ('חדש', 'לא ענה')
-            )
-        ) as contacted,
-        count(*) FILTER (
-          WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval 
-            AND (
-              (data->>'status' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב')) 
-              OR (data->>'wasRelevant' = 'true')
-            )
-            AND NOT (
-              data->>'status' = 'לא רלוונטי'
-              OR (
-                data->>'status' = 'נגמר'
-                AND data->>'disqualificationReason' IN ('אין עילה רפואית', 'אין מספיק מס הכנסה', 'טעות במספר')
-              )
-            )
-        ) as relevant,
-        count(*) FILTER (
-          WHERE (data->>'status') = 'חתם' 
-            AND COALESCE(data->>'signedAt', created_at::text)::timestamp >= NOW() - (${daysLimit} || ' days')::interval
-        ) as signed,
-        count(*) FILTER (
-          WHERE (data->>'status') = 'חתם' 
-            AND COALESCE(data->>'signedAt', created_at::text)::timestamp >= NOW() - (${daysLimit} || ' days')::interval
-            AND (data->>'callCount')::int > 0 
-            AND (data->>'callCount')::int <= 3
-        ) as quick_signed,
-        AVG((data->>'callCount')::int) FILTER (
-          WHERE (data->>'status') = 'חתם' 
-            AND COALESCE(data->>'signedAt', created_at::text)::timestamp >= NOW() - (${daysLimit} || ' days')::interval
-            AND (data->>'callCount')::int > 0
-        ) as avg_calls_to_sign,
-        AVG((data->>'callCount')::int) FILTER (
-          WHERE (data->>'disqualificationReason') = 'אין מענה חוזר' 
-            AND created_at >= NOW() - (${daysLimit} || ' days')::interval
-            AND (data->>'callCount')::int > 0
-        ) as avg_calls_no_answer
+        data,
+        created_at
       FROM leads
+      ORDER BY created_at ASC;
     `;
+    const rows = rawLeadsRes.rows;
+
+    const leads = rows.map((r: any) => {
+      const lead = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+      return {
+        ...lead,
+        createdAt: lead.createdAt || r.created_at.toISOString(),
+      };
+    });
+
+    // Timeframe cutoff calculations
+    const now = new Date();
+    let cutoffDate = new Date(0); // Default to lifetime
+    if (timeframe === '30days') {
+      cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (timeframe === '7days') {
+      cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (timeframe === 'currentMonth') {
+      cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    // Helper functions (100% matching route.ts)
+    function wasEverContactedReal(lead: any): boolean {
+      const currentStatus = lead.status;
+      if (['חדש', 'לא ענה', 'אין מענה חוזר', 'מספר שגוי', 'במעקב'].includes(currentStatus)) {
+        return false;
+      }
+      if (currentStatus === 'לחזור אליו') {
+        const history = lead.statusHistory || [];
+        if (history.length === 0) {
+          return false;
+        }
+        const basicStatuses = ['חדש', 'ממתין לעדכון', 'לא ענה', 'לחזור אליו'];
+        const hadRealContact = history.some((entry: any) => 
+          !basicStatuses.includes(entry.to) || !basicStatuses.includes(entry.from)
+        );
+        if (!hadRealContact) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function isLeadRelevant(lead: any, contacted: boolean): boolean {
+      if (!contacted) return false;
+      
+      const currentStatus = lead.status;
+      const relevantStatuses = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בבדיקה עם גילי'];
+      
+      let isRelevant = relevantStatuses.includes(currentStatus) || 
+                       lead.wasRelevant === true || 
+                       lead.wasRelevant === 'true';
+                       
+      if (!isRelevant && lead.statusHistory && Array.isArray(lead.statusHistory)) {
+        isRelevant = lead.statusHistory.some((entry: any) => 
+          relevantStatuses.includes(entry.to)
+        );
+      }
+      
+      if (!isRelevant) {
+        return false;
+      }
+      
+      if (currentStatus === 'לא רלוונטי') {
+        return false;
+      }
+      
+      if (currentStatus === 'נגמר') {
+        const disqualificationReason = lead.disqualificationReason;
+        if (['אין עילה רפואית', 'אין מספיק מס הכנסה', 'טעות במספר'].includes(disqualificationReason)) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+
+    let totalLeads = 0;
+    let contactedLeads = 0;
+    let relevantLeads = 0;
+    let signedLeads = 0;
+    let quickSignedLeads = 0;
     
-    const stats = statsRes.rows[0];
-    const totalLeads = parseInt(stats.total) || 0;
-    const contactedLeads = parseInt(stats.contacted) || 0;
-    const relevantLeads = parseInt(stats.relevant) || 0;
-    const signedLeads = parseInt(stats.signed) || 0;
-    const quickSignedLeads = parseInt(stats.quick_signed) || 0;
-    const avgCallsPerSigned = stats.avg_calls_to_sign ? parseFloat(stats.avg_calls_to_sign).toFixed(1) : "0.0";
-    const avgCallsNoAnswer = stats.avg_calls_no_answer ? parseFloat(stats.avg_calls_no_answer).toFixed(1) : "0.0";
+    let sumCallsToSign = 0;
+    let countSignedWithCalls = 0;
+    let sumCallsNoAnswer = 0;
+    let countNoAnswerWithCalls = 0;
 
-    // 2. Fetch disqualification reasons breakdown filtered by timeframe
-    const disqualificationRes = await sql`
-      SELECT data->>'disqualificationReason' as reason, count(*) as count
-      FROM leads 
-      WHERE (data->>'disqualificationReason') IS NOT NULL
-        AND created_at >= NOW() - (${daysLimit} || ' days')::interval
-      GROUP BY data->>'disqualificationReason'
-      ORDER BY count DESC
-    `;
-    const disqualificationReasons = disqualificationRes.rows.map(r => ({
-      reason: r.reason,
-      count: parseInt(r.count)
-    }));
+    const disqualificationReasonsMap = new Map<string, number>();
+    const employmentMap = new Map<string, number>();
+    const salaryMap = new Map<string, number>();
+    const filteredLeadsForRecent: any[] = [];
 
-    // 3. Fetch employment status aggregates
-    const employmentRes = await sql`
-      SELECT data->>'employmentStatus' as status, count(*) as count
-      FROM leads
-      WHERE (data->>'employmentStatus') IS NOT NULL AND (data->>'employmentStatus') != ''
-        AND created_at >= NOW() - (${daysLimit} || ' days')::interval
-      GROUP BY data->>'employmentStatus'
-      ORDER BY count DESC
-    `;
-    const employmentBreakdown = employmentRes.rows.map(r => ({
-      status: r.status,
-      count: parseInt(r.count)
-    }));
+    for (const lead of leads) {
+      const leadCreatedDate = new Date(lead.createdAt);
+      const createdInTimeframe = leadCreatedDate >= cutoffDate;
+      const signedDate = new Date(lead.signedAt || lead.createdAt);
+      const signedInTimeframe = lead.status === 'חתם' && signedDate >= cutoffDate;
 
-    // 4. Fetch salary aggregates
-    const salaryRes = await sql`
-      SELECT data->>'salary' as salary, count(*) as count
-      FROM leads
-      WHERE (data->>'salary') IS NOT NULL AND (data->>'salary') != ''
-        AND created_at >= NOW() - (${daysLimit} || ' days')::interval
-      GROUP BY data->>'salary'
-      ORDER BY count DESC
-    `;
-    const salaryBreakdown = salaryRes.rows.map(r => ({
-      salary: r.salary,
-      count: parseInt(r.count)
-    }));
+      if (createdInTimeframe) {
+        totalLeads++;
+        filteredLeadsForRecent.push(lead);
 
-    // 5. Fetch anonymized sample of recent leads to provide qualitative context
-    const recentLeadsRes = await sql`
-      SELECT 
-        (CASE 
-          WHEN (data->>'clientName') IS NULL THEN 'ליד אנונימי'
-          ELSE SUBSTRING(data->>'clientName' FROM 1 FOR 1) || '***' || SUBSTRING(data->>'clientName' FROM LENGTH(data->>'clientName') FOR 1)
-         END) as name,
-        data->>'status' as status,
-        data->>'disqualificationReason' as disqual_reason,
-        data->>'salary' as salary,
-        data->>'employmentStatus' as employment_status,
-        (CASE 
-          WHEN (data->>'notes') IS NULL THEN ''
-          ELSE SUBSTRING(data->>'notes' FROM 1 FOR 150)
-         END) as notes_snippet
-      FROM leads
-      WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval
-      ORDER BY created_at DESC
-      LIMIT 15
-    `;
-    const recentLeads = recentLeadsRes.rows;
+        const contacted = wasEverContactedReal(lead);
+        if (contacted) {
+          contactedLeads++;
+          if (isLeadRelevant(lead, true)) {
+            relevantLeads++;
+          }
+        }
+
+        if (lead.disqualificationReason) {
+          const reason = lead.disqualificationReason.trim();
+          disqualificationReasonsMap.set(reason, (disqualificationReasonsMap.get(reason) || 0) + 1);
+        }
+
+        if (lead.disqualificationReason === 'אין מענה חוזר' && lead.callCount > 0) {
+          sumCallsNoAnswer += lead.callCount;
+          countNoAnswerWithCalls++;
+        }
+
+        if (lead.employmentStatus && lead.employmentStatus.trim() !== '') {
+          const emp = lead.employmentStatus.trim();
+          employmentMap.set(emp, (employmentMap.get(emp) || 0) + 1);
+        }
+
+        if (lead.salary && lead.salary.trim() !== '') {
+          const sal = lead.salary.trim();
+          salaryMap.set(sal, (salaryMap.get(sal) || 0) + 1);
+        }
+      }
+
+      if (signedInTimeframe) {
+        signedLeads++;
+        if (lead.callCount > 0) {
+          sumCallsToSign += lead.callCount;
+          countSignedWithCalls++;
+          if (lead.callCount <= 3) {
+            quickSignedLeads++;
+          }
+        }
+      }
+    }
+
+    const disqualificationReasons = Array.from(disqualificationReasonsMap.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const employmentBreakdown = Array.from(employmentMap.entries())
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const salaryBreakdown = Array.from(salaryMap.entries())
+      .map(([salary, count]) => ({ salary, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const avgCallsPerSigned = countSignedWithCalls > 0 ? (sumCallsToSign / countSignedWithCalls).toFixed(1) : "0.0";
+    const avgCallsNoAnswer = countNoAnswerWithCalls > 0 ? (sumCallsNoAnswer / countNoAnswerWithCalls).toFixed(1) : "0.0";
+
+    const recentLeads = filteredLeadsForRecent
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 15)
+      .map(lead => ({
+        name: lead.clientName ? (lead.clientName.substring(0, 1) + '***' + lead.clientName.substring(lead.clientName.length - 1)) : 'ליד אנונימי',
+        status: lead.status,
+        disqual_reason: lead.disqualificationReason || null,
+        salary: lead.salary || null,
+        employment_status: lead.employmentStatus || null,
+        notes_snippet: lead.generalNotes ? lead.generalNotes.substring(0, 150) : ''
+      }));
 
     // Check Gemini API key
     const apiKey = process.env.GEMINI_API_KEY;
