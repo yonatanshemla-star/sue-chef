@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const timeframe = request.nextUrl.searchParams.get('timeframe') || 'lifetime';
     
     // Determine the days limit dynamically based on requested timeframe
-    let daysLimit = 999999; // Represent lifetime as a massive interval
+    let daysLimit = 999999;
     if (timeframe === '30days') {
       daysLimit = 30;
     } else if (timeframe === '7days') {
@@ -17,211 +17,92 @@ export async function GET(request: NextRequest) {
       daysLimit = Math.ceil((now.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     }
 
-    // 1. Fetch KPI metrics and funnel stages filtered by timeframe
-    const statsRes = await sql`
-      SELECT 
-        count(*) FILTER (WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval) as total,
-        count(*) FILTER (
-          WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval 
-            AND (data->>'status' NOT IN ('חדש', 'לא ענה', 'אין מענה חוזר', 'מספר שגוי') 
-                 OR (data->>'callCount')::int > 0 
-                 AND data->>'status' NOT IN ('חדש', 'לא ענה')
-            )
-        ) as contacted,
-        count(*) FILTER (
-          WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval 
-            AND (
-              (data->>'status' IN ('גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב')) 
-              OR (data->>'wasRelevant' = 'true')
-            )
-            AND NOT (
-              data->>'status' = 'לא רלוונטי'
-              OR (
-                data->>'status' = 'נגמר'
-                AND data->>'disqualificationReason' IN ('אין עילה רפואית', 'אין מספיק מס הכנסה', 'טעות במספר')
-              )
-            )
-        ) as relevant,
-        count(*) FILTER (
-          WHERE (data->>'status') = 'חתם' 
-            AND COALESCE(data->>'signedAt', created_at::text)::timestamp >= NOW() - (${daysLimit} || ' days')::interval
-        ) as signed,
-        count(*) FILTER (
-          WHERE (data->>'status') = 'חתם' 
-            AND COALESCE(data->>'signedAt', created_at::text)::timestamp >= NOW() - (${daysLimit} || ' days')::interval
-            AND (data->>'callCount')::int > 0 
-            AND (data->>'callCount')::int <= 3
-        ) as quick_signed,
-        AVG((data->>'callCount')::int) FILTER (
-          WHERE (data->>'status') = 'חתם' 
-            AND COALESCE(data->>'signedAt', created_at::text)::timestamp >= NOW() - (${daysLimit} || ' days')::interval
-            AND (data->>'callCount')::int > 0
-        ) as avg_calls_to_sign,
-        AVG((data->>'callCount')::int) FILTER (
-          WHERE (data->>'disqualificationReason') = 'אין מענה חוזר' 
-            AND created_at >= NOW() - (${daysLimit} || ' days')::interval
-            AND (data->>'callCount')::int > 0
-        ) as avg_calls_no_answer
-      FROM leads
-    `;
-    
-    const stats = statsRes.rows[0];
-    const totalLeads = parseInt(stats.total) || 0;
-    const contactedLeads = parseInt(stats.contacted) || 0;
-    const relevantLeads = parseInt(stats.relevant) || 0;
-    const signedLeads = parseInt(stats.signed) || 0;
-    const quickSignedLeads = parseInt(stats.quick_signed) || 0;
-    const avgCallsPerSigned = stats.avg_calls_to_sign ? parseFloat(stats.avg_calls_to_sign).toFixed(1) : "0.0";
-    const avgCallsNoAnswer = stats.avg_calls_no_answer ? parseFloat(stats.avg_calls_no_answer).toFixed(1) : "0.0";
-
-    // 2. Fetch disqualification reasons breakdown filtered by timeframe
-    const disqualificationRes = await sql`
-      SELECT data->>'disqualificationReason' as reason, count(*) as count
-      FROM leads 
-      WHERE (data->>'disqualificationReason') IS NOT NULL
-        AND created_at >= NOW() - (${daysLimit} || ' days')::interval
-      GROUP BY data->>'disqualificationReason'
-      ORDER BY count DESC
-    `;
-    const disqualificationReasons = disqualificationRes.rows.map(r => ({
-      reason: r.reason,
-      count: parseInt(r.count)
-    }));
-
-    // 3. Time Series for Leads Received
-    let groupByFormat = 'DD/MM';
-    if (timeframe === 'lifetime') {
-      groupByFormat = 'MM/YYYY';
-    }
-
-    const leadsSeriesRes = await sql`
-      SELECT 
-        TO_CHAR(created_at, ${groupByFormat}) as period,
-        count(*) as count,
-        MIN(created_at) as min_date
-      FROM leads
-      WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval
-      GROUP BY period
-      ORDER BY min_date ASC
-    `;
-
-    // 4. Time Series for Signatures
-    const signaturesSeriesRes = await sql`
-      SELECT 
-        TO_CHAR(
-          COALESCE(
-            CASE 
-              WHEN (data->>'signedAt') IS NOT NULL AND (data->>'signedAt') != '' AND (data->>'signedAt') != 'null'
-              THEN (data->>'signedAt')::timestamp 
-              ELSE NULL 
-            END, 
-            created_at
-          ), 
-          ${groupByFormat}
-        ) as period,
-        count(*) as count,
-        MIN(created_at) as min_date
-      FROM leads
-      WHERE (data->>'status') = 'חתם'
-        AND COALESCE(
-          CASE 
-            WHEN (data->>'signedAt') IS NOT NULL AND (data->>'signedAt') != '' AND (data->>'signedAt') != 'null'
-            THEN (data->>'signedAt')::timestamp 
-            ELSE NULL 
-          END, 
-          created_at
-        ) >= NOW() - (${daysLimit} || ' days')::interval
-      GROUP BY period
-      ORDER BY min_date ASC
-    `;
-
-    let leadsTimeSeries = leadsSeriesRes.rows.map(r => ({
-      period: r.period,
-      count: parseInt(r.count) || 0
-    }));
-
-    let signaturesTimeSeries = signaturesSeriesRes.rows.map(r => ({
-      period: r.period,
-      count: parseInt(r.count) || 0
-    }));
-
-    // Fill missing periods
-    if (timeframe === 'lifetime') {
-      const earliestLeadRes = await sql`SELECT MIN(created_at) as earliest FROM leads`;
-      const earliestDate = earliestLeadRes.rows[0]?.earliest ? new Date(earliestLeadRes.rows[0].earliest) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      
-      const fillMissingMonths = (data: { period: string, count: number }[], start: Date) => {
-        const result = [];
-        const dataMap = new Map(data.map(item => [item.period, item.count]));
-        
-        const current = new Date(start.getFullYear(), start.getMonth(), 1);
-        const end = new Date();
-        
-        // Loop through all months from start to end
-        while (current <= end) {
-          const monthStr = String(current.getMonth() + 1).padStart(2, '0');
-          const yearStr = current.getFullYear();
-          const period = `${monthStr}/${yearStr}`;
-          result.push({
-            period,
-            count: dataMap.get(period) || 0
-          });
-          current.setMonth(current.getMonth() + 1);
-        }
-        return result;
-      };
-
-      leadsTimeSeries = fillMissingMonths(leadsTimeSeries, earliestDate);
-      signaturesTimeSeries = fillMissingMonths(signaturesTimeSeries, earliestDate);
-    } else {
-      // Days-based timeframe
-      const daysCount = timeframe === '7days' ? 7 : timeframe === '30days' ? 30 : daysLimit;
-      
-      const fillMissingDays = (data: { period: string, count: number }[], count: number) => {
-        const result = [];
-        const dataMap = new Map(data.map(item => [item.period, item.count]));
-        
-        for (let i = count - 1; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const dayStr = String(d.getDate()).padStart(2, '0');
-          const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-          const period = `${dayStr}/${monthStr}`;
-          result.push({
-            period,
-            count: dataMap.get(period) || 0
-          });
-        }
-        return result;
-      };
-
-      leadsTimeSeries = fillMissingDays(leadsTimeSeries, daysCount);
-      signaturesTimeSeries = fillMissingDays(signaturesTimeSeries, daysCount);
-    }
-
-    // Fetch all leads raw fields for JS aggregation
+    // Fetch all leads from the database
+    // Fetching all leads is extremely fast (614 rows total) and guarantees 
+    // we capture signed dates that fall in the timeframe even if created_at was earlier.
     const rawLeadsRes = await sql`
       SELECT 
-        COALESCE(data->>'campaign', '') as campaign,
-        COALESCE(data->>'employmentStatus', '') as employment_status,
-        COALESCE(data->>'salary', '') as salary,
-        data->>'status' as status
+        data,
+        created_at
       FROM leads
-      WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval;
+      ORDER BY created_at ASC;
     `;
-    const rawLeads = rawLeadsRes.rows;
+    const rows = rawLeadsRes.rows;
 
-    // Aggregate Campaigns
-    const campaignsMap = new Map<string, { campaign: string; total: number; signed: number }>();
-    // Aggregate Employment
-    const employmentMap = new Map<string, { status: string; total: number; signed: number }>();
-    // Aggregate Salary Brackets
-    const salaryMap = new Map<string, { bracket: string; total: number; signed: number }>();
-    
-    // Initialize salary brackets
-    const salaryBracketsList = ['עד 10,000 ₪', '10,000 ₪ - 20,000 ₪', 'מעל 20,000 ₪', 'לא צוין'];
-    for (const b of salaryBracketsList) {
-      salaryMap.set(b, { bracket: b, total: 0, signed: 0 });
+    const leads = rows.map((r: any) => {
+      const lead = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+      return {
+        ...lead,
+        createdAt: lead.createdAt || r.created_at.toISOString(),
+      };
+    });
+
+    // Timeframe cutoff calculations
+    const now = new Date();
+    let cutoffDate = new Date(0); // Lifetime
+    if (timeframe === '30days') {
+      cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (timeframe === '7days') {
+      cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (timeframe === 'currentMonth') {
+      cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    // Helper functions
+    function wasEverContactedReal(lead: any): boolean {
+      const currentStatus = lead.status;
+      
+      // If current status is one of the non-contacted states, definitely not contacted
+      if (['חדש', 'לא ענה', 'אין מענה חוזר', 'מספר שגוי', 'במעקב'].includes(currentStatus)) {
+        return false;
+      }
+      
+      // If current status is "לחזור אליו"
+      if (currentStatus === 'לחזור אליו') {
+        const history = lead.statusHistory || [];
+        if (history.length === 0) {
+          return false;
+        }
+        
+        const basicStatuses = ['חדש', 'ממתין לעדכון', 'לא ענה', 'לחזור אליו'];
+        // If they only ever transitioned between basicStatuses, they were not contacted
+        const hadRealContact = history.some((entry: any) => 
+          !basicStatuses.includes(entry.to) || !basicStatuses.includes(entry.from)
+        );
+        if (!hadRealContact) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+
+    function isLeadRelevant(lead: any, contacted: boolean): boolean {
+      if (!contacted) return false;
+      
+      const currentStatus = lead.status;
+      const relevantStatuses = ['גילי צריך לדבר איתו', 'מחכה לחתימה', 'חתם', 'רלוונטי - לעקוב', 'בבדיקה עם גילי'];
+      
+      if (relevantStatuses.includes(currentStatus)) {
+        return true;
+      }
+      
+      if (lead.wasRelevant === true || lead.wasRelevant === 'true') {
+        return true;
+      }
+      
+      if (currentStatus === 'לא רלוונטי') {
+        return false;
+      }
+      
+      if (currentStatus === 'נגמר') {
+        const disqualificationReason = lead.disqualificationReason;
+        if (['אין עילה רפואית', 'אין מספיק מס הכנסה', 'טעות במספר'].includes(disqualificationReason)) {
+          return false;
+        }
+      }
+      
+      return true;
     }
 
     function getSalaryBracket(salaryStr: string) {
@@ -244,73 +125,218 @@ export async function GET(request: NextRequest) {
         return 'לא צוין';
       }
 
-      // Check for stipends/disability
       if (clean.includes('קצב') || clean.includes('נכות') || clean.includes('ביטוח לאומי') || clean.includes('אובדן כושר')) {
         return 'מקבל/ת קצבה';
       }
       
-      // Unemployed/not working
       if (clean.includes('מובטל') || clean.includes('לא עובד') || clean.includes('אבטלה') || clean.includes('בלי עבודה') || clean.includes('לא עובדת')) {
         return 'לא עובד/ת';
       }
 
-      // Employed
       if (clean.includes('שכיר') || clean.includes('שכירה')) {
         return 'שכיר/ה';
       }
 
-      // Self-employed
       if (clean.includes('עצמאי') || clean.includes('עצמאית') || clean.includes('עסק')) {
         return 'עצמאי/ת';
       }
 
-      // Pensioner
       if (clean.includes('פנסיונ') || clean.includes('פנסיה')) {
         return 'פנסיונר/ית';
       }
 
-      // Student
       if (clean.includes('סטודנט')) {
         return 'סטודנט/ית';
       }
 
-      // Soldier / National Service
       if (clean.includes('חייל') || clean.includes('חיילת') || clean.includes('צבא') || clean.includes('שירות לאומי')) {
         return 'חייל/ת או שירות לאומי';
       }
 
-      // Return clean original capitalised or styled word
       return empStr.charAt(0).toUpperCase() + empStr.slice(1);
     }
 
-    for (const row of rawLeads) {
-      const isSigned = row.status === 'חתם';
-
-      // 1. Campaign
-      const campName = row.campaign.trim() || 'ללא קמפיין';
-      const campData = campaignsMap.get(campName) || { campaign: campName, total: 0, signed: 0 };
-      campData.total += 1;
-      if (isSigned) campData.signed += 1;
-      campaignsMap.set(campName, campData);
-
-      // 2. Employment
-      const empName = getNormalizedEmploymentStatus(row.employment_status);
-      const empData = employmentMap.get(empName) || { status: empName, total: 0, signed: 0 };
-      empData.total += 1;
-      if (isSigned) empData.signed += 1;
-      employmentMap.set(empName, empData);
-
-      // 3. Salary
-      const salBracket = getSalaryBracket(row.salary);
-      const salData = salaryMap.get(salBracket)!;
-      salData.total += 1;
-      if (isSigned) salData.signed += 1;
-      salaryMap.set(salBracket, salData);
+    function getPeriodString(dateStr: string): string {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      if (timeframe === 'lifetime') {
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const y = d.getFullYear();
+        return `${m}/${y}`;
+      } else {
+        const day = String(d.getDate()).padStart(2, '0');
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        return `${day}/${m}`;
+      }
     }
+
+    // Calculation variables
+    let totalLeads = 0;
+    let contactedLeads = 0;
+    let relevantLeads = 0;
+    let signedLeads = 0;
+    let quickSignedLeads = 0;
+    
+    let sumCallsToSign = 0;
+    let countSignedWithCalls = 0;
+    let sumCallsNoAnswer = 0;
+    let countNoAnswerWithCalls = 0;
+
+    const disqualificationReasonsMap = new Map<string, number>();
+    const leadsSeriesMap = new Map<string, number>();
+    const signaturesSeriesMap = new Map<string, number>();
+
+    const campaignsMap = new Map<string, { campaign: string; total: number; signed: number }>();
+    const employmentMap = new Map<string, { status: string; total: number; signed: number }>();
+    const salaryMap = new Map<string, { bracket: string; total: number; signed: number }>();
+    
+    const salaryBracketsList = ['עד 10,000 ₪', '10,000 ₪ - 20,000 ₪', 'מעל 20,000 ₪', 'לא צוין'];
+    for (const b of salaryBracketsList) {
+      salaryMap.set(b, { bracket: b, total: 0, signed: 0 });
+    }
+
+    // Process leads
+    for (const lead of leads) {
+      const leadCreatedDate = new Date(lead.createdAt);
+      const createdInTimeframe = leadCreatedDate >= cutoffDate;
+      
+      const signedDate = new Date(lead.signedAt || lead.createdAt);
+      const signedInTimeframe = lead.status === 'חתם' && signedDate >= cutoffDate;
+
+      if (createdInTimeframe) {
+        totalLeads++;
+        
+        const contacted = wasEverContactedReal(lead);
+        if (contacted) {
+          contactedLeads++;
+          if (isLeadRelevant(lead, true)) {
+            relevantLeads++;
+          }
+        }
+        
+        if (lead.disqualificationReason) {
+          const reason = lead.disqualificationReason.trim();
+          disqualificationReasonsMap.set(reason, (disqualificationReasonsMap.get(reason) || 0) + 1);
+        }
+
+        if (lead.disqualificationReason === 'אין מענה חוזר' && lead.callCount > 0) {
+          sumCallsNoAnswer += lead.callCount;
+          countNoAnswerWithCalls++;
+        }
+
+        // Campaigns
+        const campName = (lead.campaign || '').trim() || 'ללא קמפיין';
+        const campData = campaignsMap.get(campName) || { campaign: campName, total: 0, signed: 0 };
+        campData.total += 1;
+        if (lead.status === 'חתם') campData.signed += 1;
+        campaignsMap.set(campName, campData);
+
+        // Employment
+        const empName = getNormalizedEmploymentStatus(lead.employmentStatus || '');
+        const empData = employmentMap.get(empName) || { status: empName, total: 0, signed: 0 };
+        empData.total += 1;
+        if (lead.status === 'חתם') empData.signed += 1;
+        employmentMap.set(empName, empData);
+
+        // Salary
+        const salBracket = getSalaryBracket(lead.salary || '');
+        const salData = salaryMap.get(salBracket)!;
+        salData.total += 1;
+        if (lead.status === 'חתם') salData.signed += 1;
+        salaryMap.set(salBracket, salData);
+
+        // Time Series
+        const period = getPeriodString(lead.createdAt);
+        if (period) {
+          leadsSeriesMap.set(period, (leadsSeriesMap.get(period) || 0) + 1);
+        }
+      }
+
+      // Signatures Series (can be created before cutoff but signed within cutoff)
+      if (signedInTimeframe) {
+        signedLeads++;
+        
+        if (lead.callCount > 0) {
+          sumCallsToSign += lead.callCount;
+          countSignedWithCalls++;
+          if (lead.callCount <= 3) {
+            quickSignedLeads++;
+          }
+        }
+
+        const period = getPeriodString(lead.signedAt || lead.createdAt);
+        if (period) {
+          signaturesSeriesMap.set(period, (signaturesSeriesMap.get(period) || 0) + 1);
+        }
+      }
+    }
+
+    // Time Series Gap Filling
+    let leadsTimeSeries = Array.from(leadsSeriesMap.entries()).map(([period, count]) => ({ period, count }));
+    let signaturesTimeSeries = Array.from(signaturesSeriesMap.entries()).map(([period, count]) => ({ period, count }));
+    
+    if (timeframe === 'lifetime') {
+      const earliestDate = leads.length > 0 ? new Date(leads[0].createdAt) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      
+      const fillMissingMonths = (dataMap: Map<string, number>, start: Date) => {
+        const result = [];
+        const current = new Date(start.getFullYear(), start.getMonth(), 1);
+        const end = new Date();
+        
+        while (current <= end) {
+          const monthStr = String(current.getMonth() + 1).padStart(2, '0');
+          const yearStr = current.getFullYear();
+          const period = `${monthStr}/${yearStr}`;
+          result.push({
+            period,
+            count: dataMap.get(period) || 0
+          });
+          current.setMonth(current.getMonth() + 1);
+        }
+        return result;
+      };
+      
+      leadsTimeSeries = fillMissingMonths(leadsSeriesMap, earliestDate);
+      signaturesTimeSeries = fillMissingMonths(signaturesSeriesMap, earliestDate);
+    } else {
+      let actualDays = timeframe === '7days' ? 7 : timeframe === '30days' ? 30 : 30;
+      if (timeframe === 'currentMonth') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        actualDays = Math.ceil((now.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      }
+      
+      const fillMissingDays = (dataMap: Map<string, number>, count: number) => {
+        const result = [];
+        for (let i = count - 1; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dayStr = String(d.getDate()).padStart(2, '0');
+          const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+          const period = `${dayStr}/${monthStr}`;
+          result.push({
+            period,
+            count: dataMap.get(period) || 0
+          });
+        }
+        return result;
+      };
+      
+      leadsTimeSeries = fillMissingDays(leadsSeriesMap, actualDays);
+      signaturesTimeSeries = fillMissingDays(signaturesSeriesMap, actualDays);
+    }
+
+    const disqualificationReasons = Array.from(disqualificationReasonsMap.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count);
 
     const campaigns = Array.from(campaignsMap.values()).sort((a, b) => b.total - a.total);
     const employment = Array.from(employmentMap.values()).sort((a, b) => b.total - a.total);
     const salaryBrackets = salaryBracketsList.map(b => salaryMap.get(b)!);
+
+    const avgCallsPerSigned = countSignedWithCalls > 0 ? (sumCallsToSign / countSignedWithCalls).toFixed(1) : "0.0";
+    const avgCallsNoAnswer = countNoAnswerWithCalls > 0 ? (sumCallsNoAnswer / countNoAnswerWithCalls).toFixed(1) : "0.0";
+    const quickSignedRate = signedLeads > 0 ? Math.round((quickSignedLeads / signedLeads) * 100) : 0;
+    const leadQualityRatio = contactedLeads > 0 ? Math.round((relevantLeads / contactedLeads) * 100) : 0;
 
     return NextResponse.json({
       success: true,
@@ -325,8 +351,8 @@ export async function GET(request: NextRequest) {
         insights: {
           avgCallsPerSigned,
           avgCallsNoAnswer,
-          quickSignedRate: signedLeads > 0 ? Math.round((quickSignedLeads / signedLeads) * 100) : 0,
-          leadQualityRatio: contactedLeads > 0 ? Math.round((relevantLeads / contactedLeads) * 100) : 0
+          quickSignedRate,
+          leadQualityRatio
         },
         leadsTimeSeries,
         signaturesTimeSeries,
