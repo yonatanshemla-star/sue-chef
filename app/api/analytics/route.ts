@@ -199,6 +199,73 @@ export async function GET(request: NextRequest) {
       signaturesTimeSeries = fillMissingDays(signaturesTimeSeries, daysCount);
     }
 
+    // Fetch all leads raw fields for JS aggregation
+    const rawLeadsRes = await sql`
+      SELECT 
+        COALESCE(data->>'campaign', '') as campaign,
+        COALESCE(data->>'employmentStatus', '') as employment_status,
+        COALESCE(data->>'salary', '') as salary,
+        data->>'status' as status
+      FROM leads
+      WHERE created_at >= NOW() - (${daysLimit} || ' days')::interval;
+    `;
+    const rawLeads = rawLeadsRes.rows;
+
+    // Aggregate Campaigns
+    const campaignsMap = new Map<string, { campaign: string; total: number; signed: number }>();
+    // Aggregate Employment
+    const employmentMap = new Map<string, { status: string; total: number; signed: number }>();
+    // Aggregate Salary Brackets
+    const salaryMap = new Map<string, { bracket: string; total: number; signed: number }>();
+    
+    // Initialize salary brackets
+    const salaryBracketsList = ['עד 10,000 ₪', '10,000 ₪ - 20,000 ₪', 'מעל 20,000 ₪', 'לא צוין'];
+    for (const b of salaryBracketsList) {
+      salaryMap.set(b, { bracket: b, total: 0, signed: 0 });
+    }
+
+    function getSalaryBracket(salaryStr: string) {
+      if (!salaryStr) return 'לא צוין';
+      const clean = salaryStr.trim();
+      if (clean === '' || clean === 'null' || clean === 'undefined') return 'לא צוין';
+      const digits = clean.replace(/[^0-9]/g, '');
+      if (!digits) return 'לא צוין';
+      let val = parseFloat(digits);
+      if (val < 100) val = val * 1000;
+      if (val < 10000) return 'עד 10,000 ₪';
+      if (val <= 20000) return '10,000 ₪ - 20,000 ₪';
+      return 'מעל 20,000 ₪';
+    }
+
+    for (const row of rawLeads) {
+      const isSigned = row.status === 'חתם';
+
+      // 1. Campaign
+      const campName = row.campaign.trim() || 'ללא קמפיין';
+      const campData = campaignsMap.get(campName) || { campaign: campName, total: 0, signed: 0 };
+      campData.total += 1;
+      if (isSigned) campData.signed += 1;
+      campaignsMap.set(campName, campData);
+
+      // 2. Employment
+      const empName = row.employment_status.trim() || 'לא צוין';
+      const empData = employmentMap.get(empName) || { status: empName, total: 0, signed: 0 };
+      empData.total += 1;
+      if (isSigned) empData.signed += 1;
+      employmentMap.set(empName, empData);
+
+      // 3. Salary
+      const salBracket = getSalaryBracket(row.salary);
+      const salData = salaryMap.get(salBracket)!;
+      salData.total += 1;
+      if (isSigned) salData.signed += 1;
+      salaryMap.set(salBracket, salData);
+    }
+
+    const campaigns = Array.from(campaignsMap.values()).sort((a, b) => b.total - a.total);
+    const employment = Array.from(employmentMap.values()).sort((a, b) => b.total - a.total);
+    const salaryBrackets = salaryBracketsList.map(b => salaryMap.get(b)!);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -216,7 +283,10 @@ export async function GET(request: NextRequest) {
           leadQualityRatio: contactedLeads > 0 ? Math.round((relevantLeads / contactedLeads) * 100) : 0
         },
         leadsTimeSeries,
-        signaturesTimeSeries
+        signaturesTimeSeries,
+        campaigns,
+        employment,
+        salaryBrackets
       }
     });
 
