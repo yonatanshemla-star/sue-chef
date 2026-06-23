@@ -231,7 +231,7 @@ export default function LawyerDashboard() {
             placeholder="חיפוש לפי שם, טלפון או הערות..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-6 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-emerald-500/10 transition-all text-slate-900 dark:text-white"
+            className="w-full text-base bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-6 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-emerald-500/10 transition-all text-slate-900 dark:text-white"
           />
         </div>
 
@@ -312,7 +312,7 @@ export default function LawyerDashboard() {
                           <select
                             value={lead.caseStatus || ''}
                             onChange={e => handleUpdate(lead.id, 'caseStatus', e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold outline-none appearance-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-900 dark:text-white"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-4 py-3 text-base md:text-sm font-bold outline-none appearance-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-900 dark:text-white"
                           >
                             <option value="">בחר סטטוס...</option>
                             {CASE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -328,7 +328,7 @@ export default function LawyerDashboard() {
                           type="number"
                           value={lead.profit || ''}
                           onChange={e => handleUpdate(lead.id, 'profit', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-900 dark:text-white"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-xl px-4 py-3 text-base md:text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-900 dark:text-white"
                           placeholder="0"
                           dir="ltr"
                         />

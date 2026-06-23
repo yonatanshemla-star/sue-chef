@@ -1592,7 +1592,7 @@ export default function Home() {
 
             <div className="relative flex-1 group">
               <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-              <input type="text" placeholder="חיפוש לפי שם, טלפון או הערות..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
+              <input type="text" placeholder="חיפוש לפי שם, טלפון או הערות..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full text-base bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
               {globalSearch && (
                 <button onClick={() => setGlobalSearch('')} className="absolute left-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 transition-all">
                   <X size={14} />
@@ -1724,7 +1724,7 @@ export default function Home() {
                                   </div>
                                 )}
                               </div>
-                              <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
+                              <input type="text" value={lead.phone} onChange={e => handleLeadUpdate(lead.id, { phone: e.target.value })} className="font-mono font-medium text-slate-400 bg-transparent outline-none text-base md:text-sm group-focus-within:text-slate-500" placeholder="05..." dir="ltr" />
                               {lead.campaign && (
                                 <span className="text-[13px] font-bold mt-1 inline-block">
                                   <span className="text-indigo-600 dark:text-indigo-400">קמפיין: </span>
@@ -1807,7 +1807,7 @@ export default function Home() {
                       <textarea 
                         value={lead.generalNotes || ''} 
                         onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
-                        className="w-full text-sm font-bold bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none h-20 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-4 focus:ring-indigo-500/10 shadow-sm" 
+                        className="w-full text-base md:text-sm font-bold bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-2xl p-4 outline-none h-20 resize-none focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-4 focus:ring-indigo-500/10 shadow-sm" 
                         placeholder="הערות למעקב..." 
                       />
                     </td>
@@ -1852,7 +1852,7 @@ export default function Home() {
             </table>
 
             {/* Mobile Cards View */}
-            <div className="md:hidden flex flex-col gap-4 p-4 overflow-y-auto pb-6">
+            <div className="md:hidden flex flex-col gap-4 p-4 overflow-y-auto pb-28">
               {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
                 <div key={`mob-${lead.id}`} id={`lead-row-${lead.id}`} className="bg-slate-50 dark:bg-slate-800/80 rounded-[32px] p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-5 relative">
                   
@@ -1941,7 +1941,7 @@ export default function Home() {
                   <textarea 
                     value={lead.generalNotes || ''} 
                     onChange={e => handleLeadUpdate(lead.id, { generalNotes: e.target.value })} 
-                    className="w-full text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 resize-none outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-inner" 
+                    className="w-full text-base font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 h-24 resize-none outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-inner" 
                     placeholder="הערות למעקב..." 
                   />
 
@@ -2024,7 +2024,7 @@ export default function Home() {
           )}
 
           {activeTab === 'calls' && (
-            <div className="p-8 max-w-4xl mx-auto space-y-4 h-full min-h-[500px]">
+            <div className="p-4 md:p-8 pb-28 md:pb-8 max-w-4xl mx-auto space-y-4 h-full min-h-[500px]">
                {loadingCalls ? (
                  <div className="flex flex-col items-center justify-center py-32 text-slate-400"><Loader2 className="animate-spin text-indigo-500 mb-4" size={48} /><p className="font-bold">מעבד נתונים מטוויליו...</p></div>
                ) : Array.isArray(recentCalls) && recentCalls.length > 0 ? (
@@ -2073,7 +2073,7 @@ export default function Home() {
           )}
 
           {activeTab === 'analytics' && (
-            <div className="p-4 md:p-10 space-y-10 min-h-[500px]">
+            <div className="p-4 md:p-10 pb-28 md:pb-10 space-y-10 min-h-[500px]">
                {/* Timeframe Selector & Title Row */}
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/40 dark:bg-slate-900/20 backdrop-blur-md p-6 rounded-[32px] border dark:border-slate-800/80 shadow-sm">
                  <div>
@@ -2503,14 +2503,14 @@ export default function Home() {
             </div>
           )}
           
-          {activeTab === 'tree' && <div className="p-8 h-full"><LegalDecisionTree /></div>}
+          {activeTab === 'tree' && <div className="p-4 md:p-8 pb-28 md:pb-8 h-full"><LegalDecisionTree /></div>}
           
           {activeTab === 'settings' && (
-            <div className="p-4 md:p-10 max-w-2xl mx-auto h-full min-h-[500px] space-y-8">
+            <div className="p-4 md:p-10 pb-28 md:pb-10 max-w-2xl mx-auto h-full min-h-[500px] space-y-8">
               <h2 className="text-3xl font-bold mb-8 flex items-center gap-3 text-slate-900 dark:text-white"><Settings className="text-indigo-500" /> הגדרות מערכת</h2>
               
               {/* Agent Phone Section */}
-              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
                 <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">מספר נייד של הנציג</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">על מנת שהמערכת תחייג אליך כראוי, יש להזין את המספר שממנו תבצע את השיחות. אם נשאר ריק, החיוג יתבצע למספר הברירת מחדל של המערכת.</p>
@@ -2529,7 +2529,7 @@ export default function Home() {
               </div>
 
               {/* Backup & Restore Section */}
-              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[32px] p-8 md:p-10 shadow-sm relative overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full -translate-x-10 -translate-y-10" />
                 <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white flex items-center gap-3"><Shield className="w-6 h-6 text-emerald-500" /> גיבוי ושחזור נתונים</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">הורד את כל הנתונים כקובץ JSON, או שחזר מגיבוי קודם. הגיבוי האוטומטי רץ כל יום ב-06:00 ושומר לדרייב.</p>
@@ -2640,41 +2640,41 @@ export default function Home() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all">
           <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] md:max-w-[95vw] md:h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800">
             {/* Header - Compact */}
-            <div className="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10" dir="rtl">
-              <div className="flex items-center gap-4 text-right">
+            <div className="p-3.5 md:p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10" dir="rtl">
+              <div className="flex items-center gap-2 md:gap-4 text-right">
                 <button 
                   onClick={() => liveNotesLead && initiateCall(liveNotesLead)} 
                   title="חייג לליד"
-                  className="w-12 h-12 bg-indigo-600 rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse hover:scale-105 active:scale-95 transition-all outline-none"
+                  className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse hover:scale-105 active:scale-95 transition-all outline-none"
                 >
-                  <PhoneCall size={24} />
+                  <PhoneCall className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
                 <button 
                   onClick={handleHangupCall} 
                   title="נתק שיחה פעילה"
-                  className="w-12 h-12 bg-rose-600 hover:bg-rose-700 rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
+                  className="w-10 h-10 md:w-12 md:h-12 bg-rose-600 hover:bg-rose-700 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
                 >
-                  <PhoneOff size={24} />
+                  <PhoneOff className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
                 <div>
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <h2 className="text-2xl font-bold tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
+                  <div className="flex items-center gap-1.5 md:gap-2.5 mb-1">
+                    <h2 className="text-base xs:text-lg md:text-2xl font-bold tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
                       {liveNotesLead?.clientName || 'לקוח בשיחה'}
                     </h2>
                     {liveNotesLead?.campaign && (
-                      <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl border border-indigo-100/60 dark:border-indigo-900/30 whitespace-nowrap self-center">
+                      <span className="text-[9px] md:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-lg md:rounded-xl border border-indigo-100/60 dark:border-indigo-900/30 whitespace-nowrap self-center">
                         קמפיין: {liveNotesLead.campaign}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead?.phone}</p>
+                  <p className="text-xs md:text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead?.phone}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-6 py-2.5 rounded-2xl border font-bold text-xs transition-all flex items-center gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                  <ClipboardList size={18} /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
+              <div className="flex items-center gap-1.5 md:gap-3">
+                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-2.5 py-1.5 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl border font-bold text-xs transition-all flex items-center gap-1 md:gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                  <ClipboardList className="w-4 h-4 md:w-5 md:h-5" /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
                 </button>
-                <button onClick={handleCloseLiveNotes} className="w-10 h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X size={24} /></button>
+                <button onClick={handleCloseLiveNotes} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X className="w-5 h-5 md:w-6 md:h-6" /></button>
               </div>
             </div>
 
@@ -2685,7 +2685,7 @@ export default function Home() {
                ) : (
                  <div className="flex-1 flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden">
                     {/* RIGHT SIDE: Notes Area (Expanded) */}
-                    <div className="flex-[2] flex flex-col p-4 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[40vh] md:min-h-0">
+                    <div className="flex-[2] flex flex-col p-3 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[40vh] md:min-h-0">
                        <div className="flex justify-between items-center mb-3">
                          <div className="flex items-center gap-3">
                             <label className="text-xs font-bold uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-2 group">
@@ -2701,13 +2701,13 @@ export default function Home() {
                          autoFocus 
                          value={liveNotesLead.liveCallNotes || ''} 
                          onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} 
-                         className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-[32px] p-8 text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" 
+                         className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-2xl md:rounded-[32px] p-4 md:p-8 text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" 
                          placeholder="כתוב כאן מה הלקוח אומר..." 
                        />
                     </div>
 
                     {/* LEFT SIDE: New Permanent Script & Key Fields (Expanded) */}
-                    <div className="flex-[1.2] flex flex-col p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar md:border-r border-t md:border-t-0 dark:border-slate-800">
+                    <div className="flex-[1.2] flex flex-col p-3 md:p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar md:border-r border-t md:border-t-0 dark:border-slate-800">
                        
                        {/* Glassmorphic Tabs Toggle */}
                        <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[22px] mb-6 border dark:border-slate-700/50 shadow-inner">

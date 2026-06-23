@@ -98,7 +98,7 @@ export default function LegalDecisionTree({ onFinish, onComplete, compact = fals
   if (isFinished) {
     const results = evaluateResults(answers);
     return (
-      <div className={`flex flex-col gap-8 ${compact ? 'p-0' : 'p-10 max-w-4xl mx-auto'} animate-in fade-in duration-700`}>
+      <div className={`flex flex-col gap-8 ${compact ? 'p-0' : 'p-4 md:p-10 max-w-4xl mx-auto'} animate-in fade-in duration-700`}>
         {!compact && (
           <div className="text-center mb-4">
             <h1 className="text-4xl font-bold text-glow mb-2 flex items-center justify-center gap-4">
@@ -126,7 +126,7 @@ export default function LegalDecisionTree({ onFinish, onComplete, compact = fals
   }
 
   return (
-    <div className={`flex flex-col gap-10 ${compact ? 'p-0' : 'p-10 max-w-4xl mx-auto'} animate-in fade-in duration-700`}>
+    <div className={`flex flex-col gap-10 ${compact ? 'p-0' : 'p-4 md:p-10 max-w-4xl mx-auto'} animate-in fade-in duration-700`}>
       {/* Progress */}
       <div className="relative w-full h-4 bg-slate-200/50 dark:bg-slate-800/50 rounded-full overflow-hidden backdrop-blur-sm border border-white/10">
         <div 
@@ -147,12 +147,12 @@ export default function LegalDecisionTree({ onFinish, onComplete, compact = fals
         </div>
       )}
 
-      <div className={`relative p-10 md:p-16 rounded-[48px] premium-glass border border-white/20 shadow-[0_32px_128px_-12px_rgba(0,0,0,0.5)] flex flex-col gap-12 animate-in fade-in zoom-in-95 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] text-center`}>
+      <div className={`relative p-6 md:p-16 rounded-3xl md:rounded-[48px] premium-glass border border-white/20 shadow-[0_32px_128px_-12px_rgba(0,0,0,0.5)] flex flex-col gap-8 md:gap-12 animate-in fade-in zoom-in-95 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] text-center`}>
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
             שאלון זכויות רפואיות
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-slate-800 dark:text-white leading-[1.1] tracking-tight text-glow">
+          <h2 className="text-2xl md:text-5xl font-bold text-slate-800 dark:text-white leading-[1.1] tracking-tight text-glow">
             {currentQuestion.text}
           </h2>
         </div>
@@ -163,7 +163,7 @@ export default function LegalDecisionTree({ onFinish, onComplete, compact = fals
               <input 
                 type={currentQuestion.type} 
                 autoFocus
-                className="w-full px-8 py-8 bg-white/20 dark:bg-slate-950/20 border-2 border-indigo-500/10 dark:border-white/5 rounded-[32px] text-4xl font-bold focus:border-indigo-500/50 dark:focus:border-indigo-500/50 outline-none transition-all text-center text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner group-hover/input:shadow-indigo-500/5"
+                className="w-full px-4 py-4 md:px-8 md:py-8 bg-white/20 dark:bg-slate-950/20 border-2 border-indigo-500/10 dark:border-white/5 rounded-2xl md:rounded-[32px] text-2xl md:text-4xl font-bold focus:border-indigo-500/50 dark:focus:border-indigo-500/50 outline-none transition-all text-center text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner group-hover/input:shadow-indigo-500/5"
                 value={answers[currentQuestion.id] || ''} 
                 onChange={(e) => handleSelect(e.target.value)}
                 onKeyDown={(e) => {
@@ -187,7 +187,7 @@ export default function LegalDecisionTree({ onFinish, onComplete, compact = fals
                 return (
                   <button 
                     key={opt.value}
-                    className={`flex items-center justify-between p-8 rounded-[32px] border-2 font-bold text-xl transition-all duration-300 active:scale-95 shadow-sm group/btn
+                    className={`flex items-center justify-between p-5 md:p-8 rounded-2xl md:rounded-[32px] border-2 font-bold text-base md:text-xl transition-all duration-300 active:scale-95 shadow-sm group/btn
                       ${isSelected 
                         ? 'bg-indigo-600 border-indigo-500 text-white shadow-indigo-500/40 rotate-1' 
                         : 'bg-white/40 dark:bg-slate-900/40 border-white/20 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-indigo-500/30 hover:bg-white/60 dark:hover:bg-slate-800/60 hover:-translate-y-1'}`}
