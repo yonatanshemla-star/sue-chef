@@ -148,6 +148,11 @@ export default function Home() {
   const [isAddingStickyNote, setIsAddingStickyNote] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [incomingCall, setIncomingCall] = useState<{ from: string, callerName: string | null, timestamp: string } | null>(null);
+  
+  // Call status state variables
+  const [currentCallSid, setCurrentCallSid] = useState<string | null>(null);
+  const [callStatus, setCallStatus] = useState<'idle' | 'initiating' | 'ringing_lead' | 'connected' | 'completed' | 'busy' | 'no-answer' | 'failed'>('idle');
+  const [callStatusMessage, setCallStatusMessage] = useState<string | null>(null);
 
   const openStatusDropdown = (e: React.MouseEvent, leadId: string) => {
     e.stopPropagation();
@@ -351,6 +356,51 @@ export default function Home() {
     }
     return () => { document.body.style.overflow = 'auto'; };
   }, [liveNotesLead, isDrawerOpen]);
+
+  // Poll Twilio call status
+  useEffect(() => {
+    if (!currentCallSid) return;
+
+    let isSubscribed = true;
+    let pollInterval: NodeJS.Timeout;
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/twilio/call/status?sid=${currentCallSid}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && isSubscribed) {
+          setCallStatus(data.status);
+          setCallStatusMessage(data.message);
+
+          // If the status is terminal, stop polling
+          if (['completed', 'busy', 'no-answer', 'failed'].includes(data.status)) {
+            clearInterval(pollInterval);
+            setTimeout(() => {
+              if (isSubscribed) {
+                setCallStatus('idle');
+                setCallStatusMessage(null);
+                setCurrentCallSid(null);
+              }
+            }, 4000);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to poll call status", err);
+      }
+    };
+
+    // Initial check
+    checkStatus();
+
+    // Poll every 2 seconds
+    pollInterval = setInterval(checkStatus, 2000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(pollInterval);
+    };
+  }, [currentCallSid]);
 
   // Analytics Fetching
   const fetchAnalyticsData = async (timeframe: string = analyticsTimeframe) => {
@@ -717,6 +767,13 @@ export default function Home() {
 
   const initiateCall = async (lead: Lead) => {
     if (!lead.phone) return;
+    if (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer') {
+      return; // Already dialing
+    }
+    
+    setCallStatus('initiating');
+    setCallStatusMessage('מכין חיוג...');
+    setLiveNotesLead(lead);
     
     // Background ping to warm up the Twilio conference bridge serverless function (prevent cold starts)
     fetch('/api/twilio/call/bridge?ping=true').catch(() => {});
@@ -728,9 +785,33 @@ export default function Home() {
     }
     handleLeadUpdate(lead.id, updates);
     try {
-      fetch('/api/twilio/call/initiate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: lead.phone, agentPhone }) });
-      setLiveNotesLead(lead);
-    } catch (err) { console.error(err); }
+      const res = await fetch('/api/twilio/call/initiate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ to: lead.phone, agentPhone }) 
+      });
+      const data = await res.json();
+      if (data.success && data.sid) {
+        setCurrentCallSid(data.sid);
+        setCallStatus('initiating');
+        setCallStatusMessage('מחייג לנייד שלך...');
+      } else {
+        setCallStatus('failed');
+        setCallStatusMessage(data.error || 'חיוג נכשל');
+        setTimeout(() => {
+          setCallStatus('idle');
+          setCallStatusMessage(null);
+        }, 3000);
+      }
+    } catch (err) { 
+      console.error(err);
+      setCallStatus('failed');
+      setCallStatusMessage('שגיאת תקשורת בחיוג');
+      setTimeout(() => {
+        setCallStatus('idle');
+        setCallStatusMessage(null);
+      }, 3000);
+    }
   };
 
   const handleHangupCall = async () => {
@@ -1693,7 +1774,17 @@ export default function Home() {
                     )}
                     <td className="px-8 py-5">
                       <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
-                        <button onClick={() => initiateCall(lead)} className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 dark:from-slate-800 dark:to-indigo-950 dark:border dark:border-indigo-500/30 text-white rounded-[20px] shadow-lg shadow-indigo-500/20 dark:shadow-none active:scale-90 transition-all hover:scale-110 backdrop-blur-sm"><Phone className="w-6 h-6" /></button>
+                        <button 
+                          onClick={() => initiateCall(lead)} 
+                          disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
+                          className={`flex items-center justify-center w-14 h-14 text-white rounded-[20px] shadow-lg transition-all active:scale-90 hover:scale-110 backdrop-blur-sm ${
+                            (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
+                              ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed shadow-none opacity-50' 
+                              : 'bg-gradient-to-br from-indigo-500 to-indigo-700 dark:from-slate-800 dark:to-indigo-950 dark:border dark:border-indigo-500/30 shadow-indigo-500/20 dark:shadow-none'
+                          }`}
+                        >
+                          <Phone className="w-6 h-6" />
+                        </button>
                         <div className="flex flex-col flex-1 gap-1">
                           {processingImageId === lead.id ? (
                             <div className="flex items-center gap-3 py-2 text-indigo-600 font-bold animate-pulse">
@@ -1903,7 +1994,17 @@ export default function Home() {
 
                   {/* Top: Name & Phone & Call */}
                   <div className="flex items-center gap-4 pl-12" onPaste={(e) => handlePaste(e, lead.id)}>
-                    <button onClick={() => initiateCall(lead)} className="flex-shrink-0 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-lg active:scale-95 transition-all"><Phone className="w-6 h-6" /></button>
+                    <button 
+                      onClick={() => initiateCall(lead)} 
+                      disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
+                      className={`flex-shrink-0 flex items-center justify-center w-14 h-14 text-white rounded-2xl shadow-lg transition-all active:scale-95 ${
+                        (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
+                          ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed shadow-none opacity-50' 
+                          : 'bg-gradient-to-br from-indigo-500 to-indigo-700 active:scale-95'
+                      }`}
+                    >
+                      <Phone className="w-6 h-6" />
+                    </button>
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         {lead.isStarred && (
@@ -2644,8 +2745,13 @@ export default function Home() {
               <div className="flex items-center gap-2 md:gap-4 text-right">
                 <button 
                   onClick={() => liveNotesLead && initiateCall(liveNotesLead)} 
+                  disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
                   title="חייג לליד"
-                  className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl animate-pulse hover:scale-105 active:scale-95 transition-all outline-none"
+                  className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
+                    (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
+                      ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed animate-none opacity-50' 
+                      : 'bg-indigo-600 animate-pulse'
+                  }`}
                 >
                   <PhoneCall className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
@@ -2656,6 +2762,18 @@ export default function Home() {
                 >
                   <PhoneOff className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
+                {callStatusMessage && (
+                  <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800/80 px-3.5 py-1.5 rounded-2xl mr-2 animate-in fade-in zoom-in duration-300">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      callStatus === 'initiating' ? 'bg-amber-500 animate-ping' :
+                      callStatus === 'ringing_lead' ? 'bg-blue-500 animate-pulse' :
+                      callStatus === 'connected' ? 'bg-emerald-500 animate-pulse' :
+                      ['busy', 'no-answer', 'failed'].includes(callStatus) ? 'bg-rose-500' :
+                      'bg-slate-400'
+                    }`} />
+                    <span className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-300">{callStatusMessage}</span>
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-1.5 md:gap-2.5 mb-1">
                     <h2 className="text-base xs:text-lg md:text-2xl font-bold tracking-tight mb-0 text-slate-900 dark:text-white leading-none">

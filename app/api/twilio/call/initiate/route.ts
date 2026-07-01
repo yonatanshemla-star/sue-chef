@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function normalizeToE164(phone: string): string {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('0')) {
+    return '+972' + digits.substring(1);
+  }
+  if (digits.startsWith('972') && digits.length > 10) {
+    return '+' + digits;
+  }
+  if (phone.startsWith('+')) {
+    return '+' + digits;
+  }
+  return digits;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { to, agentPhone } = await req.json();
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const myPhone = agentPhone || process.env.MY_PHONE_NUMBER;
+    const myPhone = normalizeToE164(agentPhone || process.env.MY_PHONE_NUMBER || '');
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
     if (!accountSid || !authToken || !myPhone || !twilioPhone) {
