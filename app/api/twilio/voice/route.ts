@@ -1,4 +1,9 @@
-import { POST as mainPOST, GET as mainGET } from '../../voice/route';
+import { POST as mainPOST, GET as mainGET } from '@/app/api/voice/route';
 
-export const POST = mainPOST;
-export const GET = mainGET;
+export async function POST(req: Request) {
+  return mainPOST(req);
+}
+
+export async function GET(req: Request) {
+  return mainGET(req);
+}
