@@ -1,8 +1,30 @@
 import { NextResponse } from 'next/server';
-import { saveLead } from '@/utils/storage';
+import { getLeads, saveLead, updateLead, Lead } from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { sendWhatsAppWelcome } from '@/utils/whatsapp';
 import fs from 'fs';
+
+function matchLeadByPhone(rawPhone: string | undefined | null, leadsList: Lead[]): Lead | undefined {
+  if (!rawPhone || !leadsList || leadsList.length === 0) return undefined;
+
+  const cleanDigits = (p: string) => p.replace(/\D/g, '');
+  const targetDigits = cleanDigits(rawPhone);
+  if (targetDigits.length < 7) return undefined;
+
+  for (const len of [9, 8, 7]) {
+    if (targetDigits.length >= len) {
+      const suffix = targetDigits.slice(-len);
+      const found = leadsList.find(l => {
+        if (!l.phone) return false;
+        const lDigits = cleanDigits(l.phone);
+        return lDigits.length >= len && (lDigits.endsWith(suffix) || suffix.endsWith(lDigits.slice(-7)));
+      });
+      if (found) return found;
+    }
+  }
+
+  return undefined;
+}
 
 const logFile = 'webhook.log';
 function logInfo(msg: string) {
@@ -117,6 +139,28 @@ export async function POST(req: Request) {
     
     // Notes are kept perfectly clean as requested (no campaign/supplier or debug payload appended)
     const generalNotes = notesParts.join('\n');
+
+    const allLeads = await getLeads();
+    const existingLead = phone ? matchLeadByPhone(phone, allLeads) : undefined;
+
+    if (existingLead) {
+      logInfo(`Existing lead found for LeadIM webhook: ${existingLead.clientName} (${phone}) - updating existing lead.`);
+      const updatedNotes = generalNotes 
+        ? (existingLead.generalNotes ? `${existingLead.generalNotes}\n${generalNotes}` : generalNotes) 
+        : existingLead.generalNotes;
+
+      const updated = {
+        ...existingLead,
+        clientName: (existingLead.clientName && !existingLead.clientName.includes('ליד מ-') && !existingLead.clientName.includes('ליד חדש')) 
+          ? existingLead.clientName 
+          : clientName,
+        generalNotes: updatedNotes,
+        campaign: campaign || existingLead.campaign,
+      };
+
+      await updateLead(updated);
+      return NextResponse.json({ success: true, id: existingLead.id, updated: true });
+    }
 
     // Create a new lead conforming to the internal Lead interface
     const newLead = {
