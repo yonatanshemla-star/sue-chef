@@ -188,6 +188,20 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [callStatus]);
 
+  // Prevent accidental tab refresh / close during an active call
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (callStatus === 'initiating' || callStatus === 'ringing_lead' || callStatus === 'connected') {
+        e.preventDefault();
+        e.returnValue = 'שיחה פעילה כעת. האם אתה בטוח שברצונך לרענן ולנתק את השיחה?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [callStatus]);
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
