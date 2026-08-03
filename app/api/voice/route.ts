@@ -104,8 +104,9 @@ export async function POST(req: Request) {
               console.error("Error generating incoming call notifications:", notifErr);
           }
 
-          // ADD callerId so Israeli networks don't block the forwarded call as spoofed
-          twiml += `  <Dial callerId="${callerId}" timeout="60" action="/api/twilio/voicemail">\n`;
+          // ADD callerId and include both WebRTC browser client and mobile number for simulring
+          twiml += `  <Dial callerId="${callerId}" timeout="25" action="/api/twilio/voicemail">\n`;
+          twiml += `    <Client>dashboard_user</Client>\n`;
           if (process.env.MY_PHONE_NUMBER) {
              twiml += `    <Number>${process.env.MY_PHONE_NUMBER}</Number>\n`;
           }

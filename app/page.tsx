@@ -159,6 +159,7 @@ export default function Home() {
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [deviceInstance, setDeviceInstance] = useState<any>(null);
   const [showAudioSettings, setShowAudioSettings] = useState<boolean>(false);
+  const [incomingWebRtcCall, setIncomingWebRtcCall] = useState<any>(null);
 
   useEffect(() => {
     const savedMode = localStorage.getItem('dialMode');
@@ -845,6 +846,23 @@ export default function Home() {
         console.error('Twilio Device Error:', error);
       });
 
+      device.on('incoming', (call: any) => {
+        console.log('Incoming WebRTC call:', call.parameters.From);
+        setIncomingWebRtcCall(call);
+
+        call.on('disconnect', () => {
+          setIncomingWebRtcCall(null);
+          setCallStatus('completed');
+          setActiveCall(null);
+        });
+
+        call.on('cancel', () => {
+          setIncomingWebRtcCall(null);
+          setCallStatus('idle');
+          setActiveCall(null);
+        });
+      });
+
       await device.register();
 
       // Apply user's selected hardware microphone & speaker if saved
@@ -873,6 +891,36 @@ export default function Home() {
       console.error('Error initializing Twilio Voice Device:', err);
       throw err;
     }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && dialMode === 'browser') {
+      getOrCreateDevice().catch(() => {});
+    }
+  }, [dialMode]);
+
+  const handleAcceptIncomingCall = () => {
+    if (!incomingWebRtcCall) return;
+    incomingWebRtcCall.accept();
+    setActiveCall(incomingWebRtcCall);
+    setIncomingWebRtcCall(null);
+    setCallStatus('connected');
+
+    const callerFrom = incomingWebRtcCall.parameters.From || '';
+    const fromNormalized = callerFrom.replace(/\D/g, '').slice(-9);
+    const matched = (fromNormalized && fromNormalized.length >= 7)
+      ? leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(fromNormalized))
+      : undefined;
+
+    if (matched) {
+      setLiveNotesLead(matched);
+    }
+  };
+
+  const handleRejectIncomingCall = () => {
+    if (!incomingWebRtcCall) return;
+    incomingWebRtcCall.reject();
+    setIncomingWebRtcCall(null);
   };
 
   const initiateCall = async (lead: Lead) => {
@@ -1557,6 +1605,55 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark text-slate-100 bg-mesh' : 'text-slate-900 bg-mesh'} relative overflow-x-hidden`} style={{ zoom: 0.85 }}>
+      {/* Active WebRTC Incoming Call Dialog */}
+      {incomingWebRtcCall && (
+        <div 
+          dir="rtl"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[400] w-11/12 max-w-lg bg-gradient-to-r from-emerald-700 via-teal-800 to-slate-900 text-white p-5 rounded-3xl shadow-[0_25px_70px_rgba(16,185,129,0.6)] border-2 border-emerald-400/60 animate-in fade-in slide-in-from-top-6 duration-300 flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/30 flex items-center justify-center animate-bounce flex-shrink-0">
+              <PhoneCall className="w-6 h-6 text-emerald-300" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold tracking-widest bg-emerald-500/40 text-emerald-200 px-2.5 py-0.5 rounded-full uppercase">
+                📞 שיחה נכנסת כעת ל-Wi-Fi
+              </span>
+              <h4 className="font-bold text-base text-white mt-1 leading-tight">
+                {(() => {
+                  const fromNum = incomingWebRtcCall.parameters?.From || '';
+                  const norm = fromNum.replace(/\D/g, '').slice(-9);
+                  const matched = norm ? leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(norm)) : undefined;
+                  return matched ? matched.clientName : 'שיחה נכנסת (מספר חדש)';
+                })()}
+              </h4>
+              <p className="text-xs font-mono text-emerald-200/90 mt-0.5" dir="ltr">
+                {incomingWebRtcCall.parameters?.From || ''}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAcceptIncomingCall}
+              className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Phone className="w-4 h-4" />
+              <span>ענה בדפדפן</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRejectIncomingCall}
+              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-rose-700 text-slate-300 hover:text-white font-bold text-xs transition-all"
+              title="דחה שיחה"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Live Incoming Call Banner */}
       {incomingCall && (
         <div 
