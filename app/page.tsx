@@ -8,6 +8,7 @@ import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
 import DisqualificationDonutChart from "@/components/DisqualificationDonutChart";
+import AudioSettingsModal from "@/components/AudioSettingsModal";
 
 // -- Simple CountUp Component --
 function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | string, suffix?: string, prefix?: string }) {
@@ -157,6 +158,7 @@ export default function Home() {
   const [activeCall, setActiveCall] = useState<any>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [deviceInstance, setDeviceInstance] = useState<any>(null);
+  const [showAudioSettings, setShowAudioSettings] = useState<boolean>(false);
 
   useEffect(() => {
     const savedMode = localStorage.getItem('dialMode');
@@ -822,6 +824,27 @@ export default function Home() {
       });
 
       await device.register();
+
+      // Apply user's selected hardware microphone & speaker if saved
+      const savedMicId = localStorage.getItem('selectedMicId');
+      const savedSpeakerId = localStorage.getItem('selectedSpeakerId');
+
+      if (savedMicId && (device as any).audio) {
+        try {
+          await (device as any).audio.setInputDevice(savedMicId);
+        } catch (e) {
+          console.warn('Could not set custom mic device:', e);
+        }
+      }
+
+      if (savedSpeakerId && (device as any).audio && (device as any).audio.speakerDevices) {
+        try {
+          await (device as any).audio.speakerDevices.set(savedSpeakerId);
+        } catch (e) {
+          console.warn('Could not set custom speaker device:', e);
+        }
+      }
+
       setDeviceInstance(device);
       return device;
     } catch (err: any) {
@@ -1891,6 +1914,17 @@ export default function Home() {
                   <span>חיוג לנייד שלי</span>
                 </button>
               </div>
+
+              {/* Audio Settings & Mic Test Button */}
+              <button
+                type="button"
+                onClick={() => setShowAudioSettings(true)}
+                title="הגדרות שמע ובדיקת מיקרופון"
+                className="flex-shrink-0 bg-indigo-50/90 dark:bg-slate-900 border-2 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 px-3.5 py-2.5 rounded-[14px] md:rounded-2xl font-bold hover:bg-indigo-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 text-xs md:text-sm shadow-md"
+              >
+                <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>הגדרות שמע</span>
+              </button>
 
               {activeTab !== 'archive' && (
                 <div className="flex gap-2">
@@ -2985,6 +3019,12 @@ export default function Home() {
           leadsList={leads}
         />
       )}
+
+      {/* Audio Settings & Mic Test Modal */}
+      <AudioSettingsModal 
+        isOpen={showAudioSettings} 
+        onClose={() => setShowAudioSettings(false)} 
+      />
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
