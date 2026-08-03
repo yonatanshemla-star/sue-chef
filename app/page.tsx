@@ -183,6 +183,76 @@ export default function Home() {
   const [showAudioSettings, setShowAudioSettings] = useState<boolean>(false);
   const [incomingWebRtcCall, setIncomingWebRtcCall] = useState<any>(null);
 
+  const [lawyerGilPhone, setLawyerGilPhone] = useState<string>('');
+  const [consultMode, setConsultMode] = useState<'idle' | 'calling_gil' | 'in_consultation' | 'merged'>('idle');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedGil = localStorage.getItem('lawyerGilPhone');
+      setLawyerGilPhone(savedGil || '0541234567');
+    }
+  }, []);
+
+  const handleUpdateLawyerGilPhone = (val: string) => {
+    setLawyerGilPhone(val);
+    localStorage.setItem('lawyerGilPhone', val);
+  };
+
+  const handleStartConsultWithGil = async () => {
+    if (!liveNotesLead && !activeCall) return;
+    try {
+      setConsultMode('calling_gil');
+      setCallStatusMessage('מחייג לעו"ד גיל (הליד הועבר להמתנה)...');
+
+      const targetPhone = liveNotesLead?.phone || '';
+      const res = await fetch('/api/twilio/call/consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'dial_gil',
+          leadPhone: targetPhone,
+          lawyerPhone: lawyerGilPhone || '0541234567',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setConsultMode('in_consultation');
+        setCallStatusMessage('בשיחה פרטית עם עו"ד גיל (הליד בהמתנה)');
+      } else {
+        alert(data.error || 'נכשלה החיוג לעו"ד גיל');
+        setConsultMode('idle');
+        setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
+      }
+    } catch (err) {
+      console.error('Consult Error:', err);
+      setConsultMode('idle');
+      setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
+    }
+  };
+
+  const handleMergeCalls = async () => {
+    try {
+      setCallStatusMessage('מאחד שיחות לשיחת ועידה...');
+      const res = await fetch('/api/twilio/call/consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'merge',
+          leadPhone: liveNotesLead?.phone || '',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setConsultMode('merged');
+        setCallStatusMessage('👥 שיחת ועידה פעילה (3 משתתפים: אתה, הליד, עו"ד גיל)');
+      }
+    } catch (err) {
+      console.error('Merge Error:', err);
+    }
+  };
+
   useEffect(() => {
     const savedMode = localStorage.getItem('dialMode');
     if (savedMode === 'browser' || savedMode === 'phone') {
@@ -1786,7 +1856,7 @@ export default function Home() {
             {callStatusMessage || (callStatus === 'connected' ? 'בשיחה פעילה' : 'מתחבר...')}
           </div>
 
-          {/* Right Side: Settings, Mute & Hangup Controls */}
+          {/* Right Side: Settings, Consultation, Mute & Hangup Controls */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1796,6 +1866,45 @@ export default function Home() {
             >
               <Settings className="w-5 h-5 text-indigo-400" />
             </button>
+
+            {/* Consultation / Merge Buttons */}
+            {callStatus === 'connected' && consultMode === 'idle' && (
+              <button
+                type="button"
+                onClick={handleStartConsultWithGil}
+                title="התקשר לעו&quot;ד גיל להתייעצות (הליד יעבור להמתנה)"
+                className="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>התייעצות עם גיל</span>
+              </button>
+            )}
+
+            {callStatus === 'connected' && consultMode === 'calling_gil' && (
+              <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-2 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                <span>מחייג לגיל (הליד בהמתנה)...</span>
+              </div>
+            )}
+
+            {callStatus === 'connected' && consultMode === 'in_consultation' && (
+              <button
+                type="button"
+                onClick={handleMergeCalls}
+                title="אחד את השיחות לשיחת ועידה 3 משתתפים"
+                className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all animate-bounce"
+              >
+                <Zap className="w-4 h-4" />
+                <span>איחוד שיחות (ועידה)</span>
+              </button>
+            )}
+
+            {callStatus === 'connected' && consultMode === 'merged' && (
+              <div className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span>ועידה 3 משתתפים</span>
+              </div>
+            )}
             {dialMode === 'browser' && activeCall && (
               <button
                 type="button"
@@ -3102,6 +3211,21 @@ export default function Home() {
                     setAgentPhone(val);
                     localStorage.setItem('agentPhone', val);
                   }} 
+                  className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
+                />
+              </div>
+
+              {/* Lawyer Gil Phone Section */}
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">מספר נייד של עו&quot;ד גיל (התייעצות ואיחוד שיחות)</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 font-medium">הזן את מספר הטלפון של עו&quot;ד גיל. בזמן שיחה פעילה עם ליד, תוכל ללחוץ על &quot;התייעצות עם גיל&quot; והמערכת תחייג אליו באופן פרטי (כשהליד בהמתנה), ותאפשר לך לאחד את שתי השיחות לשיחת ועידה.</p>
+                <input 
+                  type="text" 
+                  dir="ltr"
+                  placeholder="לדוגמה: 0541234567 או +97254..." 
+                  value={lawyerGilPhone} 
+                  onChange={(e) => handleUpdateLawyerGilPhone(e.target.value)} 
                   className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
                 />
               </div>
