@@ -933,6 +933,72 @@ export default function Home() {
     }
   };
 
+class RingbackGenerator {
+  private ctx: AudioContext | null = null;
+  private isPlaying: boolean = false;
+  private timer: any = null;
+
+  start() {
+    if (this.isPlaying) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      this.ctx = new AudioCtx();
+      this.isPlaying = true;
+
+      const playToneBurst = () => {
+        if (!this.isPlaying || !this.ctx) return;
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        // Israeli dual-frequency ringback tone (400Hz + 450Hz)
+        osc1.frequency.value = 400;
+        osc2.frequency.value = 450;
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.setValueAtTime(0.12, now + 1.0);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.08);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 1.1);
+        osc2.stop(now + 1.1);
+      };
+
+      playToneBurst();
+      this.timer = setInterval(playToneBurst, 3000);
+    } catch (e) {
+      console.warn('RingbackGenerator error:', e);
+    }
+  }
+
+  stop() {
+    this.isPlaying = false;
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    if (this.ctx) {
+      try {
+        this.ctx.close();
+      } catch (e) {}
+      this.ctx = null;
+    }
+  }
+}
+
+const ringback = new RingbackGenerator();
+
   const attachRemoteAudio = async (call: any) => {
     try {
       if (!call) return;
@@ -1116,6 +1182,7 @@ export default function Home() {
 
     if (dialMode === 'browser') {
       try {
+        ringback.start();
         setCallStatusMessage('מתחבר דרך ה-Wi-Fi בדפדפן...');
         const device = await getOrCreateDevice();
         
@@ -1132,12 +1199,14 @@ export default function Home() {
         setIsMuted(false);
 
         call.on('accept', () => {
+          ringback.stop();
           attachRemoteAudio(call);
           setCallStatus('connected');
           setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
         });
 
         call.on('disconnect', () => {
+          ringback.stop();
           setCallStatus('completed');
           setCallStatusMessage('השיחה הסתיימה');
           setActiveCall(null);
@@ -1148,6 +1217,7 @@ export default function Home() {
         });
 
         call.on('error', (err: any) => {
+          ringback.stop();
           console.error('WebRTC Call Error:', err);
           setCallStatus('failed');
           setCallStatusMessage(err.message || 'שגיאה בחיוג דרך הדפדפן');
@@ -1204,6 +1274,7 @@ export default function Home() {
   };
 
   const handleHangupCall = async () => {
+    ringback.stop();
     if (activeCall) {
       try {
         activeCall.disconnect();
