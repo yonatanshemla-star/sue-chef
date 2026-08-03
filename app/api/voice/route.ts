@@ -12,10 +12,15 @@ export async function POST(req: Request) {
      await logVoiceRequest(rawData);
 
      const from = rawData['From'] || '';
-     const to = rawData['To'] || rawData['to'] || ''; 
+     let to = rawData['phone'] || rawData['Phone'] || rawData['targetPhone'] || rawData['to'] || rawData['To'] || ''; 
      
      const fromStr = from.toString();
-     const toStr = to.toString();
+     let toStr = to.toString();
+
+     // If toStr is a TwiML App SID (starts with AP), fallback to custom phone parameters
+     if (toStr.startsWith('AP')) {
+       toStr = rawData['phone'] || rawData['Phone'] || rawData['targetPhone'] || rawData['to'] || rawData['customTo'] || '';
+     }
 
      const isFromApp = fromStr.startsWith('client:');
      const isFromSip = fromStr.startsWith('sip:');

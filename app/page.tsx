@@ -836,7 +836,10 @@ export default function Home() {
         
         const call = await device.connect({
           params: {
+            phone: lead.phone,
+            to: lead.phone,
             To: lead.phone,
+            targetPhone: lead.phone,
           }
         });
 
