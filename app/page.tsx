@@ -1637,38 +1637,6 @@ export default function Home() {
                 </div>
               </div>
               <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-              
-              {/* Dial Mode Switcher */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold mx-1">
-                <button
-                  type="button"
-                  onClick={() => handleSetDialMode('browser')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                    dialMode === 'browser'
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                  title="חיוג דרך ה-Wi-Fi מהדפדפן"
-                >
-                  <Wifi className="w-4 h-4" />
-                  <span>חיוג בדפדפן (Wi-Fi)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetDialMode('phone')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                    dialMode === 'phone'
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                  title="חיוג לטלפון הנייד שלך (שיחה סלולרית)"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>חיוג לנייד שלי</span>
-                </button>
-              </div>
-
-              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
               <button onClick={() => { setShowStickyNote(!showStickyNote); if (!showStickyNote) { const today = new Date().toISOString().split('T')[0]; setStickyNoteDate(today); fetchNote(today); } }} className={`p-3 mr-1 transition-all active:scale-95 rounded-xl group ${showStickyNote ? 'bg-amber-100 dark:bg-amber-900/40 shadow-inner border border-amber-300 dark:border-amber-700' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="פתק יומי">
                 <StickyNote className={`w-5 h-5 ${showStickyNote ? 'text-amber-500' : 'text-gray-400 group-hover:text-amber-400'}`} />
               </button>
