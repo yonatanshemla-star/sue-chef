@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, ArrowDownLeft, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi } from "lucide-react";
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
@@ -78,6 +78,28 @@ function matchesSearch(l: any, q: string) {
   const lawyerNotesMatch = l.lawyerNotes?.toLowerCase().includes(q);
   const campaignMatch = l.campaign?.toLowerCase().includes(q);
   return !!(nameMatch || phoneMatch || generalNotesMatch || liveCallNotesMatch || lawyerNotesMatch || campaignMatch);
+}
+
+function matchLeadByPhone(rawPhone: string | undefined | null, leadsList: Lead[]): Lead | undefined {
+  if (!rawPhone || !leadsList || leadsList.length === 0) return undefined;
+
+  const cleanDigits = (p: string) => p.replace(/\D/g, '');
+  const targetDigits = cleanDigits(rawPhone);
+  if (targetDigits.length < 7) return undefined;
+
+  for (const len of [9, 8, 7]) {
+    if (targetDigits.length >= len) {
+      const suffix = targetDigits.slice(-len);
+      const found = leadsList.find(l => {
+        if (!l.phone) return false;
+        const lDigits = cleanDigits(l.phone);
+        return lDigits.length >= len && (lDigits.endsWith(suffix) || suffix.endsWith(lDigits.slice(-7)));
+      });
+      if (found) return found;
+    }
+  }
+
+  return undefined;
 }
 
 export default function Home() {
@@ -1216,12 +1238,9 @@ export default function Home() {
           if (Date.now() - callTime < 35000) {
             let callerName = null;
             if (data.activeCall.from) {
-              const normalized = data.activeCall.from.replace(/\D/g, '').slice(-9);
-              if (normalized && normalized.length >= 7) {
-                const matchedLead = leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalized));
-                if (matchedLead && matchedLead.clientName?.trim()) {
-                  callerName = matchedLead.clientName.trim();
-                }
+              const matchedLead = matchLeadByPhone(data.activeCall.from, leads);
+              if (matchedLead && matchedLead.clientName?.trim()) {
+                callerName = matchedLead.clientName.trim();
               }
             }
             setIncomingCall({ ...data.activeCall, callerName });
@@ -2539,20 +2558,34 @@ export default function Home() {
                   {recentCalls.map((call, idx) => {
                     const callFrom = call.from || "";
                     const callTo = call.to || "";
-                    const lead = getLeadByPhone(callFrom.slice(-9)) || getLeadByPhone(callTo.slice(-9));
+                    const isInbound = call.direction === 'inbound' || call.direction === 'inbound-api';
+                    const targetNum = isInbound ? callFrom : callTo;
+                    const lead = matchLeadByPhone(targetNum, leads) || matchLeadByPhone(callFrom, leads) || matchLeadByPhone(callTo, leads);
+
                     return (
                     <div key={call.sid} className="bg-white dark:bg-slate-800/30 p-6 rounded-3xl border dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-center hover:scale-[1.01] transition-all group overflow-hidden">
                       <div className="flex items-center gap-5 w-full md:w-auto mb-4 md:mb-0">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
-                          {call.direction === 'inbound' ? <ArrowUpRight size={28} /> : <ArrowDownRight size={28} />}
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 flex-shrink-0 ${
+                          isInbound 
+                            ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white' 
+                            : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white'
+                        }`}>
+                          {isInbound ? <ArrowDownLeft size={28} /> : <ArrowUpRight size={28} />}
                         </div>
                         <div 
                           className={lead ? "cursor-pointer hover:opacity-80 transition-opacity" : ""} 
                           onClick={() => { if (lead) navigateToLead(lead); }}
                           title={lead ? "לחץ למעבר לליד" : ""}
                         >
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              isInbound ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                            }`}>
+                              {isInbound ? '📥 שיחה נכנסת' : '📤 שיחה יוצאת'}
+                            </span>
+                          </div>
                           <p className="font-bold text-xl group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight text-slate-900 dark:text-white">{lead?.clientName || 'ליד לא מזוהה'}</p>
-                          <p className="text-xs font-mono text-slate-400" dir="ltr">{call.direction==='inbound'?call.from:call.to}</p>
+                          <p className="text-xs font-mono text-slate-400 mt-0.5" dir="ltr">{targetNum}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end text-slate-800 dark:text-slate-100">
