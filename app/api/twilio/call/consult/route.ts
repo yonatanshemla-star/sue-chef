@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         const leadConfTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial>
-    <Conference beep="false" startConferenceOnEnter="false" endConferenceOnExit="false" waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.soft-rock">${confName}</Conference>
+    <Conference beep="false" startConferenceOnEnter="false" endConferenceOnExit="false" waitUrl="">${confName}</Conference>
   </Dial>
 </Response>`;
 
