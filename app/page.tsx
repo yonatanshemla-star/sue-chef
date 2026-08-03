@@ -1756,8 +1756,16 @@ export default function Home() {
             {callStatusMessage || (callStatus === 'connected' ? 'בשיחה פעילה' : 'מתחבר...')}
           </div>
 
-          {/* Right Side: Mute & Hangup Controls */}
+          {/* Right Side: Settings, Mute & Hangup Controls */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAudioSettings(true)}
+              title="הגדרות שמע ובחירת מיקרופון/רמקול"
+              className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all flex items-center justify-center"
+            >
+              <Settings className="w-5 h-5 text-indigo-400" />
+            </button>
             {dialMode === 'browser' && activeCall && (
               <button
                 type="button"
@@ -3199,7 +3207,17 @@ export default function Home() {
       {/* Audio Settings & Mic Test Modal */}
       <AudioSettingsModal 
         isOpen={showAudioSettings} 
-        onClose={() => setShowAudioSettings(false)} 
+        onClose={() => setShowAudioSettings(false)}
+        onSelectDevices={async (micId, speakerId) => {
+          if (deviceInstance && (deviceInstance as any).audio) {
+            if (micId) {
+              try { await (deviceInstance as any).audio.setInputDevice(micId); } catch (e) {}
+            }
+            if (speakerId && (deviceInstance as any).audio.speakerDevices) {
+              try { await (deviceInstance as any).audio.speakerDevices.set(speakerId); } catch (e) {}
+            }
+          }
+        }} 
       />
 
       {/* Live Notes Modal */}
