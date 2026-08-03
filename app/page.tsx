@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi } from "lucide-react";
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
@@ -153,6 +153,22 @@ export default function Home() {
   const [currentCallSid, setCurrentCallSid] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<'idle' | 'initiating' | 'ringing_lead' | 'connected' | 'completed' | 'busy' | 'no-answer' | 'failed'>('idle');
   const [callStatusMessage, setCallStatusMessage] = useState<string | null>(null);
+  const [dialMode, setDialMode] = useState<'browser' | 'phone'>('browser');
+  const [activeCall, setActiveCall] = useState<any>(null);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [deviceInstance, setDeviceInstance] = useState<any>(null);
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('dialMode');
+    if (savedMode === 'browser' || savedMode === 'phone') {
+      setDialMode(savedMode);
+    }
+  }, []);
+
+  const handleSetDialMode = (mode: 'browser' | 'phone') => {
+    setDialMode(mode);
+    localStorage.setItem('dialMode', mode);
+  };
 
   const openStatusDropdown = (e: React.MouseEvent, leadId: string) => {
     e.stopPropagation();
@@ -765,6 +781,34 @@ export default function Home() {
     }
   };
 
+  const getOrCreateDevice = async () => {
+    if (deviceInstance) return deviceInstance;
+    try {
+      const res = await fetch('/api/twilio/token');
+      const data = await res.json();
+      if (!data.token) {
+        throw new Error(data.error || 'נכשלה הפקת טוקן לשיחה מהדפדפן');
+      }
+      
+      const { Device } = await import('@twilio/voice-sdk');
+      const device = new Device(data.token, {
+        logLevel: 1,
+        codecPreferences: ['opus' as any, 'pcmu' as any],
+      });
+
+      device.on('error', (error: any) => {
+        console.error('Twilio Device Error:', error);
+      });
+
+      await device.register();
+      setDeviceInstance(device);
+      return device;
+    } catch (err: any) {
+      console.error('Error initializing Twilio Voice Device:', err);
+      throw err;
+    }
+  };
+
   const initiateCall = async (lead: Lead) => {
     if (!lead.phone) return;
     if (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer') {
@@ -784,48 +828,139 @@ export default function Home() {
       updates.status = 'ממתין לעדכון';
     }
     handleLeadUpdate(lead.id, updates);
-    try {
-      const res = await fetch('/api/twilio/call/initiate', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ to: lead.phone, agentPhone }) 
-      });
-      const data = await res.json();
-      if (data.success && data.sid) {
-        setCurrentCallSid(data.sid);
-        setCallStatus('initiating');
-        setCallStatusMessage('מחייג לנייד שלך...');
-      } else {
+
+    if (dialMode === 'browser') {
+      try {
+        setCallStatusMessage('מתחבר דרך ה-Wi-Fi בדפדפן...');
+        const device = await getOrCreateDevice();
+        
+        const call = await device.connect({
+          params: {
+            To: lead.phone,
+          }
+        });
+
+        setActiveCall(call);
+        setIsMuted(false);
+
+        call.on('accept', () => {
+          setCallStatus('connected');
+          setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
+        });
+
+        call.on('disconnect', () => {
+          setCallStatus('completed');
+          setCallStatusMessage('השיחה הסתיימה');
+          setActiveCall(null);
+          setTimeout(() => {
+            setCallStatus('idle');
+            setCallStatusMessage(null);
+          }, 3000);
+        });
+
+        call.on('error', (err: any) => {
+          console.error('WebRTC Call Error:', err);
+          setCallStatus('failed');
+          setCallStatusMessage(err.message || 'שגיאה בחיוג דרך הדפדפן');
+          setActiveCall(null);
+          setTimeout(() => {
+            setCallStatus('idle');
+            setCallStatusMessage(null);
+          }, 3000);
+        });
+
+        call.on('mute', (isMutedState: boolean) => {
+          setIsMuted(isMutedState);
+        });
+
+      } catch (err: any) {
+        console.error('Browser call error:', err);
         setCallStatus('failed');
-        setCallStatusMessage(data.error || 'חיוג נכשל');
+        setCallStatusMessage(err.message || 'נכשל חיבור המיקרופון/דפדפן');
         setTimeout(() => {
           setCallStatus('idle');
           setCallStatusMessage(null);
         }, 3000);
       }
-    } catch (err) { 
-      console.error(err);
-      setCallStatus('failed');
-      setCallStatusMessage('שגיאת תקשורת בחיוג');
-      setTimeout(() => {
-        setCallStatus('idle');
-        setCallStatusMessage(null);
-      }, 3000);
+    } else {
+      try {
+        const res = await fetch('/api/twilio/call/initiate', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ to: lead.phone, agentPhone }) 
+        });
+        const data = await res.json();
+        if (data.success && data.sid) {
+          setCurrentCallSid(data.sid);
+          setCallStatus('initiating');
+          setCallStatusMessage('מחייג לנייד שלך...');
+        } else {
+          setCallStatus('failed');
+          setCallStatusMessage(data.error || 'חיוג נכשל');
+          setTimeout(() => {
+            setCallStatus('idle');
+            setCallStatusMessage(null);
+          }, 3000);
+        }
+      } catch (err) { 
+        console.error(err);
+        setCallStatus('failed');
+        setCallStatusMessage('שגיאת תקשורת בחיוג');
+        setTimeout(() => {
+          setCallStatus('idle');
+          setCallStatusMessage(null);
+        }, 3000);
+      }
     }
   };
 
   const handleHangupCall = async () => {
+    if (activeCall) {
+      try {
+        activeCall.disconnect();
+        setActiveCall(null);
+        setCallStatus('completed');
+        setCallStatusMessage('השיחה נותקה מהדפדפן');
+        setTimeout(() => {
+          setCallStatus('idle');
+          setCallStatusMessage(null);
+        }, 2000);
+        return;
+      } catch (err) {
+        console.error("Browser disconnect error:", err);
+      }
+    }
+
+    if (deviceInstance) {
+      try {
+        deviceInstance.disconnectAll();
+      } catch (e) {}
+    }
+
     try {
       const res = await fetch('/api/twilio/call/disconnect', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        alert("השיחה נותקה בהצלחה.");
+        setCallStatus('completed');
+        setCallStatusMessage('השיחה נותקה');
+        setTimeout(() => {
+          setCallStatus('idle');
+          setCallStatusMessage(null);
+        }, 2000);
       } else {
         alert("לא נמצאה שיחה פעילה לניתוק או שחלה שגיאה.");
       }
     } catch (err) {
       console.error("Hangup error:", err);
       alert("שגיאת תקשורת בניסיון לנתק שיחה.");
+    }
+  };
+
+  const handleToggleMute = () => {
+    if (activeCall) {
+      const nextMute = !isMuted;
+      activeCall.mute(nextMute);
+      setIsMuted(nextMute);
     }
   };
 
@@ -1499,6 +1634,38 @@ export default function Home() {
                 </div>
               </div>
               <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+              
+              {/* Dial Mode Switcher */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold mx-1">
+                <button
+                  type="button"
+                  onClick={() => handleSetDialMode('browser')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    dialMode === 'browser'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="חיוג דרך ה-Wi-Fi מהדפדפן"
+                >
+                  <Wifi className="w-4 h-4" />
+                  <span>חיוג בדפדפן (Wi-Fi)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetDialMode('phone')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    dialMode === 'phone'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="חיוג לטלפון הנייד שלך (שיחה סלולרית)"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>חיוג לנייד שלי</span>
+                </button>
+              </div>
+
+              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
               <button onClick={() => { setShowStickyNote(!showStickyNote); if (!showStickyNote) { const today = new Date().toISOString().split('T')[0]; setStickyNoteDate(today); fetchNote(today); } }} className={`p-3 mr-1 transition-all active:scale-95 rounded-xl group ${showStickyNote ? 'bg-amber-100 dark:bg-amber-900/40 shadow-inner border border-amber-300 dark:border-amber-700' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="פתק יומי">
                 <StickyNote className={`w-5 h-5 ${showStickyNote ? 'text-amber-500' : 'text-gray-400 group-hover:text-amber-400'}`} />
               </button>
@@ -1641,7 +1808,37 @@ export default function Home() {
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
           <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 items-center">
             {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
-            <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start">
+            <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start items-center">
+              {/* Prominent Dial Mode Selector */}
+              <div className="flex-shrink-0 flex items-center bg-indigo-50/90 dark:bg-slate-900 p-1.5 rounded-[14px] md:rounded-2xl border-2 border-indigo-500/40 shadow-md text-xs md:text-sm font-bold">
+                <button
+                  type="button"
+                  onClick={() => handleSetDialMode('browser')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                    dialMode === 'browser'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
+                  }`}
+                  title="חיוג ישיר דרך ה-Wi-Fi בדפדפן"
+                >
+                  <Wifi className="w-4 h-4" />
+                  <span>חיוג בדפדפן (Wi-Fi)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetDialMode('phone')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                    dialMode === 'phone'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
+                  }`}
+                  title="חיוג לטלפון הנייד שלך (שיחה סלולרית)"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>חיוג לנייד שלי</span>
+                </button>
+              </div>
+
               {activeTab !== 'archive' && (
                 <div className="flex gap-2">
                   <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
@@ -2762,6 +2959,48 @@ export default function Home() {
                 >
                   <PhoneOff className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
+
+                {activeCall && (
+                  <button 
+                    onClick={handleToggleMute} 
+                    title={isMuted ? "בטל השתקת מיקרופון" : "השתק מיקרופון"}
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
+                      isMuted ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-700 hover:bg-slate-800'
+                    }`}
+                  >
+                    {isMuted ? <MicOff className="w-5 h-5 md:w-6 md:h-6" /> : <Mic className="w-5 h-5 md:w-6 md:h-6" />}
+                  </button>
+                )}
+
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold mr-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSetDialMode('browser')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                      dialMode === 'browser'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title="חיוג דרך ה-Wi-Fi מהדפדפן"
+                  >
+                    <Wifi className="w-3.5 h-3.5" />
+                    <span>דפדפן (Wi-Fi)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetDialMode('phone')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                      dialMode === 'phone'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title="חיוג לטלפון הנייד שלך (שיחה סלולרית)"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>לנייד שלי</span>
+                  </button>
+                </div>
+
                 {callStatusMessage && (
                   <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800/80 px-3.5 py-1.5 rounded-2xl mr-2 animate-in fade-in zoom-in duration-300">
                     <span className={`w-2.5 h-2.5 rounded-full ${
