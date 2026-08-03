@@ -137,30 +137,16 @@ export async function POST(req: Request) {
       notesParts.push(`דוא"ל: ${email}`);
     }
     
-    // Notes are kept perfectly clean as requested (no campaign/supplier or debug payload appended)
-    const generalNotes = notesParts.join('\n');
-
     const allLeads = await getLeads();
     const existingLead = phone ? matchLeadByPhone(phone, allLeads) : undefined;
+    const isDuplicate = Boolean(existingLead);
 
-    if (existingLead) {
-      logInfo(`Existing lead found for LeadIM webhook: ${existingLead.clientName} (${phone}) - updating existing lead.`);
-      const updatedNotes = generalNotes 
-        ? (existingLead.generalNotes ? `${existingLead.generalNotes}\n${generalNotes}` : generalNotes) 
-        : existingLead.generalNotes;
-
-      const updated = {
-        ...existingLead,
-        clientName: (existingLead.clientName && !existingLead.clientName.includes('ליד מ-') && !existingLead.clientName.includes('ליד חדש')) 
-          ? existingLead.clientName 
-          : clientName,
-        generalNotes: updatedNotes,
-        campaign: campaign || existingLead.campaign,
-      };
-
-      await updateLead(updated);
-      return NextResponse.json({ success: true, id: existingLead.id, updated: true });
+    if (isDuplicate && existingLead) {
+      logInfo(`Duplicate phone detected for LeadIM webhook: ${phone} (Matches existing lead: ${existingLead.clientName}). Creating new lead with isStarred=true.`);
+      notesParts.unshift(`[⭐ ליד כפול - מופיע כבר במערכת תחת "${existingLead.clientName}"]`);
     }
+
+    const generalNotes = notesParts.join('\n');
 
     // Create a new lead conforming to the internal Lead interface
     const newLead = {
@@ -176,6 +162,7 @@ export async function POST(req: Request) {
       liveCallNotes: '',
       callCount: 0,
       urgency: 'בינונית' as const,
+      isStarred: isDuplicate,
       campaign: campaign || undefined
     };
 
