@@ -170,6 +170,27 @@ export default function Home() {
     localStorage.setItem('dialMode', mode);
   };
 
+  const [callDuration, setCallDuration] = useState<number>(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (callStatus === 'connected') {
+      setCallDuration(0);
+      interval = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setCallDuration(0);
+    }
+    return () => clearInterval(interval);
+  }, [callStatus]);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const openStatusDropdown = (e: React.MouseEvent, leadId: string) => {
     e.stopPropagation();
     if (activeStatusDropdownLeadId === leadId) {
@@ -1524,6 +1545,67 @@ export default function Home() {
           >
             <X className="w-4 h-4 text-white/80" />
           </button>
+        </div>
+      )}
+
+      {/* Floating Active Call Control Widget */}
+      {(callStatus === 'initiating' || callStatus === 'ringing_lead' || callStatus === 'connected') && (
+        <div 
+          dir="rtl"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-xl bg-slate-900/95 text-white px-5 py-3.5 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-indigo-500/50 backdrop-blur-xl animate-in fade-in slide-in-from-top-6 duration-300 flex items-center justify-between gap-4"
+        >
+          {/* Left Side: Timer & Lead Info */}
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-10 rounded-2xl flex items-center justify-center font-mono font-bold text-xs shadow-inner ${
+              callStatus === 'connected' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+            }`}>
+              {callStatus === 'connected' ? formatDuration(callDuration) : '...'}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  callStatus === 'connected' ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-pulse'
+                }`} />
+                <h4 className="font-bold text-sm text-white leading-tight">
+                  {liveNotesLead?.clientName || 'לקוח בשיחה'}
+                </h4>
+              </div>
+              <p className="text-xs text-slate-400 font-mono mt-0.5" dir="ltr">
+                {liveNotesLead?.phone || ''}
+              </p>
+            </div>
+          </div>
+
+          {/* Center: Status message */}
+          <div className="hidden sm:block text-xs font-bold text-slate-300 bg-slate-800/90 px-3.5 py-1.5 rounded-xl border border-slate-700/60">
+            {callStatusMessage || (callStatus === 'connected' ? 'בשיחה פעילה' : 'מתחבר...')}
+          </div>
+
+          {/* Right Side: Mute & Hangup Controls */}
+          <div className="flex items-center gap-2">
+            {dialMode === 'browser' && activeCall && (
+              <button
+                type="button"
+                onClick={handleToggleMute}
+                title={isMuted ? "בטל השתקת מיקרופון" : "השתק מיקרופון"}
+                className={`p-2.5 rounded-xl font-bold transition-all ${
+                  isMuted ? 'bg-amber-500 text-white animate-pulse shadow-amber-500/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleHangupCall}
+              title="נתק שיחה"
+              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-600/40 hover:scale-105 active:scale-95 transition-all"
+            >
+              <PhoneOff className="w-4 h-4" />
+              <span>נתק</span>
+            </button>
+          </div>
         </div>
       )}
       {/* Sidebar Drawer (Slides from Right) */}
