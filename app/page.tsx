@@ -863,24 +863,53 @@ export default function Home() {
     }
   };
 
-  const attachRemoteAudio = (call: any) => {
+  const attachRemoteAudio = async (call: any) => {
     try {
-      if (call && typeof call.getRemoteAudioTracks === 'function') {
-        const tracks = call.getRemoteAudioTracks();
-        if (tracks && tracks.length > 0) {
-          const stream = new MediaStream(tracks);
-          let audioEl = document.getElementById('twilio-remote-audio-player') as HTMLAudioElement;
-          if (!audioEl) {
-            audioEl = document.createElement('audio');
-            audioEl.id = 'twilio-remote-audio-player';
-            audioEl.autoplay = true;
-            audioEl.style.display = 'none';
-            document.body.appendChild(audioEl);
-          }
-          audioEl.srcObject = stream;
+      if (!call) return;
+
+      let audioEl = document.getElementById('twilio-remote-audio-player') as HTMLAudioElement;
+      if (!audioEl) {
+        audioEl = document.createElement('audio');
+        audioEl.id = 'twilio-remote-audio-player';
+        audioEl.autoplay = true;
+        audioEl.style.display = 'none';
+        document.body.appendChild(audioEl);
+      }
+
+      const remoteStream = new MediaStream();
+
+      const addTrackToAudio = (track: any) => {
+        if (track && (track.kind === 'audio' || track.mediaStreamTrack)) {
+          const mediaTrack = track.mediaStreamTrack || track;
+          remoteStream.addTrack(mediaTrack);
+          audioEl.srcObject = remoteStream;
           audioEl.play().catch(e => console.warn('Audio play error:', e));
         }
+      };
+
+      if (typeof call.getRemoteAudioTracks === 'function') {
+        const tracks = call.getRemoteAudioTracks();
+        if (tracks && tracks.length > 0) {
+          tracks.forEach((track: any) => addTrackToAudio(track));
+        }
       }
+
+      if (typeof call.on === 'function') {
+        call.on('trackAdded', (track: any) => {
+          addTrackToAudio(track);
+        });
+      }
+
+      const savedSpeakerId = localStorage.getItem('selectedSpeakerId');
+      if (savedSpeakerId && savedSpeakerId !== 'default' && (audioEl as any).setSinkId) {
+        try {
+          await (audioEl as any).setSinkId(savedSpeakerId);
+        } catch (e) {
+          console.warn('Failed to set speaker output sink:', e);
+        }
+      }
+
+      audioEl.play().catch(e => console.warn('Audio play catch:', e));
     } catch (err) {
       console.warn('attachRemoteAudio error:', err);
     }

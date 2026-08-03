@@ -157,39 +157,71 @@ export default function AudioSettingsModal({ isOpen, onClose, onSelectDevices }:
       setRecordCountdown(5);
       recordedChunksRef.current = [];
 
-      const stream = streamRef.current || await navigator.mediaDevices.getUserMedia({
+      // Acquire dedicated stream for recording test
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true
       });
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : '';
+
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
+        if (e.data && e.data.size > 0) {
           recordedChunksRef.current.push(e.data);
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+      mediaRecorder.onstop = async () => {
+        // Release test recording mic stream
+        stream.getTracks().forEach(t => t.stop());
+
+        if (recordedChunksRef.current.length === 0) {
+          console.warn('No audio data captured during test');
+          setTestState('idle');
+          return;
+        }
+
+        const audioBlob = new Blob(recordedChunksRef.current, { type: mimeType || 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
 
-        const player = new Audio(audioUrl);
-        testAudioPlayerRef.current = player;
+        let player = document.getElementById('mic-test-audio-player') as HTMLAudioElement;
+        if (!player) {
+          player = document.createElement('audio');
+          player.id = 'mic-test-audio-player';
+          player.autoplay = true;
+          document.body.appendChild(player);
+        }
 
-        if (selectedSpeakerId && (player as any).setSinkId) {
-          (player as any).setSinkId(selectedSpeakerId).catch(() => {});
+        testAudioPlayerRef.current = player;
+        player.src = audioUrl;
+
+        if (selectedSpeakerId && selectedSpeakerId !== 'default' && (player as any).setSinkId) {
+          try {
+            await (player as any).setSinkId(selectedSpeakerId);
+          } catch (e) {
+            console.warn('setSinkId error:', e);
+          }
         }
 
         setTestState('playing');
-        player.play();
+        try {
+          await player.play();
+        } catch (e) {
+          console.error('Audio test playback failed:', e);
+        }
 
         player.onended = () => {
           setTestState('idle');
         };
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(100);
 
       let timeLeft = 5;
       const interval = setInterval(() => {
