@@ -32,11 +32,8 @@ export async function POST(req: NextRequest) {
     const targetRoom = roomName || 'consult_room';
 
     if (action === 'dial_gil') {
-      if (!lawyerPhone) {
-        return NextResponse.json({ success: false, error: 'חסר מספר טלפון של עו"ד גיל' }, { status: 400 });
-      }
-
-      const e164Gil = normalizeToE164(lawyerPhone);
+      const gilNum = lawyerPhone || process.env.LAWYER_GIL_PHONE || '0509833303';
+      const e164Gil = normalizeToE164(gilNum);
 
       // Step 1: Find active participants in the conference room and put lead on hold
       const confsRes = await fetch(

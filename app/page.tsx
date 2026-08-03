@@ -189,7 +189,7 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedGil = localStorage.getItem('lawyerGilPhone');
-      setLawyerGilPhone(savedGil || '0541234567');
+      setLawyerGilPhone(savedGil || '0509833303');
     }
   }, []);
 
@@ -211,7 +211,7 @@ export default function Home() {
         body: JSON.stringify({
           action: 'dial_gil',
           leadPhone: targetPhone,
-          lawyerPhone: lawyerGilPhone || '0541234567',
+          lawyerPhone: lawyerGilPhone || '0509833303',
         }),
       });
 
