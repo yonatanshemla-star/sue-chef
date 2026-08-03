@@ -185,6 +185,7 @@ export default function Home() {
 
   const [lawyerGilPhone, setLawyerGilPhone] = useState<string>('');
   const [consultMode, setConsultMode] = useState<'idle' | 'calling_gil' | 'in_consultation' | 'merged'>('idle');
+  const [consultConfName, setConsultConfName] = useState<string>('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -217,6 +218,7 @@ export default function Home() {
 
       const data = await res.json();
       if (data.success) {
+        setConsultConfName(data.confName || '');
         setConsultMode('in_consultation');
         setCallStatusMessage('בשיחה פרטית עם עו"ד גיל (הליד בהמתנה)');
       } else {
@@ -239,7 +241,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'merge',
-          leadPhone: liveNotesLead?.phone || '',
+          confName: consultConfName,
         }),
       });
 
@@ -247,6 +249,8 @@ export default function Home() {
       if (data.success) {
         setConsultMode('merged');
         setCallStatusMessage('👥 שיחת ועידה פעילה (3 משתתפים: אתה, הליד, עו"ד גיל)');
+      } else {
+        alert(data.error || 'נכשל איחוד השיחות');
       }
     } catch (err) {
       console.error('Merge Error:', err);
