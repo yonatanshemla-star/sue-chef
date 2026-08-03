@@ -193,6 +193,28 @@ export default function Home() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Lock background body scrolling whenever any modal or drawer is open
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(
+      liveNotesLead ||
+      showAudioSettings ||
+      pendingDisqualification ||
+      showImportModal ||
+      historyLead ||
+      isDrawerOpen
+    );
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [liveNotesLead, showAudioSettings, pendingDisqualification, showImportModal, historyLead, isDrawerOpen]);
+
   const openStatusDropdown = (e: React.MouseEvent, leadId: string) => {
     e.stopPropagation();
     if (activeStatusDropdownLeadId === leadId) {
@@ -200,8 +222,8 @@ export default function Home() {
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      // If less than 380px space below, open upwards
-      setDropdownDirection(spaceBelow < 380 ? 'up' : 'down');
+      // If less than 440px space below, open upwards so all options remain visible
+      setDropdownDirection(spaceBelow < 440 ? 'up' : 'down');
       setActiveStatusDropdownLeadId(leadId);
     }
   };
@@ -1915,17 +1937,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Audio Settings & Mic Test Button */}
-              <button
-                type="button"
-                onClick={() => setShowAudioSettings(true)}
-                title="הגדרות שמע ובדיקת מיקרופון"
-                className="flex-shrink-0 bg-indigo-50/90 dark:bg-slate-900 border-2 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 px-3.5 py-2.5 rounded-[14px] md:rounded-2xl font-bold hover:bg-indigo-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 text-xs md:text-sm shadow-md"
-              >
-                <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>הגדרות שמע</span>
-              </button>
-
               {activeTab !== 'archive' && (
                 <div className="flex gap-2">
                   <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
@@ -2157,7 +2168,7 @@ export default function Home() {
                         {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className={`absolute right-0 min-w-[200px] z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                            <div className={`absolute right-0 min-w-[200px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-none overflow-visible p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -2344,7 +2355,7 @@ export default function Home() {
                       {activeStatusDropdownLeadId === lead.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div className={`absolute right-0 left-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-[350px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                          <div className={`absolute right-0 left-0 z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-none overflow-visible p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                               <button
                                 key={k}
@@ -2911,6 +2922,27 @@ export default function Home() {
                   }} 
                   className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
                 />
+              </div>
+
+              {/* Audio & Hardware Settings Section */}
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
+                    <Mic className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">הגדרות שמע ובדיקת מיקרופון</h3>
+                    <p className="text-xs font-bold text-slate-400 mt-1">בחר את המיקרופון והרמקולים (אוזניות/מסך) ובצע בדיקת הקלטה חיה ל-5 שניות</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAudioSettings(true)}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 flex-shrink-0"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>הגדרות שמע</span>
+                </button>
               </div>
 
               {/* Backup & Restore Section */}
