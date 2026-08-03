@@ -104,11 +104,14 @@ export async function POST(req: Request) {
               console.error("Error generating incoming call notifications:", notifErr);
           }
 
-          // ADD callerId and include both WebRTC browser client and mobile number for simulring
-          twiml += `  <Dial callerId="${callerId}" timeout="25" action="/api/twilio/voicemail">\n`;
-          twiml += `    <Client>dashboard_user</Client>\n`;
+          // Pass lead real phone number to WebRTC client via custom parameter
+          twiml += `  <Dial timeout="25" action="/api/twilio/voicemail">\n`;
+          twiml += `    <Client>\n`;
+          twiml += `      <Identity>dashboard_user</Identity>\n`;
+          twiml += `      <Parameter name="leadPhone" value="${fromStr}" />\n`;
+          twiml += `    </Client>\n`;
           if (process.env.MY_PHONE_NUMBER) {
-             twiml += `    <Number>${process.env.MY_PHONE_NUMBER}</Number>\n`;
+             twiml += `    <Number callerId="${callerId}">${process.env.MY_PHONE_NUMBER}</Number>\n`;
           }
           twiml += `  </Dial>\n`;
       } else {

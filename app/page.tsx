@@ -863,6 +863,29 @@ export default function Home() {
     }
   };
 
+  const attachRemoteAudio = (call: any) => {
+    try {
+      if (call && typeof call.getRemoteAudioTracks === 'function') {
+        const tracks = call.getRemoteAudioTracks();
+        if (tracks && tracks.length > 0) {
+          const stream = new MediaStream(tracks);
+          let audioEl = document.getElementById('twilio-remote-audio-player') as HTMLAudioElement;
+          if (!audioEl) {
+            audioEl = document.createElement('audio');
+            audioEl.id = 'twilio-remote-audio-player';
+            audioEl.autoplay = true;
+            audioEl.style.display = 'none';
+            document.body.appendChild(audioEl);
+          }
+          audioEl.srcObject = stream;
+          audioEl.play().catch(e => console.warn('Audio play error:', e));
+        }
+      }
+    } catch (err) {
+      console.warn('attachRemoteAudio error:', err);
+    }
+  };
+
   const getOrCreateDevice = async () => {
     if (deviceInstance) return deviceInstance;
     try {
@@ -883,8 +906,16 @@ export default function Home() {
       });
 
       device.on('incoming', (call: any) => {
-        console.log('Incoming WebRTC call:', call.parameters.From);
-        setIncomingWebRtcCall(call);
+        console.log('Incoming WebRTC call params:', call.parameters, call.customParameters);
+        const customPhone = call.customParameters ? call.customParameters.get('leadPhone') : null;
+        const fromParam = call.parameters?.From || call.parameters?.FromNumber || '';
+        const callerNum = customPhone || (fromParam.startsWith('client:') ? '' : fromParam);
+
+        setIncomingWebRtcCall({ call, callerNumber: callerNum });
+
+        call.on('accept', () => {
+          attachRemoteAudio(call);
+        });
 
         call.on('disconnect', () => {
           setIncomingWebRtcCall(null);
@@ -937,16 +968,18 @@ export default function Home() {
 
   const handleAcceptIncomingCall = () => {
     if (!incomingWebRtcCall) return;
-    incomingWebRtcCall.accept();
-    setActiveCall(incomingWebRtcCall);
+    const callObj = incomingWebRtcCall.call || incomingWebRtcCall;
+    if (callObj && typeof callObj.accept === 'function') {
+      callObj.accept();
+      attachRemoteAudio(callObj);
+    }
+    setActiveCall(callObj);
     setIncomingWebRtcCall(null);
     setCallStatus('connected');
+    setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
 
-    const callerFrom = incomingWebRtcCall.parameters.From || '';
-    const fromNormalized = callerFrom.replace(/\D/g, '').slice(-9);
-    const matched = (fromNormalized && fromNormalized.length >= 7)
-      ? leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(fromNormalized))
-      : undefined;
+    const callerFrom = incomingWebRtcCall.callerNumber || callObj.parameters?.From || '';
+    const matched = matchLeadByPhone(callerFrom, leads);
 
     if (matched) {
       setLiveNotesLead(matched);
@@ -955,7 +988,10 @@ export default function Home() {
 
   const handleRejectIncomingCall = () => {
     if (!incomingWebRtcCall) return;
-    incomingWebRtcCall.reject();
+    const callObj = incomingWebRtcCall.call || incomingWebRtcCall;
+    if (callObj && typeof callObj.reject === 'function') {
+      callObj.reject();
+    }
     setIncomingWebRtcCall(null);
   };
 
@@ -997,6 +1033,7 @@ export default function Home() {
         setIsMuted(false);
 
         call.on('accept', () => {
+          attachRemoteAudio(call);
           setCallStatus('connected');
           setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
         });
@@ -1684,42 +1721,6 @@ export default function Home() {
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Live Incoming Call Banner */}
-      {incomingCall && (
-        <div 
-          onClick={handleBannerClick}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-11/12 max-w-md bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-6 py-4 rounded-3xl shadow-[0_20px_60px_rgba(16,185,129,0.4)] border-2 border-emerald-400/40 animate-in fade-in slide-in-from-top-6 duration-500 flex items-center gap-4 cursor-pointer hover:scale-105 active:scale-95 transition-all" 
-          dir="rtl"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center animate-pulse flex-shrink-0">
-            <PhoneCall className="w-6 h-6 text-white animate-bounce" />
-          </div>
-          <div className="flex flex-col flex-1 text-right">
-            <span className="text-[10px] font-bold tracking-widest bg-emerald-500/50 text-emerald-100 px-2.5 py-0.5 rounded-full w-max mb-1 uppercase">
-              📞 שיחה נכנסת כעת
-            </span>
-            <span className="text-lg font-bold leading-tight text-white">
-              {incomingCall.callerName ? incomingCall.callerName : "לקוח חדש / לא מזוהה"}
-            </span>
-            <span className="text-xs font-mono font-bold text-emerald-100/90 mt-0.5" dir="ltr">
-              {incomingCall.from}
-            </span>
-          </div>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (incomingCall) {
-                dismissedCallTimestampRef.current = incomingCall.timestamp;
-              }
-              setIncomingCall(null);
-            }} 
-            className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors flex-shrink-0"
-          >
-            <X className="w-4 h-4 text-white/80" />
-          </button>
         </div>
       )}
 
