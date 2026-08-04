@@ -162,7 +162,6 @@ export async function POST(req: Request) {
       liveCallNotes: '',
       callCount: 0,
       urgency: 'בינונית' as const,
-      isStarred: isDuplicate,
       campaign: campaign || undefined
     };
 
