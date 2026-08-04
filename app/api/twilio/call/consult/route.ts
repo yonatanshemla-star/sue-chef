@@ -43,30 +43,49 @@ export async function POST(req: NextRequest) {
       console.log(`[Consult] Starting consultation - dialing Gil at ${e164Gil}, conference: ${confName}`);
 
       // Step 1: Find ALL active calls to identify the current WebRTC call and lead call
-      // The WebRTC client call is the parent, and it created a child call to the lead
       let agentCallSid = activeCallSid || '';
       let leadCallSid = '';
 
-      // Find active calls
       const callsRes = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?Status=in-progress&PageSize=20`,
         { headers: { Authorization: authHeader } }
       );
       const callsData = await callsRes.json();
-      const activeCalls = callsData.calls || [];
+      const activeCalls: any[] = callsData.calls || [];
 
       console.log(`[Consult] Found ${activeCalls.length} active calls`);
 
       for (const call of activeCalls) {
         console.log(`[Consult] Call SID=${call.sid}, From=${call.from}, To=${call.to}, Direction=${call.direction}, ParentCallSid=${call.parent_call_sid || 'none'}`);
-        
-        // The agent's WebRTC call originates from client:dashboard_user
-        if (call.from === 'client:dashboard_user' || call.from?.startsWith('client:')) {
-          agentCallSid = call.sid;
+      }
+
+      // Find WebRTC agent call (where From or To starts with client:)
+      const agentCall = activeCalls.find(call => 
+        call.from?.startsWith('client:') || call.to?.startsWith('client:')
+      );
+
+      if (agentCall) {
+        agentCallSid = agentCall.sid;
+
+        // If agentCall has a parent_call_sid, this is an INBOUND call (lead called browser). The parent call is the lead.
+        if (agentCall.parent_call_sid) {
+          leadCallSid = agentCall.parent_call_sid;
+        } else {
+          // If agentCall has no parent, this is an OUTBOUND call (browser called lead). The child call is the lead.
+          const childCall = activeCalls.find(call => call.parent_call_sid === agentCallSid);
+          if (childCall) {
+            leadCallSid = childCall.sid;
+          }
         }
-        // The lead call is the child call to an external number
-        if (call.parent_call_sid && !call.to?.startsWith('client:')) {
-          leadCallSid = call.sid;
+      }
+
+      // Fallback: If leadCallSid still not found, search for any active non-client call
+      if (!leadCallSid) {
+        const otherCall = activeCalls.find(call => 
+          call.sid !== agentCallSid && !call.from?.startsWith('client:') && !call.to?.startsWith('client:')
+        );
+        if (otherCall) {
+          leadCallSid = otherCall.sid;
         }
       }
 
@@ -75,13 +94,39 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'לא נמצאה שיחה פעילה מהדפדפן' });
       }
 
-      console.log(`[Consult] Agent call: ${agentCallSid}, Lead call: ${leadCallSid}`);
+      console.log(`[Consult] Resolved Agent call SID: ${agentCallSid}, Lead call SID: ${leadCallSid}`);
 
-      // Step 2: Redirect the agent's call into a conference
+      // Step 2: Redirect the lead's call FIRST so it doesn't get hung up when parent leaves <Dial>
+      if (leadCallSid) {
+        const leadConfTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial>
+    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="false">${confName}</Conference>
+  </Dial>
+</Response>`;
+
+        const updateLeadRes = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${leadCallSid}.json`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: authHeader,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ Twiml: leadConfTwiml }).toString(),
+          }
+        );
+        console.log(`[Consult] Redirect lead to conference first: ${updateLeadRes.status}`);
+      }
+
+      // Short delay to allow lead call to enter conference
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      // Step 3: Redirect the agent's call into the conference
       const agentConfTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial>
-    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="true" waitUrl="">${confName}</Conference>
+    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="true">${confName}</Conference>
   </Dial>
 </Response>`;
 
@@ -98,41 +143,42 @@ export async function POST(req: NextRequest) {
       );
       console.log(`[Consult] Redirect agent to conference: ${updateAgentRes.status}`);
 
-      // Step 3: Redirect the lead's call into the same conference, but on HOLD
-      if (leadCallSid) {
-        const leadConfTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial>
-    <Conference beep="false" startConferenceOnEnter="false" endConferenceOnExit="false" waitUrl="">${confName}</Conference>
-  </Dial>
-</Response>`;
+      // Step 4: Wait for conference to initialize, then set lead on HOLD in the conference
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const updateLeadRes = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${leadCallSid}.json`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: authHeader,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({ Twiml: leadConfTwiml }).toString(),
-          }
+      if (leadCallSid) {
+        // Find conference SID
+        const confsRes = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences.json?FriendlyName=${encodeURIComponent(confName)}&Status=in-progress`,
+          { headers: { Authorization: authHeader } }
         );
-        console.log(`[Consult] Redirect lead to conference (hold): ${updateLeadRes.status}`);
+        const confsData = await confsRes.json();
+        const confSid = confsData.conferences?.[0]?.sid;
+
+        if (confSid) {
+          // Put lead participant on HOLD (listens to music/silence, muted both ways)
+          const holdRes = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confSid}/Participants/${leadCallSid}.json`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: authHeader,
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({ Hold: 'true' }).toString(),
+            }
+          );
+          console.log(`[Consult] Placed lead ${leadCallSid} on HOLD in conf ${confSid}: ${holdRes.status}`);
+        }
       }
 
-      // Step 4: Wait a moment for the conference to be created, then dial Gil
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Dial Gil using Twilio REST API Calls (creates a new outbound call to Gil)
+      // Step 5: Dial Gil using Twilio REST API Calls into the conference
       const gilTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial>
-    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="false" waitUrl="">${confName}</Conference>
+    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="false">${confName}</Conference>
   </Dial>
 </Response>`;
-
-      const gilTwimlUrl = `${baseUrl}/api/twilio/call/consult-twiml?conf=${encodeURIComponent(confName)}&role=gil`;
 
       const gilCallParams = new URLSearchParams();
       gilCallParams.append('To', e164Gil);
@@ -179,7 +225,7 @@ export async function POST(req: NextRequest) {
 
       console.log(`[Consult] Merging conference: ${mergeConfName}`);
 
-      // Find the conference
+      // Find the active conference
       const confsRes = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences.json?FriendlyName=${encodeURIComponent(mergeConfName)}&Status=in-progress`,
         { headers: { Authorization: authHeader } }
@@ -192,40 +238,70 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'לא נמצאה ועידה פעילה' });
       }
 
-      // Find ALL calls in the system to locate the lead call that is on hold music
-      const callsRes = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?Status=in-progress&PageSize=20`,
+      const confSid = activeConf.sid;
+
+      // Get all participants in the conference
+      const partsRes = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confSid}/Participants.json`,
         { headers: { Authorization: authHeader } }
       );
-      const callsData = await callsRes.json();
-      const activeCalls = callsData.calls || [];
+      const partsData = await partsRes.json();
+      const participants = partsData.participants || [];
 
-      // Find the lead call (the one with a parent_call_sid or the one connected to an external number that's not Gil)
-      for (const call of activeCalls) {
-        // Look for calls that are in-progress but NOT in the conference (lead on hold music)
-        if (call.parent_call_sid && !call.to?.startsWith('client:')) {
-          // This is likely the lead - redirect them into the conference with startConferenceOnEnter=true
-          const mergeLeadTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial>
-    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="false" waitUrl="">${mergeConfName}</Conference>
-  </Dial>
-</Response>`;
+      console.log(`[Consult] Found ${participants.length} participants in conference ${confSid}`);
 
-          await fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${call.sid}.json`,
+      // Unhold any participant that is currently on hold (the lead)
+      let unheldCount = 0;
+      for (const p of participants) {
+        if (p.hold) {
+          const unholdRes = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confSid}/Participants/${p.call_sid}.json`,
             {
               method: 'POST',
               headers: {
                 Authorization: authHeader,
                 'Content-Type': 'application/x-www-form-urlencoded',
               },
-              body: new URLSearchParams({ Twiml: mergeLeadTwiml }).toString(),
+              body: new URLSearchParams({ Hold: 'false' }).toString(),
             }
-          ).catch(err => console.error('[Consult] Failed to merge lead:', err));
+          );
+          console.log(`[Consult] Unheld participant ${p.call_sid}: ${unholdRes.status}`);
+          unheldCount++;
+        }
+      }
 
-          console.log(`[Consult] Merged lead call ${call.sid} into conference`);
-          break;
+      // Fallback: If no held participant was found, check active calls and add lead if missing
+      if (unheldCount === 0) {
+        console.log('[Consult] No held participants found, checking active calls for lead fallback...');
+        const callsRes = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls.json?Status=in-progress&PageSize=20`,
+          { headers: { Authorization: authHeader } }
+        );
+        const callsData = await callsRes.json();
+        const activeCalls = callsData.calls || [];
+
+        for (const call of activeCalls) {
+          if (call.parent_call_sid && !call.to?.startsWith('client:')) {
+            const mergeLeadTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial>
+    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="false">${mergeConfName}</Conference>
+  </Dial>
+</Response>`;
+
+            await fetch(
+              `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${call.sid}.json`,
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: authHeader,
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ Twiml: mergeLeadTwiml }).toString(),
+              }
+            ).catch(err => console.error('[Consult] Failed to merge lead:', err));
+            break;
+          }
         }
       }
 
