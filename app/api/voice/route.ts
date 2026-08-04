@@ -11,21 +11,38 @@ export async function POST(req: Request) {
      
      await logVoiceRequest(rawData);
 
-     const from = rawData['From'] || '';
-     let to = rawData['phone'] || rawData['Phone'] || rawData['targetPhone'] || rawData['to'] || rawData['To'] || ''; 
-     
+     const from = rawData['From'] || rawData['from'] || '';
      const fromStr = from.toString();
-     let toStr = to.toString();
-
-     // If toStr is a TwiML App SID (starts with AP), fallback to custom phone parameters
-     if (toStr.startsWith('AP')) {
-       toStr = rawData['phone'] || rawData['Phone'] || rawData['targetPhone'] || rawData['to'] || rawData['customTo'] || '';
-     }
-
      const isFromApp = fromStr.startsWith('client:');
      const isFromSip = fromStr.startsWith('sip:');
+
+     // Find target phone number from rawData
+     let candidateTo = '';
+
+     // 1. Check explicit parameter keys first, ignoring AP app SIDs and client identities
+     const keysToTest = ['phone', 'Phone', 'targetPhone', 'TargetPhone', 'customTo', 'custom_to', 'customPhone', 'custom_phone', 'to', 'To'];
+     for (const k of keysToTest) {
+       const val = rawData[k];
+       if (val && typeof val === 'string' && !val.startsWith('AP') && !val.startsWith('client:')) {
+         candidateTo = val;
+         break;
+       }
+     }
+
+     // 2. Fallback: Search all rawData keys for a valid phone string if not matched above
+     if (!candidateTo) {
+       for (const [key, val] of Object.entries(rawData)) {
+         if (val && typeof val === 'string' && !val.startsWith('AP') && !val.startsWith('client:')) {
+           const cleaned = val.replace(/[^\d+]/g, '');
+           if (cleaned.length >= 7 && cleaned.length <= 15) {
+             candidateTo = val;
+             break;
+           }
+         }
+       }
+     }
      
-     const digitsOnly = toStr.split('@')[0].replace('sip:', '').replace(/[^\d+]/g, '');
+     const digitsOnly = candidateTo.split('@')[0].replace('sip:', '').replace(/[^\d+]/g, '');
      let toValue = digitsOnly;
 
      if (toValue.startsWith('0') && toValue.length === 10) {
