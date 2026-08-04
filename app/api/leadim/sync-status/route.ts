@@ -11,17 +11,21 @@ function logSync(msg: string) {
   } catch (e) {}
 }
 
-// Map Sue-Chef internal status labels to Lead.IM Hebrew status names
-const LEADIM_STATUS_MAP: Record<string, string> = {
+// Map Sue-Chef internal status labels to Lead.IM Hebrew status names exactly as specified
+const LEADIM_STATUS_MAP: Record<string, string | null> = {
   'חדש': 'חדש',
   'לא ענה': 'אין מענה',
-  'לחזור אליו': 'פנייה חוזרת',
+  'לחזור אליו': 'ליד יונתן',
   'גילי צריך לדבר איתו': 'ליד יונתן',
-  'מחכה לחתימה': 'מחכה לחתימה',
-  'חתם': 'רלוונטי',
+  'בבדיקה עם גילי': 'ליד יונתן',
+  'מחכה לחתימה': 'ליד יונתן',
+  'חתם': 'נסגרה עסקה',
   'רלוונטי - לעקוב': 'רלוונטי',
-  'לא רלוונטי': 'פסול - לא רלוונטי',
+  'ממתין לעדכון': null, // Do not change status in Lead.IM
+  'אחר': 'ליד יונתן',
+  'במעקב': 'רלוונטי',
   'נגמר': 'פסול - לא רלוונטי',
+  'לא רלוונטי': 'פסול - לא רלוונטי',
   'מספר שגוי': 'פסול - לא רלוונטי',
 };
 
@@ -32,7 +36,15 @@ export async function POST(req: NextRequest) {
 
     logSync(`Received status sync request for lead ${leadId} (${phone || leadimId}): status="${status}"`);
 
-    const leadimStatus = LEADIM_STATUS_MAP[status] || status;
+    const mappedStatus = LEADIM_STATUS_MAP[status];
+
+    // If status is 'ממתין לעדכון' (mapped to null), do not trigger any change in Lead.IM
+    if (mappedStatus === null) {
+      logSync(`Status "${status}" is mapped to null (do not update Lead.IM). Skipping sync.`);
+      return NextResponse.json({ success: true, skipped: true, message: 'סטטוס זה מוגדר שלא לשנות כלום ב-Lead.IM' });
+    }
+
+    const leadimStatus = mappedStatus !== undefined ? mappedStatus : status;
     
     // Check credentials from environment variables
     const username = process.env.LEADIM_USERNAME || process.env.LEADIM_EMAIL;
