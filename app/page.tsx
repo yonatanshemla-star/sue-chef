@@ -1223,10 +1223,37 @@ const ringback = new RingbackGenerator();
           setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
         });
 
-        call.on('disconnect', () => {
+        call.on('disconnect', (call: any) => {
+          console.log('[WebRTC] Call disconnected (lead or agent hung up)');
           ringback.stop();
           setCallStatus('completed');
           setCallStatusMessage('השיחה הסתיימה');
+          setActiveCall(null);
+          setConsultMode('idle');
+          setConsultConfName('');
+          setTimeout(() => {
+            setCallStatus('idle');
+            setCallStatusMessage(null);
+          }, 3000);
+        });
+
+        call.on('cancel', () => {
+          console.log('[WebRTC] Call cancelled (lead rejected or no answer)');
+          ringback.stop();
+          setCallStatus('completed');
+          setCallStatusMessage('הליד לא ענה / דחה את השיחה');
+          setActiveCall(null);
+          setTimeout(() => {
+            setCallStatus('idle');
+            setCallStatusMessage(null);
+          }, 3000);
+        });
+
+        call.on('reject', () => {
+          console.log('[WebRTC] Call rejected');
+          ringback.stop();
+          setCallStatus('completed');
+          setCallStatusMessage('השיחה נדחתה');
           setActiveCall(null);
           setTimeout(() => {
             setCallStatus('idle');
