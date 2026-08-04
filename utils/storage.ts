@@ -44,6 +44,7 @@ export interface Lead {
   isStarred?: boolean;
   whatsappReplyAnalyzed?: boolean;
   campaign?: string;
+  leadimId?: string;
   aiTasks?: AITask[];
 }
 

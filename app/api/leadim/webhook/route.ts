@@ -139,6 +139,9 @@ export async function POST(req: Request) {
     
     const generalNotes = notesParts.join('\n');
 
+    const leadimIdKeys = ['lm_lead_id', 'lead_id', 'lm_id', 'leadid', 'id', 'lm_leadid'];
+    const leadimId = findValueByKeys(data, leadimIdKeys) || undefined;
+
     // Create a new lead conforming to the internal Lead interface
     const newLead = {
       id: uuidv4(),
@@ -153,7 +156,8 @@ export async function POST(req: Request) {
       liveCallNotes: '',
       callCount: 0,
       urgency: 'בינונית' as const,
-      campaign: campaign || undefined
+      campaign: campaign || undefined,
+      leadimId: leadimId ? leadimId.toString() : undefined,
     };
 
     // Save lead to database

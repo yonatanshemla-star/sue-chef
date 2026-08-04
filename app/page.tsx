@@ -187,10 +187,19 @@ export default function Home() {
   const [consultMode, setConsultMode] = useState<'idle' | 'calling_gil' | 'in_consultation' | 'merged'>('idle');
   const [consultConfName, setConsultConfName] = useState<string>('');
 
+  const [leadimUsername, setLeadimUsername] = useState<string>('');
+  const [leadimPassword, setLeadimPassword] = useState<string>('');
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedGil = localStorage.getItem('lawyerGilPhone');
       setLawyerGilPhone(savedGil || '0509833303');
+
+      const savedLeadimUser = localStorage.getItem('leadimUsername');
+      if (savedLeadimUser) setLeadimUsername(savedLeadimUser);
+
+      const savedLeadimPass = localStorage.getItem('leadimPassword');
+      if (savedLeadimPass) setLeadimPassword(savedLeadimPass);
     }
   }, []);
 
@@ -739,6 +748,19 @@ export default function Home() {
         const history = currentLead.statusHistory || [];
         updates.statusHistory = [...history, { from: currentLead.status, to: updates.status, timestamp: new Date().toISOString() }];
       }
+
+      // Asynchronously trigger Lead.IM status sync in background
+      fetch('/api/leadim/sync-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: id,
+          phone: currentLead?.phone,
+          leadimId: currentLead?.leadimId,
+          status: updates.status,
+          disqualificationReason: updates.disqualificationReason || currentLead?.disqualificationReason,
+        }),
+      }).catch(err => console.warn('LeadIM status sync trigger error:', err));
     }
     
     // 1. Immediately update local states synchronously for 100% lag-free typing!
@@ -3339,11 +3361,53 @@ const ringback = new RingbackGenerator();
                 <input 
                   type="text" 
                   dir="ltr"
-                  placeholder="לדוגמה: 0541234567 או +97254..." 
                   value={lawyerGilPhone} 
                   onChange={(e) => handleUpdateLawyerGilPhone(e.target.value)} 
                   className="w-full max-w-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-6 py-4 text-left text-lg font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner" 
                 />
+              </div>
+
+              {/* Lead.IM Auto Sync Settings Section */}
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>🔄 סנכרון אוטומטי ל-Lead.IM</span>
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">
+                  הזן את פרטי ההתחברות שלך ל-Lead.IM. ברגע שתעדכן סטטוס בטבלה ב-Sue-Chef, המערכת תעדכן את הסטטוס אוטומטית ברקע ב-Lead.IM.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-2">שם משתמש / מייל ב-Lead.IM</label>
+                    <input 
+                      type="text" 
+                      dir="ltr"
+                      placeholder="user@example.com" 
+                      value={leadimUsername} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setLeadimUsername(val);
+                        localStorage.setItem('leadimUsername', val);
+                      }} 
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-3.5 text-left text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-2">סיסמה ב-Lead.IM</label>
+                    <input 
+                      type="password" 
+                      dir="ltr"
+                      placeholder="••••••••" 
+                      value={leadimPassword} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setLeadimPassword(val);
+                        localStorage.setItem('leadimPassword', val);
+                      }} 
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-3.5 text-left text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner" 
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Audio & Hardware Settings Section */}
