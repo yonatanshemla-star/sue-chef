@@ -137,15 +137,6 @@ export async function POST(req: Request) {
       notesParts.push(`דוא"ל: ${email}`);
     }
     
-    const allLeads = await getLeads();
-    const existingLead = phone ? matchLeadByPhone(phone, allLeads) : undefined;
-    const isDuplicate = Boolean(existingLead);
-
-    if (isDuplicate && existingLead) {
-      logInfo(`Duplicate phone detected for LeadIM webhook: ${phone} (Matches existing lead: ${existingLead.clientName}). Creating new lead with isStarred=true.`);
-      notesParts.unshift(`[⭐ ליד כפול - מופיע כבר במערכת תחת "${existingLead.clientName}"]`);
-    }
-
     const generalNotes = notesParts.join('\n');
 
     // Create a new lead conforming to the internal Lead interface
