@@ -775,6 +775,7 @@ export default function Home() {
         body: JSON.stringify({
           leadId: id,
           phone: currentLead?.phone,
+          clientName: currentLead?.clientName,
           leadimId: currentLead?.leadimId,
           status: updates.status,
           disqualificationReason: updates.disqualificationReason || currentLead?.disqualificationReason,
@@ -868,6 +869,7 @@ export default function Home() {
             body: JSON.stringify({
               leadId: id,
               phone: currentLead?.phone,
+              clientName: currentLead?.clientName,
               leadimId: currentLead?.leadimId,
               status: targetStatus,
               disqualificationReason: reason,

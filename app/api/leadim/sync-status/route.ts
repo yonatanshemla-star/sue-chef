@@ -32,9 +32,9 @@ const LEADIM_NUMERIC_STATUS_MAP: Record<string, string | null> = {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { leadId, phone, leadimId, status } = body;
+    const { leadId, phone, leadimId, clientName, status } = body;
 
-    logSync(`Received status sync request for lead ${leadId} (leadimId=${leadimId}, phone=${phone}): status="${status}"`);
+    logSync(`Received status sync request for lead ${leadId} (leadimId=${leadimId}, phone=${phone}, clientName=${clientName}): status="${status}"`);
 
     const numericStatusId = LEADIM_NUMERIC_STATUS_MAP[status];
 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     const authCookie = loginRes.headers.get('set-cookie');
     const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // Step 3: GET leads page to get active ViewState
+    // Step 3: GET leads page to get active ViewState & lead table rows
     const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
       headers: {
         'Cookie': allCookies,
@@ -100,20 +100,39 @@ export async function POST(req: NextRequest) {
     const leadsViewstate = leadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
     const leadsViewstategen = leadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
 
-    // Step 4: Resolve target leadimId if not provided (by searching by phone)
+    // Step 4: Resolve target leadimId by parsing exact table rows in leadsHtml
     let targetLeadimId = leadimId;
-    if (!targetLeadimId && phone) {
-      const cleanPhone = phone.replace(/\D/g, '').slice(-9);
-      const match = leadsHtml.match(new RegExp(`1#${accountId}#(\\d+)#[^"']*${cleanPhone.slice(-7)}`, 'i')) ||
-                    leadsHtml.match(new RegExp(`1#${accountId}#(\\d+)#`, 'i'));
-      if (match) {
-        targetLeadimId = match[1];
+    if (!targetLeadimId) {
+      const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+      while ((trMatch = trRegex.exec(leadsHtml)) !== null) {
+        const rowLeadId = trMatch[1];
+        const rowContent = trMatch[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+        let isMatch = false;
+        if (phone) {
+          const cleanPhone = phone.replace(/\D/g, '').slice(-7);
+          if (cleanPhone.length >= 7 && rowContent.includes(cleanPhone)) {
+            isMatch = true;
+          }
+        }
+
+        if (!isMatch && clientName && clientName.length >= 2) {
+          if (rowContent.includes(clientName)) {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch) {
+          targetLeadimId = rowLeadId;
+          break;
+        }
       }
     }
 
     if (!targetLeadimId) {
-      logSync(`Could not resolve Lead.IM lead ID for phone ${phone}`);
-      return NextResponse.json({ success: false, error: 'לא נמצא מזהה ליד ב-Lead.IM' });
+      logSync(`STRICT SAFETY CHECK: Could not match exact lead in Lead.IM for phone="${phone}", clientName="${clientName}". Aborting sync.`);
+      return NextResponse.json({ success: false, error: 'לא נמצאה התאמה מדויקת לליד ב-Lead.IM' });
     }
 
     // Step 5: Execute leads_chngstt command
