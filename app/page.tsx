@@ -208,6 +208,25 @@ export default function Home() {
     localStorage.setItem('lawyerGilPhone', val);
   };
 
+  const [isSyncingRetro, setIsSyncingRetro] = useState<boolean>(false);
+
+  const handleRetroactiveSync = async () => {
+    setIsSyncingRetro(true);
+    try {
+      const res = await fetch('/api/leadim/sync-retroactive');
+      const data = await res.json();
+      if (data.success) {
+        alert(`הסנכרון בדיעבד הושלם בהצלחה! סונכרנו ${data.archivedLeadsSynced} לידים שהיו במצב נגמר/פסול.`);
+      } else {
+        alert(data.error || 'שגיאה בביצוע סנכרון בדיעבד');
+      }
+    } catch (e: any) {
+      alert('שגיאת תקשורת בביצוע סנכרון בדיעבד');
+    } finally {
+      setIsSyncingRetro(false);
+    }
+  };
+
   const handleStartConsultWithGil = async () => {
     if (!liveNotesLead && !activeCall) return;
     try {
@@ -3415,9 +3434,23 @@ const ringback = new RingbackGenerator();
                         setLeadimPassword(val);
                         localStorage.setItem('leadimPassword', val);
                       }} 
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-3.5 text-left text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner" 
                     />
                   </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-4">
+                  <p className="text-xs font-medium text-slate-400">
+                    לחץ כאן לסנכרון בדיעבד של כל הלידים שהועברו בעבר ל-"נגמר" / "לא רלוונטי" ל-Lead.IM:
+                  </p>
+                  <button
+                    type="button"
+                    disabled={isSyncingRetro}
+                    onClick={handleRetroactiveSync}
+                    className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 flex-shrink-0"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isSyncingRetro ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingRetro ? 'מסנכרן בדיעבד...' : 'סנכרן לידים בדיעבד ל-Lead.IM'}</span>
+                  </button>
                 </div>
               </div>
 
