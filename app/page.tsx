@@ -312,19 +312,41 @@ export default function Home() {
       pendingDisqualification ||
       showImportModal ||
       historyLead ||
-      isDrawerOpen
+      isDrawerOpen ||
+      incomingWebRtcCall
     );
 
     if (isAnyModalOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
     } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
 
     return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     };
-  }, [liveNotesLead, showAudioSettings, pendingDisqualification, showImportModal, historyLead, isDrawerOpen]);
+  }, [liveNotesLead, showAudioSettings, pendingDisqualification, showImportModal, historyLead, isDrawerOpen, incomingWebRtcCall]);
 
   const openStatusDropdown = (e: React.MouseEvent, leadId: string) => {
     e.stopPropagation();
@@ -519,15 +541,7 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Scroll Lock for modal
-  useEffect(() => {
-    if (liveNotesLead || isDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => { document.body.style.overflow = 'auto'; };
-  }, [liveNotesLead, isDrawerOpen]);
+
 
   // Poll Twilio call status
   useEffect(() => {
