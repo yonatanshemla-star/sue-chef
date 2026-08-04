@@ -843,6 +843,17 @@ export default function Home() {
         setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
         try {
           await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...updates }) });
+          fetch('/api/leadim/sync-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              leadId: id,
+              phone: currentLead?.phone,
+              leadimId: currentLead?.leadimId,
+              status: targetStatus,
+              disqualificationReason: reason,
+            }),
+          }).catch(() => {});
         } catch (e) { console.error(e); fetchLeads(); }
     }
     setPendingDisqualification(null);
