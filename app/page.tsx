@@ -1958,14 +1958,17 @@ const ringback = new RingbackGenerator();
               </span>
               <h4 className="font-bold text-base text-white mt-1 leading-tight">
                 {(() => {
-                  const fromNum = incomingWebRtcCall.parameters?.From || '';
-                  const norm = fromNum.replace(/\D/g, '').slice(-9);
-                  const matched = norm ? leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(norm)) : undefined;
-                  return matched ? matched.clientName : 'שיחה נכנסת (מספר חדש)';
+                  const callObj = incomingWebRtcCall.call || incomingWebRtcCall;
+                  const callerFrom = incomingWebRtcCall.callerNumber || callObj.parameters?.From || callObj.parameters?.FromNumber || '';
+                  const matched = matchLeadByPhone(callerFrom, leads);
+                  return matched ? matched.clientName : (callerFrom ? `שיחה נכנסת (${callerFrom})` : 'שיחה נכנסת (מספר חדש)');
                 })()}
               </h4>
               <p className="text-xs font-mono text-emerald-200/90 mt-0.5" dir="ltr">
-                {incomingWebRtcCall.parameters?.From || ''}
+                {(() => {
+                  const callObj = incomingWebRtcCall.call || incomingWebRtcCall;
+                  return incomingWebRtcCall.callerNumber || callObj.parameters?.From || '';
+                })()}
               </p>
             </div>
           </div>
