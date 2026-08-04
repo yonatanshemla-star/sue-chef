@@ -12,21 +12,21 @@ function logSync(msg: string) {
   } catch (e) {}
 }
 
-const LEADIM_STATUS_MAP: Record<string, string | null> = {
-  'חדש': 'חדש',
-  'לא ענה': 'אין מענה',
-  'לחזור אליו': 'ליד יונתן',
-  'גילי צריך לדבר איתו': 'ליד יונתן',
-  'בבדיקה עם גילי': 'ליד יונתן',
-  'מחכה לחתימה': 'ליד יונתן',
-  'חתם': 'נסגרה עסקה',
-  'רלוונטי - לעקוב': 'רלוונטי',
+const LEADIM_NUMERIC_STATUS_MAP: Record<string, string | null> = {
+  'חדש': '1',
+  'לא ענה': '223854',
+  'לחזור אליו': '335898',
+  'גילי צריך לדבר איתו': '335898',
+  'בבדיקה עם גילי': '335898',
+  'מחכה לחתימה': '335898',
+  'חתם': '223856',
+  'רלוונטי - לעקוב': '245310',
   'ממתין לעדכון': null,
-  'אחר': 'ליד יונתן',
-  'במעקב': 'רלוונטי',
-  'נגמר': 'פסול - לא רלוונטי',
-  'לא רלוונטי': 'פסול - לא רלוונטי',
-  'מספר שגוי': 'פסול - לא רלוונטי',
+  'אחר': '335898',
+  'במעקב': '245310',
+  'נגמר': '223857',
+  'לא רלוונטי': '223857',
+  'מספר שגוי': '223857',
 };
 
 export async function GET(req: NextRequest) {
@@ -38,43 +38,93 @@ export async function GET(req: NextRequest) {
     const password = process.env.LEADIM_PASSWORD || 'Gili0394!!';
     const accountId = process.env.LEADIM_ACCOUNT_ID || '6553';
 
-    // Step 1: Login to Lead.IM
-    const loginRes = await fetch(`https://sys.lead.im/a/${accountId}/login`, {
+    // Step 1: GET login page & extract initial cookies & ViewState
+    const getRes = await fetch('https://sys.lead.im/account/login', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    const initCookie = getRes.headers.get('set-cookie');
+    const html = await getRes.text();
+
+    const viewstate = html.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+    const viewstategen = html.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+    // Step 2: Login via ASP.NET WebForms scms command
+    const loginParams = new URLSearchParams();
+    loginParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    loginParams.append('__EVENTARGUMENT', '');
+    loginParams.append('__CMD', 'login');
+    loginParams.append('__ARG', '');
+    loginParams.append('__VIEWSTATE', viewstate);
+    loginParams.append('__VIEWSTATEGENERATOR', viewstategen);
+    loginParams.append('lm$mpi$scms_csm_txt', 'passed');
+    loginParams.append('lm$contMain$txtUser', username);
+    loginParams.append('lm$contMain$txtPass', password);
+
+    const loginRes = await fetch('https://sys.lead.im/account/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username, password, email: username }).toString(),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': initCookie || '',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: loginParams.toString(),
+      redirect: 'manual',
     });
 
-    const setCookieHeader = loginRes.headers.get('set-cookie');
-    if (!setCookieHeader) {
-      logSync('Failed to get session cookie from Lead.IM');
-      return NextResponse.json({ success: false, error: 'Lead.IM login failed' });
-    }
-    logSync('Successfully logged into Lead.IM!');
+    const authCookie = loginRes.headers.get('set-cookie');
+    const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // Filter leads with status 'נגמר', 'לא רלוונטי', 'מספר שגוי'
+    // Step 3: GET leads page
+    const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      headers: {
+        'Cookie': allCookies,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+    });
+
+    const leadsHtml = await leadsPageRes.text();
+    const leadsViewstate = leadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+    const leadsViewstategen = leadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+    // Filter leads that need sync
     const targetLeads = leads.filter(l => l.status === 'נגמר' || l.status === 'לא רלוונטי' || l.status === 'מספר שגוי');
     logSync(`Found ${targetLeads.length} leads with archived/disqualified status to sync retroactively.`);
 
     let updatedCount = 0;
     for (const lead of targetLeads) {
-      const targetLeadimStatus = LEADIM_STATUS_MAP[lead.status];
-      if (!targetLeadimStatus) continue;
+      const numericStatusId = LEADIM_NUMERIC_STATUS_MAP[lead.status];
+      if (!numericStatusId) continue;
 
-      logSync(`Syncing lead: ${lead.clientName} (${lead.phone || lead.leadimId}) -> ${targetLeadimStatus}`);
+      let targetLeadimId = lead.leadimId;
+      if (!targetLeadimId && lead.phone) {
+        const cleanPhone = lead.phone.replace(/\D/g, '').slice(-9);
+        const match = leadsHtml.match(new RegExp(`1#${accountId}#(\\d+)#[^"']*${cleanPhone.slice(-7)}`, 'i'));
+        if (match) {
+          targetLeadimId = match[1];
+        }
+      }
+
+      if (!targetLeadimId) continue;
+
+      logSync(`Retro-syncing lead: ${lead.clientName} (${targetLeadimId}) -> status ID ${numericStatusId}`);
       try {
-        const updateRes = await fetch(`https://sys.lead.im/a/${accountId}/ajax/update_status`, {
+        const updateParams = new URLSearchParams();
+        updateParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+        updateParams.append('__EVENTARGUMENT', '');
+        updateParams.append('__CMD', 'leads_chngstt');
+        updateParams.append('__ARG', `1#${accountId}#${targetLeadimId}#${numericStatusId}`);
+        updateParams.append('__VIEWSTATE', leadsViewstate);
+        updateParams.append('__VIEWSTATEGENERATOR', leadsViewstategen);
+        updateParams.append('lm$mpi$scms_csm_txt', 'passed');
+
+        const updateRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Cookie': setCookieHeader,
+            'Cookie': allCookies,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           },
-          body: new URLSearchParams({
-            lead_id: lead.leadimId || '',
-            phone: lead.phone || '',
-            status: targetLeadimStatus,
-            reason: lead.disqualificationReason || '',
-          }).toString(),
+          body: updateParams.toString(),
         });
         logSync(`Updated ${lead.clientName}: status code ${updateRes.status}`);
         updatedCount++;

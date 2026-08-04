@@ -11,111 +11,140 @@ function logSync(msg: string) {
   } catch (e) {}
 }
 
-// Map Sue-Chef internal status labels to Lead.IM Hebrew status names exactly as specified
-const LEADIM_STATUS_MAP: Record<string, string | null> = {
-  'חדש': 'חדש',
-  'לא ענה': 'אין מענה',
-  'לחזור אליו': 'ליד יונתן',
-  'גילי צריך לדבר איתו': 'ליד יונתן',
-  'בבדיקה עם גילי': 'ליד יונתן',
-  'מחכה לחתימה': 'ליד יונתן',
-  'חתם': 'נסגרה עסקה',
-  'רלוונטי - לעקוב': 'רלוונטי',
-  'ממתין לעדכון': null, // Do not change status in Lead.IM
-  'אחר': 'ליד יונתן',
-  'במעקב': 'רלוונטי',
-  'נגמר': 'פסול - לא רלוונטי',
-  'לא רלוונטי': 'פסול - לא רלוונטי',
-  'מספר שגוי': 'פסול - לא רלוונטי',
+// Exact Lead.IM internal status numeric IDs mapped from Sue-Chef statuses
+const LEADIM_NUMERIC_STATUS_MAP: Record<string, string | null> = {
+  'חדש': '1',                  // חדש
+  'לא ענה': '223854',           // אין מענה
+  'לחזור אליו': '335898',        // ליד יונתן
+  'גילי צריך לדבר איתו': '335898', // ליד יונתן
+  'בבדיקה עם גילי': '335898',    // ליד יונתן
+  'מחכה לחתימה': '335898',       // ליד יונתן
+  'חתם': '223856',               // נסגרה עיסקה
+  'רלוונטי - לעקוב': '245310',   // רלוונטי
+  'ממתין לעדכון': null,           // אל תשנה כלום
+  'אחר': '335898',               // ליד יונתן
+  'במעקב': '245310',             // רלוונטי
+  'נגמר': '223857',              // נפסל - לא רלוונטי
+  'לא רלוונטי': '223857',        // נפסל - לא רלוונטי
+  'מספר שגוי': '223857',         // נפסל - לא רלוונטי
 };
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { leadId, phone, leadimId, status, disqualificationReason } = body;
+    const { leadId, phone, leadimId, status } = body;
 
-    logSync(`Received status sync request for lead ${leadId} (${phone || leadimId}): status="${status}"`);
+    logSync(`Received status sync request for lead ${leadId} (leadimId=${leadimId}, phone=${phone}): status="${status}"`);
 
-    const mappedStatus = LEADIM_STATUS_MAP[status];
+    const numericStatusId = LEADIM_NUMERIC_STATUS_MAP[status];
 
-    // If status is 'ממתין לעדכון' (mapped to null), do not trigger any change in Lead.IM
-    if (mappedStatus === null) {
-      logSync(`Status "${status}" is mapped to null (do not update Lead.IM). Skipping sync.`);
+    if (numericStatusId === null) {
+      logSync(`Status "${status}" mapped to null (do not change Lead.IM). Skipping.`);
       return NextResponse.json({ success: true, skipped: true, message: 'סטטוס זה מוגדר שלא לשנות כלום ב-Lead.IM' });
     }
 
-    const leadimStatus = mappedStatus !== undefined ? mappedStatus : status;
-    
-    // Check credentials from environment variables
-    const username = process.env.LEADIM_USERNAME || process.env.LEADIM_EMAIL;
-    const password = process.env.LEADIM_PASSWORD;
-    const apiKey = process.env.LEADIM_API_KEY;
+    if (!numericStatusId) {
+      logSync(`Status "${status}" has no numeric Lead.IM mapping. Skipping.`);
+      return NextResponse.json({ success: false, error: 'אין מיפוי סטטוס מתאים ל-Lead.IM' });
+    }
+
+    const username = process.env.LEADIM_USERNAME || 'gili.harutz@gmail.com';
+    const password = process.env.LEADIM_PASSWORD || 'Gili0394!!';
     const accountId = process.env.LEADIM_ACCOUNT_ID || '6553';
 
-    logSync(`Syncing to Lead.IM account ${accountId} -> LeadIM Status: "${leadimStatus}"`);
+    // Step 1: GET login page & extract initial cookies & ViewState
+    const getRes = await fetch('https://sys.lead.im/account/login', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    const initCookie = getRes.headers.get('set-cookie');
+    const html = await getRes.text();
 
-    // If user provided a webhook URL in environment variables, trigger it directly
-    const webhookUrl = process.env.LEADIM_STATUS_WEBHOOK_URL;
-    if (webhookUrl) {
-      try {
-        const res = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lead_id: leadimId,
-            phone,
-            status: leadimStatus,
-            original_status: status,
-            disqualification_reason: disqualificationReason || '',
-            updated_at: new Date().toISOString(),
-          }),
-        });
-        logSync(`Webhook trigger response status: ${res.status}`);
-      } catch (err: any) {
-        logSync(`Webhook trigger error: ${err.message}`);
+    const viewstate = html.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+    const viewstategen = html.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+    // Step 2: Login via ASP.NET WebForms scms command
+    const loginParams = new URLSearchParams();
+    loginParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    loginParams.append('__EVENTARGUMENT', '');
+    loginParams.append('__CMD', 'login');
+    loginParams.append('__ARG', '');
+    loginParams.append('__VIEWSTATE', viewstate);
+    loginParams.append('__VIEWSTATEGENERATOR', viewstategen);
+    loginParams.append('lm$mpi$scms_csm_txt', 'passed');
+    loginParams.append('lm$contMain$txtUser', username);
+    loginParams.append('lm$contMain$txtPass', password);
+
+    const loginRes = await fetch('https://sys.lead.im/account/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': initCookie || '',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: loginParams.toString(),
+      redirect: 'manual',
+    });
+
+    const authCookie = loginRes.headers.get('set-cookie');
+    const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
+
+    // Step 3: GET leads page to get active ViewState
+    const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      headers: {
+        'Cookie': allCookies,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+    });
+
+    const leadsHtml = await leadsPageRes.text();
+    const leadsViewstate = leadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+    const leadsViewstategen = leadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+    // Step 4: Resolve target leadimId if not provided (by searching by phone)
+    let targetLeadimId = leadimId;
+    if (!targetLeadimId && phone) {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-9);
+      const match = leadsHtml.match(new RegExp(`1#${accountId}#(\\d+)#[^"']*${cleanPhone.slice(-7)}`, 'i')) ||
+                    leadsHtml.match(new RegExp(`1#${accountId}#(\\d+)#`, 'i'));
+      if (match) {
+        targetLeadimId = match[1];
       }
     }
 
-    // Try direct login & status update simulation if credentials exist
-    if (username && password) {
-      try {
-        // Step 1: Login to Lead.IM to establish session cookie
-        const loginRes = await fetch(`https://sys.lead.im/a/${accountId}/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ username, password, email: username }).toString(),
-        });
-
-        const setCookieHeader = loginRes.headers.get('set-cookie');
-
-        if (setCookieHeader) {
-          // Step 2: Post status update
-          const updateRes = await fetch(`https://sys.lead.im/a/${accountId}/ajax/update_status`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Cookie': setCookieHeader,
-            },
-            body: new URLSearchParams({
-              lead_id: leadimId || '',
-              phone: phone || '',
-              status: leadimStatus,
-              reason: disqualificationReason || '',
-            }).toString(),
-          });
-
-          logSync(`Internal Lead.IM AJAX update response status: ${updateRes.status}`);
-        }
-      } catch (e: any) {
-        logSync(`Login/AJAX simulation notice: ${e.message}`);
-      }
+    if (!targetLeadimId) {
+      logSync(`Could not resolve Lead.IM lead ID for phone ${phone}`);
+      return NextResponse.json({ success: false, error: 'לא נמצא מזהה ליד ב-Lead.IM' });
     }
+
+    // Step 5: Execute leads_chngstt command
+    logSync(`Updating Lead.IM lead ${targetLeadimId} to numeric status ID ${numericStatusId}...`);
+
+    const updateParams = new URLSearchParams();
+    updateParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    updateParams.append('__EVENTARGUMENT', '');
+    updateParams.append('__CMD', 'leads_chngstt');
+    updateParams.append('__ARG', `1#${accountId}#${targetLeadimId}#${numericStatusId}`);
+    updateParams.append('__VIEWSTATE', leadsViewstate);
+    updateParams.append('__VIEWSTATEGENERATOR', leadsViewstategen);
+    updateParams.append('lm$mpi$scms_csm_txt', 'passed');
+
+    const updateRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': allCookies,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: updateParams.toString(),
+    });
+
+    logSync(`Lead.IM update status response: ${updateRes.status}`);
 
     return NextResponse.json({
       success: true,
-      syncedStatus: leadimStatus,
-      leadimId: leadimId || null,
-      message: 'בקשת הסנכרון ל-Lead.IM נשלחה בהצלחה',
+      numericStatusId,
+      leadimId: targetLeadimId,
+      message: 'הסטטוס ב-Lead.IM עודכן בהצלחה',
     });
   } catch (err: any) {
     logSync(`Sync error: ${err.message}`);
