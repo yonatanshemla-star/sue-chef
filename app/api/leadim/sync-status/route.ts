@@ -88,24 +88,43 @@ export async function POST(req: NextRequest) {
     const authCookie = loginRes.headers.get('set-cookie');
     const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // Step 3: GET leads page with targeted search query (by phone or clientName) if leadimId is missing
+    // Step 3: GET leads page with cleared date range filter ('01/01/2020 00:00') & cleared status filter
+    const searchParams = new URLSearchParams();
+    searchParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    searchParams.append('__EVENTARGUMENT', '');
+    searchParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
+    searchParams.append('__ARG', '');
+    searchParams.append('__VIEWSTATE', viewstate);
+    searchParams.append('__VIEWSTATEGENERATOR', viewstategen);
+    searchParams.append('lm$mpi$scms_csm_txt', 'passed');
+    searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
+    searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
+
     let searchQuery = '';
     if (!leadimId) {
-      if (phone) searchQuery = phone.replace(/\D/g, '').slice(-9);
-      else if (clientName) searchQuery = clientName;
+      if (phone) {
+        const rawDigits = phone.replace(/\D/g, '');
+        searchQuery = rawDigits.startsWith('972') ? '0' + rawDigits.slice(3) : (rawDigits.startsWith('0') ? rawDigits : '0' + rawDigits);
+      } else if (clientName) {
+        searchQuery = clientName;
+      }
+      if (searchQuery) {
+        searchParams.set('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_lm_srch');
+        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$chkContains', 'on');
+        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$txtSearchFor', searchQuery);
+      }
     }
 
-    const leadsUrl = searchQuery 
-      ? `https://sys.lead.im/a/${accountId}/leads?s=${encodeURIComponent(searchQuery)}`
-      : `https://sys.lead.im/a/${accountId}/leads`;
+    logSync(`Fetching Lead.IM leads page with query="${searchQuery}" across all dates and statuses...`);
 
-    logSync(`Fetching Lead.IM leads page: ${leadsUrl}...`);
-
-    const leadsPageRes = await fetch(leadsUrl, {
+    const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Cookie': allCookies,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
+      body: searchParams.toString(),
     });
 
     const leadsHtml = await leadsPageRes.text();
