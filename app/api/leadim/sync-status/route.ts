@@ -88,8 +88,20 @@ export async function POST(req: NextRequest) {
     const authCookie = loginRes.headers.get('set-cookie');
     const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // Step 3: GET leads page to get active ViewState & lead table rows
-    const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+    // Step 3: GET leads page with targeted search query (by phone or clientName) if leadimId is missing
+    let searchQuery = '';
+    if (!leadimId) {
+      if (phone) searchQuery = phone.replace(/\D/g, '').slice(-9);
+      else if (clientName) searchQuery = clientName;
+    }
+
+    const leadsUrl = searchQuery 
+      ? `https://sys.lead.im/a/${accountId}/leads?s=${encodeURIComponent(searchQuery)}`
+      : `https://sys.lead.im/a/${accountId}/leads`;
+
+    logSync(`Fetching Lead.IM leads page: ${leadsUrl}...`);
+
+    const leadsPageRes = await fetch(leadsUrl, {
       headers: {
         'Cookie': allCookies,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -118,7 +130,8 @@ export async function POST(req: NextRequest) {
         }
 
         if (!isMatch && clientName && clientName.length >= 2) {
-          if (rowContent.includes(clientName)) {
+          const nameParts = clientName.trim().split(/\s+/).filter((p: string) => p.length >= 2);
+          if (rowContent.includes(clientName) || (nameParts.length > 0 && nameParts.every((p: string) => rowContent.includes(p)))) {
             isMatch = true;
           }
         }

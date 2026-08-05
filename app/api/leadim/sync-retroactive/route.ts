@@ -96,15 +96,60 @@ export async function GET(req: NextRequest) {
       if (!numericStatusId) continue;
 
       let targetLeadimId = lead.leadimId;
-      if (!targetLeadimId && lead.phone) {
-        const cleanPhone = lead.phone.replace(/\D/g, '').slice(-9);
-        const match = leadsHtml.match(new RegExp(`1#${accountId}#(\\d+)#[^"']*${cleanPhone.slice(-7)}`, 'i'));
-        if (match) {
-          targetLeadimId = match[1];
+      let searchQuery = '';
+      if (!targetLeadimId) {
+        if (lead.phone) searchQuery = lead.phone.replace(/\D/g, '').slice(-9);
+        else if (lead.clientName) searchQuery = lead.clientName;
+      }
+
+      const searchUrl = searchQuery 
+        ? `https://sys.lead.im/a/${accountId}/leads?s=${encodeURIComponent(searchQuery)}`
+        : `https://sys.lead.im/a/${accountId}/leads`;
+
+      const searchPageRes = await fetch(searchUrl, {
+        headers: {
+          'Cookie': allCookies,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+      });
+
+      const searchHtml = await searchPageRes.text();
+      const searchViewstate = searchHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+      const searchViewstategen = searchHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+      if (!targetLeadimId) {
+        const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
+        let trMatch;
+        while ((trMatch = trRegex.exec(searchHtml)) !== null) {
+          const rowLeadId = trMatch[1];
+          const rowContent = trMatch[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+          let isMatch = false;
+          if (lead.phone) {
+            const cleanPhone = lead.phone.replace(/\D/g, '').slice(-7);
+            if (cleanPhone.length >= 7 && rowContent.includes(cleanPhone)) {
+              isMatch = true;
+            }
+          }
+
+          if (!isMatch && lead.clientName && lead.clientName.length >= 2) {
+            const nameParts = lead.clientName.trim().split(/\s+/).filter((p: string) => p.length >= 2);
+            if (rowContent.includes(lead.clientName) || (nameParts.length > 0 && nameParts.every((p: string) => rowContent.includes(p)))) {
+              isMatch = true;
+            }
+          }
+
+          if (isMatch) {
+            targetLeadimId = rowLeadId;
+            break;
+          }
         }
       }
 
-      if (!targetLeadimId) continue;
+      if (!targetLeadimId) {
+        logSync(`STRICT SAFETY CHECK: Could not match exact lead in Lead.IM for lead "${lead.clientName}" (${lead.phone}). Skipping.`);
+        continue;
+      }
 
       logSync(`Retro-syncing lead: ${lead.clientName} (${targetLeadimId}) -> status ID ${numericStatusId}`);
       try {
@@ -113,8 +158,8 @@ export async function GET(req: NextRequest) {
         updateParams.append('__EVENTARGUMENT', '');
         updateParams.append('__CMD', 'leads_chngstt');
         updateParams.append('__ARG', `1#${accountId}#${targetLeadimId}#${numericStatusId}`);
-        updateParams.append('__VIEWSTATE', leadsViewstate);
-        updateParams.append('__VIEWSTATEGENERATOR', leadsViewstategen);
+        updateParams.append('__VIEWSTATE', searchViewstate);
+        updateParams.append('__VIEWSTATEGENERATOR', searchViewstategen);
         updateParams.append('lm$mpi$scms_csm_txt', 'passed');
 
         const updateRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
