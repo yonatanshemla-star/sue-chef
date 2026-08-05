@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, ArrowDownLeft, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, ArrowDownLeft, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi, Scale } from "lucide-react";
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
@@ -186,6 +186,7 @@ export default function Home() {
   const [lawyerGilPhone, setLawyerGilPhone] = useState<string>('');
   const [consultMode, setConsultMode] = useState<'idle' | 'calling_gil' | 'in_consultation' | 'merged'>('idle');
   const [consultConfName, setConsultConfName] = useState<string>('');
+  const [gilCallSid, setGilCallSid] = useState<string>('');
 
   const [leadimUsername, setLeadimUsername] = useState<string>('');
   const [leadimPassword, setLeadimPassword] = useState<string>('');
@@ -247,6 +248,7 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setConsultConfName(data.confName || '');
+        setGilCallSid(data.gilCallSid || '');
         setConsultMode('in_consultation');
         setCallStatusMessage('בשיחה פרטית עם עו"ד גיל (הליד בהמתנה)');
       } else {
@@ -258,6 +260,33 @@ export default function Home() {
       console.error('Consult Error:', err);
       setConsultMode('idle');
       setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
+    }
+  };
+
+  const handleHangupGilOnly = async () => {
+    try {
+      setCallStatusMessage('מנתק שיחה עם עו"ד גיל ומחזיר את הליד...');
+      const res = await fetch('/api/twilio/call/consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'hangup_gil',
+          confName: consultConfName,
+          gilCallSid: gilCallSid,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setConsultMode('idle');
+        setGilCallSid('');
+        setConsultConfName('');
+        setCallStatusMessage('בשיחה פעילה עם הליד (דפדפן Wi-Fi)');
+      } else {
+        alert(data.error || 'נכשל ניתוק השיחה עם גיל');
+      }
+    } catch (err) {
+      console.error('Hangup Gil Error:', err);
     }
   };
 
@@ -2040,7 +2069,7 @@ const ringback = new RingbackGenerator();
               <Settings className="w-5 h-5 text-indigo-400" />
             </button>
 
-            {/* Consultation / Merge Buttons */}
+            {/* Consultation / Merge / Separate Hangup Controls */}
             {callStatus === 'connected' && consultMode === 'idle' && (
               <button
                 type="button"
@@ -2053,29 +2082,41 @@ const ringback = new RingbackGenerator();
               </button>
             )}
 
-            {callStatus === 'connected' && consultMode === 'calling_gil' && (
-              <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-2 animate-pulse">
-                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                <span>מחייג לגיל (הליד בהמתנה)...</span>
-              </div>
-            )}
+            {callStatus === 'connected' && consultMode !== 'idle' && (
+              <div className="flex items-center gap-2 bg-slate-900/90 border border-indigo-500/50 p-1.5 rounded-2xl shadow-xl animate-in fade-in">
+                <div className="flex flex-col text-right px-2">
+                  <span className="text-[11px] font-bold text-indigo-300 flex items-center gap-1">
+                    <Scale className="w-3.5 h-3.5" />
+                    <span>התייעצות עו"ד גיל</span>
+                  </span>
+                  <span className="text-[10px] text-slate-300">
+                    {consultMode === 'calling_gil' && '⌛ מחייג לגיל (הליד בהמתנה)'}
+                    {consultMode === 'in_consultation' && '🔒 בשיחה פרטית עם גיל (הליד בהמתנה)'}
+                    {consultMode === 'merged' && '👥 שיחת ועידה 3 משתתפים'}
+                  </span>
+                </div>
 
-            {callStatus === 'connected' && consultMode === 'in_consultation' && (
-              <button
-                type="button"
-                onClick={handleMergeCalls}
-                title="אחד את השיחות לשיחת ועידה 3 משתתפים"
-                className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all animate-bounce"
-              >
-                <Zap className="w-4 h-4" />
-                <span>איחוד שיחות (ועידה)</span>
-              </button>
-            )}
+                {(consultMode === 'calling_gil' || consultMode === 'in_consultation') && (
+                  <button
+                    type="button"
+                    onClick={handleMergeCalls}
+                    title="אחד את השיחות לשיחת ועידה 3 משתתפים"
+                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-md hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>איחוד שיחות (3 משתתפים)</span>
+                  </button>
+                )}
 
-            {callStatus === 'connected' && consultMode === 'merged' && (
-              <div className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-emerald-400" />
-                <span>ועידה 3 משתתפים</span>
+                <button
+                  type="button"
+                  onClick={handleHangupGilOnly}
+                  title="נתק את השיחה עם עו&quot;ד גיל בלבד וחזור לליד"
+                  className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-md hover:scale-105 active:scale-95 transition-all"
+                >
+                  <PhoneOff className="w-3.5 h-3.5" />
+                  <span>נתק את גיל בלבד</span>
+                </button>
               </div>
             )}
             {dialMode === 'browser' && activeCall && (

@@ -216,6 +216,69 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (action === 'hangup_gil') {
+      const { confName: hangupConfName, gilCallSid } = body;
+
+      console.log(`[Consult] Hanging up Gil call: ${gilCallSid || 'none'}, conf: ${hangupConfName || 'none'}`);
+
+      // 1. Terminate Gil's call leg if provided
+      if (gilCallSid) {
+        await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${gilCallSid}.json`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: authHeader,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ Status: 'completed' }).toString(),
+          }
+        ).catch(err => console.error('[Consult] Error ending Gil call leg:', err));
+      }
+
+      // 2. Unhold the lead in the conference
+      if (hangupConfName) {
+        const confsRes = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences.json?FriendlyName=${encodeURIComponent(hangupConfName)}&Status=in-progress`,
+          { headers: { Authorization: authHeader } }
+        );
+        const confsData = await confsRes.json();
+        const activeConf = confsData.conferences?.[0];
+
+        if (activeConf) {
+          const confSid = activeConf.sid;
+          const partsRes = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confSid}/Participants.json`,
+            { headers: { Authorization: authHeader } }
+          );
+          const partsData = await partsRes.json();
+          const participants = partsData.participants || [];
+
+          for (const p of participants) {
+            if (p.hold) {
+              await fetch(
+                `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Conferences/${confSid}/Participants/${p.call_sid}.json`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: authHeader,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                  },
+                  body: new URLSearchParams({ Hold: 'false' }).toString(),
+                }
+              );
+              console.log(`[Consult] Unheld participant ${p.call_sid} after Gil hangup`);
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'השיחה עם עו"ד גיל הופסקה. חזרת לשיחה עם הליד.',
+      });
+    }
+
     if (action === 'merge') {
       const { confName: mergeConfName } = body;
 
