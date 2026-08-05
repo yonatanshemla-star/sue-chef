@@ -3442,21 +3442,6 @@ const ringback = new RingbackGenerator();
                     />
                   </div>
                 </div>
-
-                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-4">
-                  <p className="text-xs font-medium text-slate-400">
-                    לחץ כאן לסנכרון בדיעבד של כל הלידים שהועברו בעבר ל-"נגמר" / "לא רלוונטי" ל-Lead.IM:
-                  </p>
-                  <button
-                    type="button"
-                    disabled={isSyncingRetro}
-                    onClick={handleRetroactiveSync}
-                    className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 flex-shrink-0"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isSyncingRetro ? 'animate-spin' : ''}`} />
-                    <span>{isSyncingRetro ? 'מסנכרן בדיעבד...' : 'סנכרן לידים בדיעבד ל-Lead.IM'}</span>
-                  </button>
-                </div>
               </div>
 
               {/* Audio & Hardware Settings Section */}
