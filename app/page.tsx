@@ -1844,7 +1844,7 @@ const ringback = new RingbackGenerator();
 
     setTimeout(() => {
       setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
-    }, 8000);
+    }, 4000);
   }, [getLeadTabLocation]);
 
   const navigateToDuplicate = useCallback((dupInfo: { lead: Lead, location: string }) => {
@@ -2563,12 +2563,6 @@ const ringback = new RingbackGenerator();
                       </td>
                     )}
                     <td className="px-8 py-5">
-                      {highlightedLeadId === lead.id && (
-                        <div className="mb-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-extrabold text-xs shadow-lg shadow-rose-600/40 flex items-center gap-2 animate-bounce w-fit">
-                          <Star className="w-4 h-4 fill-amber-300 text-amber-300 animate-spin" />
-                          <span>📍 הליד הכפול שהתבקש (נמצא כאן)</span>
-                        </div>
-                      )}
                       <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
                         <button 
                           onClick={() => initiateCall(lead)} 
@@ -2750,12 +2744,6 @@ const ringback = new RingbackGenerator();
                       : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
                   }`}
                 >
-                  {highlightedLeadId === lead.id && (
-                    <div className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-extrabold text-xs shadow-lg shadow-rose-600/40 flex items-center gap-2 animate-bounce w-fit">
-                      <Star className="w-4 h-4 fill-amber-300 text-amber-300 animate-spin" />
-                      <span>📍 הליד הכפול שהתבקש (נמצא כאן)</span>
-                    </div>
-                  )}
                   
                   {/* Bulk Select Checkbox (when developer panel is active) */}
                   {showSecretPanel && (
