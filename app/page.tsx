@@ -810,7 +810,14 @@ export default function Home() {
           status: updates.status,
           disqualificationReason: updates.disqualificationReason || currentLead?.disqualificationReason,
         }),
-      }).catch(err => console.warn('LeadIM status sync trigger error:', err));
+      })
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.success && data.leadimId && currentLead && !currentLead.leadimId) {
+          setLeads(prev => prev.map(l => l.id === id ? { ...l, leadimId: data.leadimId } : l));
+        }
+      })
+      .catch(err => console.warn('LeadIM status sync trigger error:', err));
     }
     
     // 1. Immediately update local states synchronously for 100% lag-free typing!
@@ -904,7 +911,14 @@ export default function Home() {
               status: targetStatus,
               disqualificationReason: reason,
             }),
-          }).catch(() => {});
+          })
+          .then(async (res) => {
+            const data = await res.json();
+            if (data.success && data.leadimId && currentLead && !currentLead.leadimId) {
+              setLeads(prev => prev.map(l => l.id === id ? { ...l, leadimId: data.leadimId } : l));
+            }
+          })
+          .catch(() => {});
         } catch (e) { console.error(e); fetchLeads(); }
     }
     setPendingDisqualification(null);

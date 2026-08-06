@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getLeads, updateLead } from '@/utils/storage';
 import fs from 'fs';
 
 const logFile = 'webhook.log';
@@ -32,9 +33,25 @@ const LEADIM_NUMERIC_STATUS_MAP: Record<string, string | null> = {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { leadId, phone, leadimId, clientName, status } = body;
+    const { leadId, phone: reqPhone, leadimId: reqLeadimId, clientName: reqClientName, status } = body;
 
-    logSync(`Received status sync request for lead ${leadId} (leadimId=${leadimId}, phone=${phone}, clientName=${clientName}): status="${status}"`);
+    // Check DB for existing leadimId if leadId is provided
+    let targetDbLead: any = null;
+    let effectiveLeadimId = reqLeadimId;
+    let effectivePhone = reqPhone;
+    let effectiveName = reqClientName;
+
+    if (leadId) {
+      const allLeads = await getLeads();
+      targetDbLead = allLeads.find(l => l.id === leadId);
+      if (targetDbLead) {
+        if (!effectiveLeadimId && targetDbLead.leadimId) effectiveLeadimId = targetDbLead.leadimId;
+        if (!effectivePhone && targetDbLead.phone) effectivePhone = targetDbLead.phone;
+        if (!effectiveName && targetDbLead.clientName) effectiveName = targetDbLead.clientName;
+      }
+    }
+
+    logSync(`Status sync request for leadId=${leadId} (leadimId=${effectiveLeadimId}, phone=${effectivePhone}, clientName=${effectiveName}): status="${status}"`);
 
     const numericStatusId = LEADIM_NUMERIC_STATUS_MAP[status];
 
@@ -100,23 +117,6 @@ export async function POST(req: NextRequest) {
     searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
     searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
 
-    let searchQuery = '';
-    if (!leadimId) {
-      if (phone) {
-        const rawDigits = phone.replace(/\D/g, '');
-        searchQuery = rawDigits.startsWith('972') ? '0' + rawDigits.slice(3) : (rawDigits.startsWith('0') ? rawDigits : '0' + rawDigits);
-      } else if (clientName) {
-        searchQuery = clientName;
-      }
-      if (searchQuery) {
-        searchParams.set('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_lm_srch');
-        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$chkContains', 'on');
-        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$txtSearchFor', searchQuery);
-      }
-    }
-
-    logSync(`Fetching Lead.IM leads page with query="${searchQuery}" across all dates and statuses...`);
-
     const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
       method: 'POST',
       headers: {
@@ -131,8 +131,8 @@ export async function POST(req: NextRequest) {
     const leadsViewstate = leadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
     const leadsViewstategen = leadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
 
-    // Step 4: Resolve target leadimId by parsing exact table rows in leadsHtml
-    let targetLeadimId = leadimId;
+    // Step 4: Resolve target leadimId
+    let targetLeadimId = effectiveLeadimId;
     if (!targetLeadimId) {
       const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
       let trMatch;
@@ -141,16 +141,16 @@ export async function POST(req: NextRequest) {
         const rowContent = trMatch[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
         let isMatch = false;
-        if (phone) {
-          const cleanPhone = phone.replace(/\D/g, '').slice(-7);
+        if (effectivePhone) {
+          const cleanPhone = effectivePhone.replace(/\D/g, '').slice(-7);
           if (cleanPhone.length >= 7 && rowContent.includes(cleanPhone)) {
             isMatch = true;
           }
         }
 
-        if (!isMatch && clientName && clientName.length >= 2) {
-          const nameParts = clientName.trim().split(/\s+/).filter((p: string) => p.length >= 2);
-          if (rowContent.includes(clientName) || (nameParts.length > 0 && nameParts.every((p: string) => rowContent.includes(p)))) {
+        if (!isMatch && effectiveName && effectiveName.trim().length >= 2) {
+          const nameParts = effectiveName.trim().split(/\s+/).filter((p: string) => p.length >= 2);
+          if (rowContent.includes(effectiveName.trim()) || (nameParts.length > 0 && nameParts.every((p: string) => rowContent.includes(p)))) {
             isMatch = true;
           }
         }
@@ -163,8 +163,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (!targetLeadimId) {
-      logSync(`STRICT SAFETY CHECK: Could not match exact lead in Lead.IM for phone="${phone}", clientName="${clientName}". Aborting sync.`);
-      return NextResponse.json({ success: false, error: 'לא נמצאה התאמה מדויקת לליד ב-Lead.IM' });
+      logSync(`STRICT SAFETY CHECK: Could not match exact lead in Lead.IM for phone="${effectivePhone}", clientName="${effectiveName}". Aborting sync.`);
+      return NextResponse.json({ success: false, error: 'לא נמצאה התאמה מדויקת לליד ב-Lead.IM' }, { status: 404 });
+    }
+
+    // Auto-save resolved leadimId to PostgreSQL if missing
+    if (leadId && targetDbLead && (!targetDbLead.leadimId || targetDbLead.leadimId !== targetLeadimId)) {
+      const updatedLead = { ...targetDbLead, leadimId: targetLeadimId };
+      await updateLead(updatedLead);
+      logSync(`Auto-saved resolved leadimId ${targetLeadimId} to PostgreSQL for leadId ${leadId}`);
     }
 
     // Step 5: Execute leads_chngstt command
