@@ -187,6 +187,7 @@ export default function Home() {
   const [consultMode, setConsultMode] = useState<'idle' | 'calling_gil' | 'in_consultation' | 'merged'>('idle');
   const [consultConfName, setConsultConfName] = useState<string>('');
   const [gilCallSid, setGilCallSid] = useState<string>('');
+  const [highlightedLeadId, setHighlightedLeadId] = useState<string | null>(null);
 
   const [leadimUsername, setLeadimUsername] = useState<string>('');
   const [leadimPassword, setLeadimPassword] = useState<string>('');
@@ -1809,15 +1810,18 @@ const ringback = new RingbackGenerator();
     setActiveTab(location as any);
     setGlobalSearch('');
     setShowAdvancedStageOnly(false);
+    setHighlightedLeadId(lead.id);
+
     setTimeout(() => {
       const el = document.getElementById(`lead-row-${lead.id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.5)';
-        el.style.transition = 'box-shadow 0.3s';
-        setTimeout(() => { el.style.boxShadow = ''; }, 3000);
       }
     }, 400);
+
+    setTimeout(() => {
+      setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
+    }, 7000);
   }, []);
 
   const navigateToLead = useCallback((lead: Lead) => {
@@ -1844,15 +1848,18 @@ const ringback = new RingbackGenerator();
     setActiveTab(location as any);
     setGlobalSearch('');
     setShowAdvancedStageOnly(false);
+    setHighlightedLeadId(lead.id);
+
     setTimeout(() => {
       const el = document.getElementById(`lead-row-${lead.id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.5)';
-        el.style.transition = 'box-shadow 0.3s';
-        setTimeout(() => { el.style.boxShadow = ''; }, 3000);
       }
     }, 400);
+
+    setTimeout(() => {
+      setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
+    }, 7000);
   }, []);
 
   const crmLeads = useMemo(() => leads
@@ -2545,7 +2552,11 @@ const ringback = new RingbackGenerator();
                   <tr 
                     key={lead.id}
                     id={`lead-row-${lead.id}`}
-                    className="group hover:bg-white/60 dark:hover:bg-white/5 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 fill-mode-both"
+                    className={`group transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 fill-mode-both ${
+                      highlightedLeadId === lead.id
+                        ? 'bg-rose-100/90 dark:bg-rose-950/80 ring-4 ring-rose-500 shadow-2xl shadow-rose-500/50 scale-[1.01] z-30 relative animate-pulse'
+                        : 'hover:bg-white/60 dark:hover:bg-white/5'
+                    }`}
                     style={{ animationDelay: `${idx * 50}ms`, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
                   >
                     {showSecretPanel && (
@@ -2559,6 +2570,12 @@ const ringback = new RingbackGenerator();
                       </td>
                     )}
                     <td className="px-8 py-5">
+                      {highlightedLeadId === lead.id && (
+                        <div className="mb-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-extrabold text-xs shadow-lg shadow-rose-600/40 flex items-center gap-2 animate-bounce w-fit">
+                          <Star className="w-4 h-4 fill-amber-300 text-amber-300 animate-spin" />
+                          <span>📍 הליד הכפול שהתבקש (נמצא כאן)</span>
+                        </div>
+                      )}
                       <div onPaste={(e) => handlePaste(e, lead.id)} className="flex items-center gap-5 p-2 rounded-2xl transition-all duration-300 group-hover:translate-x-1">
                         <button 
                           onClick={() => initiateCall(lead)} 
@@ -2731,7 +2748,21 @@ const ringback = new RingbackGenerator();
             {/* Mobile Cards View */}
             <div className="md:hidden flex flex-col gap-4 p-4 overflow-y-auto pb-28">
               {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
-                <div key={`mob-${lead.id}`} id={`lead-row-${lead.id}`} className="bg-slate-50 dark:bg-slate-800/80 rounded-[32px] p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-5 relative">
+                <div 
+                  key={`mob-${lead.id}`} 
+                  id={`lead-row-${lead.id}`} 
+                  className={`rounded-[32px] p-5 shadow-sm border flex flex-col gap-5 relative transition-all duration-300 ${
+                    highlightedLeadId === lead.id
+                      ? 'bg-rose-100/90 dark:bg-rose-950/80 ring-4 ring-rose-500 shadow-2xl shadow-rose-500/50 border-rose-500 scale-[1.01] z-30 animate-pulse'
+                      : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {highlightedLeadId === lead.id && (
+                    <div className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-extrabold text-xs shadow-lg shadow-rose-600/40 flex items-center gap-2 animate-bounce w-fit">
+                      <Star className="w-4 h-4 fill-amber-300 text-amber-300 animate-spin" />
+                      <span>📍 הליד הכפול שהתבקש (נמצא כאן)</span>
+                    </div>
+                  )}
                   
                   {/* Bulk Select Checkbox (when developer panel is active) */}
                   {showSecretPanel && (
