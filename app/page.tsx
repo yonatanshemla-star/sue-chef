@@ -1749,6 +1749,36 @@ const ringback = new RingbackGenerator();
     return leads.find(l => l.phone && l.phone.replace(/\D/g, '').includes(normalized));
   }, [leads]);
 
+  const getLeadTabLocation = useCallback((lead: Lead): 'crm' | 'followup' | 'noanswer' | 'archive' => {
+    if (!lead) return 'crm';
+    const status = lead.status;
+    if (status === 'חתם' || status === 'נגמר' || status === 'לא רלוונטי' || status === 'מספר שגוי') {
+      return 'archive';
+    }
+    if (status === 'במעקב') {
+      return 'followup';
+    }
+    if (status === 'לא ענה') {
+      const hist = lead.statusHistory || [];
+      const lastEntry = [...hist].reverse().find(h => h.to === 'לא ענה');
+      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
+      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 7) {
+        return 'noanswer';
+      }
+      return 'crm';
+    }
+    if (status === 'לחזור אליו') {
+      const hist = lead.statusHistory || [];
+      const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
+      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
+      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) {
+        return 'noanswer';
+      }
+      return 'crm';
+    }
+    return 'crm';
+  }, []);
+
   // Duplicate detection: build a map of leadId -> duplicate info
   const duplicateMap = useMemo(() => {
     const map = new Map<string, { lead: Lead, location: string, matchType: 'phone' | 'name' }>();
@@ -1776,7 +1806,7 @@ const ringback = new RingbackGenerator();
         const group = phoneGroups.get(norm);
         if (group && group.length > 1) {
           const dup = group.find(g => g.id !== l.id)!;
-          const loc = (dup.status === 'חתם' || dup.status === 'נגמר') ? 'archive' : dup.status === 'במעקב' ? 'followup' : 'crm';
+          const loc = getLeadTabLocation(dup);
           map.set(l.id, { lead: dup, location: loc, matchType: 'phone' });
           continue;
         }
@@ -1786,81 +1816,44 @@ const ringback = new RingbackGenerator();
         const group = nameGroups.get(norm);
         if (group && group.length > 1) {
           const dup = group.find(g => g.id !== l.id)!;
-          const loc = (dup.status === 'חתם' || dup.status === 'נגמר') ? 'archive' : dup.status === 'במעקב' ? 'followup' : 'crm';
+          const loc = getLeadTabLocation(dup);
           map.set(l.id, { lead: dup, location: loc, matchType: 'name' });
         }
       }
     }
     return map;
-  }, [leads]);
+  }, [leads, getLeadTabLocation]);
+
+  const scrollToLead = useCallback((lead: Lead) => {
+    const targetLocation = getLeadTabLocation(lead);
+    setActiveTab(targetLocation as any);
+    setGlobalSearch('');
+    setShowAdvancedStageOnly(false);
+    setHighlightedLeadId(lead.id);
+
+    const tryScroll = (attemptsLeft: number) => {
+      const el = document.getElementById(`lead-row-${lead.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (attemptsLeft > 0) {
+        setTimeout(() => tryScroll(attemptsLeft - 1), 300);
+      }
+    };
+
+    setTimeout(() => tryScroll(5), 300);
+
+    setTimeout(() => {
+      setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
+    }, 8000);
+  }, [getLeadTabLocation]);
 
   const navigateToDuplicate = useCallback((dupInfo: { lead: Lead, location: string }) => {
-    const lead = dupInfo.lead;
-    let location = 'crm';
-    if (lead.status === 'חתם' || lead.status === 'נגמר') location = 'archive';
-    else if (lead.status === 'במעקב') location = 'followup';
-    else if (lead.status === 'לא ענה') location = 'noanswer';
-    else if (lead.status === 'לחזור אליו') {
-      const hist = lead.statusHistory || [];
-      const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
-      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
-      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) location = 'noanswer';
-    }
-
-    setActiveTab(location as any);
-    setGlobalSearch('');
-    setShowAdvancedStageOnly(false);
-    setHighlightedLeadId(lead.id);
-
-    setTimeout(() => {
-      const el = document.getElementById(`lead-row-${lead.id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 400);
-
-    setTimeout(() => {
-      setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
-    }, 7000);
-  }, []);
+    scrollToLead(dupInfo.lead);
+  }, [scrollToLead]);
 
   const navigateToLead = useCallback((lead: Lead) => {
-    let location = 'crm';
-    if (lead.status === 'חתם' || lead.status === 'נגמר') location = 'archive';
-    else if (lead.status === 'במעקב') location = 'followup';
-    else if (lead.status === 'לא ענה') {
-      const hist = lead.statusHistory || [];
-      const lastEntry = [...hist].reverse().find(h => h.to === 'לא ענה');
-      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
-      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 7) {
-        location = 'noanswer';
-      } else {
-        location = 'crm';
-      }
-    }
-    else if (lead.status === 'לחזור אליו') {
-      const hist = lead.statusHistory || [];
-      const lastEntry = [...hist].reverse().find(h => h.to === 'לחזור אליו');
-      const entered = lastEntry ? new Date(lastEntry.timestamp) : new Date(lead.createdAt);
-      if ((Date.now() - entered.getTime()) / (1000 * 60 * 60 * 24) > 14) location = 'noanswer';
-    }
-    
-    setActiveTab(location as any);
-    setGlobalSearch('');
-    setShowAdvancedStageOnly(false);
-    setHighlightedLeadId(lead.id);
-
-    setTimeout(() => {
-      const el = document.getElementById(`lead-row-${lead.id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 400);
-
-    setTimeout(() => {
-      setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
-    }, 7000);
-  }, []);
+    scrollToLead(lead);
+  }, [scrollToLead]);
 
   const crmLeads = useMemo(() => leads
     .filter(l => {
