@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getLeads } from '@/utils/storage';
+import { syncNewLeadsFromLeadim } from '@/utils/leadimSync';
 
 export async function GET() {
   try {
+    // Auto-sync any newly arrived leads directly from Lead.IM
+    await syncNewLeadsFromLeadim().catch(err => console.error('LeadIM auto-sync error:', err));
+
     const leads = await getLeads();
     
     // Sort leads by newest first
