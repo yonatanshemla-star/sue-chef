@@ -67,6 +67,101 @@ function findValueByKeys(data: any, keys: string[]): any {
   return null;
 }
 
+// Background helper to resolve leadimId from Lead.IM if missing from webhook payload
+async function autoResolveLeadimId(leadId: string, phone: string, clientName: string) {
+  try {
+    const username = process.env.LEADIM_USERNAME || 'gili.harutz@gmail.com';
+    const password = process.env.LEADIM_PASSWORD || 'Gili0394!!';
+    const accountId = process.env.LEADIM_ACCOUNT_ID || '6553';
+
+    const getRes = await fetch('https://sys.lead.im/account/login', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    const initCookie = getRes.headers.get('set-cookie');
+    const html = await getRes.text();
+
+    const viewstate = html.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+    const viewstategen = html.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+    const loginParams = new URLSearchParams();
+    loginParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    loginParams.append('__EVENTARGUMENT', '');
+    loginParams.append('__CMD', 'login');
+    loginParams.append('__ARG', '');
+    loginParams.append('__VIEWSTATE', viewstate);
+    loginParams.append('__VIEWSTATEGENERATOR', viewstategen);
+    loginParams.append('lm$mpi$scms_csm_txt', 'passed');
+    loginParams.append('lm$contMain$txtUser', username);
+    loginParams.append('lm$contMain$txtPass', password);
+
+    const loginRes = await fetch('https://sys.lead.im/account/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': initCookie || '',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: loginParams.toString(),
+      redirect: 'manual',
+    });
+
+    const authCookie = loginRes.headers.get('set-cookie');
+    const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
+
+    const drangeParams = new URLSearchParams();
+    drangeParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    drangeParams.append('__EVENTARGUMENT', '');
+    drangeParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
+    drangeParams.append('__ARG', '');
+    drangeParams.append('__VIEWSTATE', viewstate);
+    drangeParams.append('__VIEWSTATEGENERATOR', viewstategen);
+    drangeParams.append('lm$mpi$scms_csm_txt', 'passed');
+    drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
+    drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
+
+    const drangeRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': allCookies,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: drangeParams.toString(),
+    });
+
+    const leadsHtml = await drangeRes.text();
+    const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
+    let trMatch;
+    let foundLeadimId: string | null = null;
+
+    const cleanPhone = phone.replace(/\D/g, '').slice(-7);
+    while ((trMatch = trRegex.exec(leadsHtml)) !== null) {
+      const rowLeadId = trMatch[1];
+      const rowContent = trMatch[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+      if (cleanPhone.length >= 7 && rowContent.includes(cleanPhone)) {
+        foundLeadimId = rowLeadId;
+        break;
+      }
+      if (!foundLeadimId && clientName && clientName.length >= 2 && rowContent.includes(clientName.trim())) {
+        foundLeadimId = rowLeadId;
+        break;
+      }
+    }
+
+    if (foundLeadimId) {
+      const allLeads = await getLeads();
+      const existing = allLeads.find(l => l.id === leadId);
+      if (existing) {
+        await saveLead({ ...existing, leadimId: foundLeadimId });
+        logInfo(`Auto-linked webhook lead ${leadId} ("${clientName}") to LeadIM ID ${foundLeadimId}`);
+      }
+    }
+  } catch (err: any) {
+    logInfo(`autoResolveLeadimId error: ${err.message}`);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     logInfo('Incoming LEAD.IM Webhook');
@@ -164,6 +259,11 @@ export async function POST(req: Request) {
     await saveLead(newLead as any);
     logInfo(`SUCCESS: Saved LeadIM lead ${newLead.id}`);
 
+    // If leadimId was not provided in payload, auto-resolve in background
+    if (!newLead.leadimId && phone) {
+      autoResolveLeadimId(newLead.id, phone, clientName).catch(e => logInfo(`autoResolve error: ${e.message}`));
+    }
+
     // Send automatic WhatsApp welcome message
     if (phone && phone !== 'לא ידוע') {
       sendWhatsAppWelcome(phone, clientName).then((res) => {
@@ -183,4 +283,3 @@ export async function POST(req: Request) {
 export async function GET() {
   return NextResponse.json({ message: 'LEAD.IM Webhook Endpoint Active' });
 }
-
