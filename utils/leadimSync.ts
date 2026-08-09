@@ -81,7 +81,7 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       const rowContent = trMatch[2];
       const rowText = rowContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-      // Skip if active lead or tombstoned deleted lead
+      // Skip if active lead by leadimId or tombstoned deleted lead
       if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
 
       const phoneMatch = rowText.match(/05\d{8}|0[23489]\d{7}/);
@@ -90,12 +90,14 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
 
       if (normPhone && deleted.phones.has(normPhone)) continue;
 
+      // If phone exists in DB but that existing lead had NO leadimId, bind its leadimId
       if (normPhone && existingPhones.has(normPhone)) {
-        const target = dbLeads.find(l => l.phone && l.phone.replace(/\D/g, '').slice(-9) === normPhone);
-        if (target && !target.leadimId) {
+        const target = dbLeads.find(l => l.phone && l.phone.replace(/\D/g, '').slice(-9) === normPhone && !l.leadimId);
+        if (target) {
           await updateLead({ ...target, leadimId });
+          continue;
         }
-        continue;
+        // If the existing lead ALREADY had a leadimId, this is a new duplicate submission (e.g. "Ofek"), proceed to create a new lead record!
       }
 
       const nameMatch = rowContent.match(/<td[^>]*class="[^"]*col-name[^"]*"[^>]*>([\s\S]*?)<\/td>/i) ||
