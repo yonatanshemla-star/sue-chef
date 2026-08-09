@@ -76,8 +76,28 @@ export async function initDB() {
 export async function getLeads(): Promise<Lead[]> {
   try {
     await initDB();
-    const { rows } = await sql`SELECT data FROM leads ORDER BY created_at DESC`;
-    return rows.map((r: any) => r.data as Lead);
+    const { rows: deletedRows } = await sql`SELECT leadim_id, phone FROM deleted_leads`;
+    const deletedLeadimIds = new Set(deletedRows.map(r => r.leadim_id).filter(Boolean));
+    const deletedPhones = new Set(deletedRows.map(r => r.phone).filter(Boolean));
+
+    const { rows } = await sql`SELECT id, data FROM leads ORDER BY created_at DESC`;
+    const activeLeads: Lead[] = [];
+
+    for (const r of rows) {
+      const l = r.data as Lead;
+      const normPhone = l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null;
+      const isTombstoned = (l.leadimId && deletedLeadimIds.has(l.leadimId)) ||
+                           (normPhone && deletedPhones.has(normPhone));
+
+      if (isTombstoned) {
+        // Automatically purge from PostgreSQL leads table
+        await sql`DELETE FROM leads WHERE id = ${l.id}`;
+      } else {
+        activeLeads.push(l);
+      }
+    }
+
+    return activeLeads;
   } catch (error) {
     console.error('DB getLeads error:', error);
     throw error;
@@ -86,6 +106,13 @@ export async function getLeads(): Promise<Lead[]> {
 
 export async function saveLead(lead: Lead): Promise<void> {
   await initDB();
+  // Don't save if lead is tombstoned
+  const deleted = await getDeletedLeadimIdentifiers();
+  const normPhone = lead.phone ? lead.phone.replace(/\D/g, '').slice(-9) : null;
+  if ((lead.leadimId && deleted.leadimIds.has(lead.leadimId)) || (normPhone && deleted.phones.has(normPhone))) {
+    return;
+  }
+
   await sql`
     INSERT INTO leads (id, data, created_at) 
     VALUES (${lead.id}, ${JSON.stringify(lead)}, ${lead.createdAt})
