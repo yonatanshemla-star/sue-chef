@@ -1,4 +1,4 @@
-import { getLeads, saveLead, updateLead } from '@/utils/storage';
+import { getLeads, saveLead, updateLead, getDeletedLeadimIdentifiers } from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function syncNewLeadsFromLeadim(): Promise<number> {
@@ -67,6 +67,8 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     const leadsHtml = await drangeRes.text();
 
     const dbLeads = await getLeads();
+    const deleted = await getDeletedLeadimIdentifiers();
+
     const existingLeadimIds = new Set(dbLeads.map(l => l.leadimId).filter(Boolean));
     const existingPhones = new Set(dbLeads.map(l => l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null).filter(Boolean));
 
@@ -79,11 +81,14 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       const rowContent = trMatch[2];
       const rowText = rowContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-      if (existingLeadimIds.has(leadimId)) continue;
+      // Skip if active lead or tombstoned deleted lead
+      if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
 
       const phoneMatch = rowText.match(/05\d{8}|0[23489]\d{7}/);
       const phone = phoneMatch ? phoneMatch[0] : undefined;
       const normPhone = phone ? phone.replace(/\D/g, '').slice(-9) : null;
+
+      if (normPhone && deleted.phones.has(normPhone)) continue;
 
       if (normPhone && existingPhones.has(normPhone)) {
         const target = dbLeads.find(l => l.phone && l.phone.replace(/\D/g, '').slice(-9) === normPhone);
