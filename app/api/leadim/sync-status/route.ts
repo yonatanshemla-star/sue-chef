@@ -122,23 +122,51 @@ export async function POST(req: Request) {
 
     let targetLeadimId = effectiveLeadimId;
 
-    // Step 4: If leadimId is missing, perform search with date range filter
+    // Step 4: If leadimId is missing, perform 2-step search (clear date filter, then search by phone)
     if (!targetLeadimId) {
+      logSync(`leadimId missing, executing 2-step search for phone="${effectivePhone}", name="${effectiveName}"`);
+
+      // 4a. Clear date range filter to 01/01/2015 00:00
+      const drangeParams = new URLSearchParams();
+      drangeParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+      drangeParams.append('__EVENTARGUMENT', '');
+      drangeParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
+      drangeParams.append('__ARG', '');
+      drangeParams.append('__VIEWSTATE', leadsVs);
+      drangeParams.append('__VIEWSTATEGENERATOR', leadsVsg);
+      drangeParams.append('lm$mpi$scms_csm_txt', 'passed');
+      drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2015 00:00');
+      drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
+
+      const drangeRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': allCookies,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+        body: drangeParams.toString(),
+      });
+
+      const drangeHtml = await drangeRes.text();
+      const drangeVs = drangeHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+      const drangeVsg = drangeHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+
+      // 4b. Perform phone search using drangeVs
       const searchParams = new URLSearchParams();
       searchParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
       searchParams.append('__EVENTARGUMENT', '');
-      searchParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_btnApply_click');
-      searchParams.append('__ARG', '');
-      searchParams.append('__VIEWSTATE', leadsVs);
-      searchParams.append('__VIEWSTATEGENERATOR', leadsVsg);
+      searchParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_lm_srch');
+      searchParams.append('__ARG', 'vgsrch');
+      searchParams.append('__VIEWSTATE', drangeVs);
+      searchParams.append('__VIEWSTATEGENERATOR', drangeVsg);
       searchParams.append('lm$mpi$scms_csm_txt', 'passed');
       if (effectivePhone) {
-        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$txtSearch', effectivePhone.replace(/\D/g, '').slice(-9));
+        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$txtSearchFor', effectivePhone.replace(/\D/g, '').slice(-9));
+        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$ddlSearchIn', '223860');
       }
-      searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
-      searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
 
-      const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      const searchRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -148,10 +176,10 @@ export async function POST(req: Request) {
         body: searchParams.toString(),
       });
 
-      const leadsHtml = await leadsPageRes.text();
+      const searchHtml = await searchRes.text();
       const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
       let trMatch;
-      while ((trMatch = trRegex.exec(leadsHtml)) !== null) {
+      while ((trMatch = trRegex.exec(searchHtml)) !== null) {
         const rowLeadId = trMatch[1];
         const rowContent = trMatch[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
@@ -172,6 +200,7 @@ export async function POST(req: Request) {
 
         if (isMatch) {
           targetLeadimId = rowLeadId;
+          logSync(`Successfully resolved targetLeadimId ${targetLeadimId} via 2-step search for phone="${effectivePhone}"`);
           break;
         }
       }
