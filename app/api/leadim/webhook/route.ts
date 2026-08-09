@@ -200,6 +200,7 @@ export async function POST(req: Request) {
       }
     }
     
+    let isHighTax = false;
     // Custom logic: check if income tax is above 1,000 NIS or "yes"
     const taxVal = findValueByKeys(data, taxKeys);
     if (taxVal) {
@@ -209,6 +210,7 @@ export async function POST(req: Request) {
       const isOver1000 = !isNaN(numVal) && numVal > 1000;
       
       if (isYes || isOver1000) {
+        isHighTax = true;
         const detail = isOver1000 ? ` (סכום: ₪${Number(numVal).toLocaleString()})` : '';
         notesParts.push(`משלם מעל 1,000 ₪ מס הכנסה בחודש: כן${detail}`);
       }
@@ -253,6 +255,7 @@ export async function POST(req: Request) {
       urgency: 'בינונית' as const,
       campaign: campaign || undefined,
       leadimId: leadimId ? leadimId.toString() : undefined,
+      isStarred: isHighTax ? true : undefined,
     };
 
     // Save lead to database

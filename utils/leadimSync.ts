@@ -100,6 +100,10 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       const campaignMatch = rowContent.match(/<td[^>]*class="[^"]*col-campaign[^"]*"[^>]*>([\s\S]*?)<\/td>/i);
       const campaign = campaignMatch ? campaignMatch[1].replace(/<[^>]+>/g, '').trim() : undefined;
 
+      const hasHighTax = rowText.includes('משלם מעל 1,000') ||
+                         rowText.includes('מעל 1000') ||
+                         (rowText.includes('מס הכנסה') && (rowText.includes('כן') || rowText.includes('מעל 1,000') || rowText.includes('מעל 1000')));
+
       const newLead = {
         id: uuidv4(),
         clientName: clientName,
@@ -115,6 +119,7 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         urgency: 'בינונית' as const,
         campaign: campaign || undefined,
         leadimId: leadimId,
+        isStarred: hasHighTax ? true : undefined,
       };
 
       await saveLead(newLead as any);
