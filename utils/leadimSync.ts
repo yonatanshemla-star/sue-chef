@@ -113,7 +113,7 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         lastContacted: null,
         status: 'חדש',
         followUpDate: '',
-        generalNotes: `יובא ישירות מ-Lead.IM (מזהה: ${leadimId})`,
+        generalNotes: '',
         liveCallNotes: '',
         callCount: 0,
         urgency: 'בינונית' as const,
