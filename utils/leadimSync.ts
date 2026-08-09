@@ -84,8 +84,15 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       // Skip if active lead by leadimId or tombstoned deleted lead
       if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
 
-      const phoneMatch = rowText.match(/05\d{8}|0[23489]\d{7}/);
-      const phone = phoneMatch ? phoneMatch[0] : undefined;
+      const tds = Array.from(rowContent.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+
+      const campaign = tds[4] || undefined;
+      const rawName = tds[6] || '';
+      const clientName = (rawName && rawName !== 'כן' && rawName !== 'לא' && rawName.length >= 2) ? rawName : 'ליד מ-LeadIM';
+
+      const phoneInTd = tds[7] ? tds[7].match(/05\d{8}|0[23489]\d{7}/)?.[0] : undefined;
+      const phoneMatch = phoneInTd || rowText.match(/05\d{8}|0[23489]\d{7}/)?.[0];
+      const phone = phoneMatch || undefined;
       const normPhone = phone ? phone.replace(/\D/g, '').slice(-9) : null;
 
       if (normPhone && deleted.phones.has(normPhone)) continue;
@@ -97,15 +104,7 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
           await updateLead({ ...target, leadimId });
           continue;
         }
-        // If the existing lead ALREADY had a leadimId, this is a new duplicate submission (e.g. "Ofek"), proceed to create a new lead record!
       }
-
-      const nameMatch = rowContent.match(/<td[^>]*class="[^"]*col-name[^"]*"[^>]*>([\s\S]*?)<\/td>/i) ||
-                        rowContent.match(/<td[^>]*>([א-ת\s"'-]{2,30})<\/td>/i);
-      const clientName = nameMatch ? nameMatch[1].replace(/<[^>]+>/g, '').trim() : 'ליד מ-LeadIM';
-
-      const campaignMatch = rowContent.match(/<td[^>]*class="[^"]*col-campaign[^"]*"[^>]*>([\s\S]*?)<\/td>/i);
-      const campaign = campaignMatch ? campaignMatch[1].replace(/<[^>]+>/g, '').trim() : undefined;
 
       const hasHighTax = rowText.includes('משלם מעל 1,000') ||
                          rowText.includes('מעל 1000') ||
