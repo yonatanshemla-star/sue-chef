@@ -1,75 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getLeads, updateLead } from '@/utils/storage';
 import fs from 'fs';
 
 const logFile = 'webhook.log';
 function logSync(msg: string) {
   const timestamp = new Date().toISOString();
-  const logLine = `[${timestamp}] [LEADIM-SYNC] ${msg}`;
+  const logLine = `[${timestamp}] [SYNC_STATUS] ${msg}`;
   console.log(logLine);
   try {
     fs.appendFileSync(logFile, `${logLine}\n`, 'utf8');
-  } catch (e) {}
+  } catch (e) {
+    // Silently ignore filesystem write errors on read-only environments like Vercel
+  }
 }
 
-// Exact Lead.IM internal status numeric IDs mapped from Sue-Chef statuses
-const LEADIM_NUMERIC_STATUS_MAP: Record<string, string | null> = {
-  'חדש': '1',                  // חדש
-  'לא ענה': '223854',           // אין מענה
-  'לחזור אליו': '335898',        // ליד יונתן
-  'גילי צריך לדבר איתו': '335898', // ליד יונתן
-  'בבדיקה עם גילי': '335898',    // ליד יונתן
-  'מחכה לחתימה': '335898',       // ליד יונתן
-  'חתם': '223856',               // נסגרה עיסקה
-  'רלוונטי - לעקוב': '245310',   // רלוונטי
-  'ממתין לעדכון': null,           // אל תשנה כלום
-  'אחר': '335898',               // ליד יונתן
-  'במעקב': '245310',             // רלוונטי
-  'נגמר': '223857',              // נפסל - לא רלוונטי
-  'לא רלוונטי': '223857',        // נפסל - לא רלוונטי
-  'מספר שגוי': '223857',         // נפסל - לא רלוונטי
+// Map internal dashboard status strings to Lead.IM numeric status IDs
+const STATUS_MAP: Record<string, string | null> = {
+  'חדש': '1',
+  'לא ענה': '223854',
+  'לחזור אליו': '335898', // Assigned to lawyer
+  'גילי צריך לדבר איתו': '335898',
+  'בבדיקה עם גילי': '335898',
+  'מחכה לחתימה': '335898',
+  'אחר': '335898',
+  'חתם': '223856',
+  'רלוונטי - לעקוב': '245310',
+  'במעקב': '245310',
+  'ממתין לעדכון': null, // Do not change Lead.IM status when waiting for update
 };
 
-export async function POST(req: NextRequest) {
+const DEFAULT_DISQUALIFIED_STATUS = '223857';
+
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { leadId, phone: reqPhone, leadimId: reqLeadimId, clientName: reqClientName, status } = body;
+    const { leadId, phone, clientName, leadimId, status, disqualificationReason } = body;
 
-    // Check DB for existing leadimId if leadId is provided
+    logSync(`Received sync-status request: leadId=${leadId}, phone=${phone}, name=${clientName}, leadimId=${leadimId}, status=${status}, reason=${disqualificationReason}`);
+
+    // If status is 'ממתין לעדכון', skip sync
+    if (status === 'ממתין לעדכון') {
+      logSync(`Skipping Lead.IM status update for status '${status}'`);
+      return NextResponse.json({ success: true, skipped: true, reason: 'Status is ממתין לעדכון' });
+    }
+
+    // Determine target Lead.IM numeric status ID
+    let targetStatusId: string | null = null;
+    if (status === 'נגמר' || status === 'לא רלוונטי' || status === 'מספר שגוי') {
+      targetStatusId = DEFAULT_DISQUALIFIED_STATUS;
+    } else {
+      targetStatusId = STATUS_MAP[status] !== undefined ? STATUS_MAP[status] : null;
+    }
+
+    if (!targetStatusId) {
+      logSync(`No matching Lead.IM status ID for status '${status}'. Skipping.`);
+      return NextResponse.json({ success: true, skipped: true, reason: `No mapping for status: ${status}` });
+    }
+
+    // Lookup lead in PostgreSQL DB if leadId provided
     let targetDbLead: any = null;
-    let effectiveLeadimId = reqLeadimId;
-    let effectivePhone = reqPhone;
-    let effectiveName = reqClientName;
-
     if (leadId) {
       const allLeads = await getLeads();
       targetDbLead = allLeads.find(l => l.id === leadId);
-      if (targetDbLead) {
-        if (!effectiveLeadimId && targetDbLead.leadimId) effectiveLeadimId = targetDbLead.leadimId;
-        if (!effectivePhone && targetDbLead.phone) effectivePhone = targetDbLead.phone;
-        if (!effectiveName && targetDbLead.clientName) effectiveName = targetDbLead.clientName;
-      }
     }
 
-    logSync(`Status sync request for leadId=${leadId} (leadimId=${effectiveLeadimId}, phone=${effectivePhone}, clientName=${effectiveName}): status="${status}"`);
-
-    const numericStatusId = LEADIM_NUMERIC_STATUS_MAP[status];
-
-    if (numericStatusId === null) {
-      logSync(`Status "${status}" mapped to null (do not change Lead.IM). Skipping.`);
-      return NextResponse.json({ success: true, skipped: true, message: 'סטטוס זה מוגדר שלא לשנות כלום ב-Lead.IM' });
-    }
-
-    if (!numericStatusId) {
-      logSync(`Status "${status}" has no numeric Lead.IM mapping. Skipping.`);
-      return NextResponse.json({ success: false, error: 'אין מיפוי סטטוס מתאים ל-Lead.IM' });
-    }
+    const effectiveLeadimId = leadimId || (targetDbLead ? targetDbLead.leadimId : undefined);
+    const effectivePhone = phone || (targetDbLead ? targetDbLead.phone : undefined);
+    const effectiveName = clientName || (targetDbLead ? targetDbLead.clientName : undefined);
 
     const username = process.env.LEADIM_USERNAME || 'gili.harutz@gmail.com';
     const password = process.env.LEADIM_PASSWORD || 'Gili0394!!';
     const accountId = process.env.LEADIM_ACCOUNT_ID || '6553';
 
-    // Step 1: GET login page & extract initial cookies & ViewState
+    // Step 1: GET login page to obtain ViewState tokens
     const getRes = await fetch('https://sys.lead.im/account/login', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
     });
@@ -79,7 +82,7 @@ export async function POST(req: NextRequest) {
     const viewstate = html.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
     const viewstategen = html.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
 
-    // Step 2: Login via ASP.NET WebForms scms command
+    // Step 2: Login POST
     const loginParams = new URLSearchParams();
     loginParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
     loginParams.append('__EVENTARGUMENT', '');
@@ -105,35 +108,47 @@ export async function POST(req: NextRequest) {
     const authCookie = loginRes.headers.get('set-cookie');
     const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // Step 3: GET leads page with cleared date range filter ('01/01/2020 00:00') & cleared status filter
-    const searchParams = new URLSearchParams();
-    searchParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
-    searchParams.append('__EVENTARGUMENT', '');
-    searchParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
-    searchParams.append('__ARG', '');
-    searchParams.append('__VIEWSTATE', viewstate);
-    searchParams.append('__VIEWSTATEGENERATOR', viewstategen);
-    searchParams.append('lm$mpi$scms_csm_txt', 'passed');
-    searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
-    searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
-
-    const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
-      method: 'POST',
+    // Step 3: GET initial leads page to extract leads page ViewState
+    const initialLeadsRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'Cookie': allCookies,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
-      body: searchParams.toString(),
     });
 
-    const leadsHtml = await leadsPageRes.text();
-    const leadsViewstate = leadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
-    const leadsViewstategen = leadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
+    const initialLeadsHtml = await initialLeadsRes.text();
+    const leadsVs = initialLeadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || '';
+    const leadsVsg = initialLeadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || '';
 
-    // Step 4: Resolve target leadimId
     let targetLeadimId = effectiveLeadimId;
+
+    // Step 4: If leadimId is missing, perform search with date range filter
     if (!targetLeadimId) {
+      const searchParams = new URLSearchParams();
+      searchParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+      searchParams.append('__EVENTARGUMENT', '');
+      searchParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_btnApply_click');
+      searchParams.append('__ARG', '');
+      searchParams.append('__VIEWSTATE', leadsVs);
+      searchParams.append('__VIEWSTATEGENERATOR', leadsVsg);
+      searchParams.append('lm$mpi$scms_csm_txt', 'passed');
+      if (effectivePhone) {
+        searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$txtSearch', effectivePhone.replace(/\D/g, '').slice(-9));
+      }
+      searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
+      searchParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
+
+      const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': allCookies,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+        body: searchParams.toString(),
+      });
+
+      const leadsHtml = await leadsPageRes.text();
       const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
       let trMatch;
       while ((trMatch = trRegex.exec(leadsHtml)) !== null) {
@@ -174,38 +189,28 @@ export async function POST(req: NextRequest) {
       logSync(`Auto-saved resolved leadimId ${targetLeadimId} to PostgreSQL for leadId ${leadId}`);
     }
 
-    // Step 5: Execute leads_chngstt command
-    logSync(`Updating Lead.IM lead ${targetLeadimId} to numeric status ID ${numericStatusId}...`);
+    // Step 5: Post status change command to Lead.IM
+    logSync(`Executing Lead.IM status change for leadimId ${targetLeadimId} to statusId ${targetStatusId}`);
+    const changeStatusParams = new URLSearchParams();
+    changeStatusParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    changeStatusParams.append('__EVENTARGUMENT', '');
+    changeStatusParams.append('__CMD', 'leads_chngstt');
+    changeStatusParams.append('__ARG', `1#${accountId}#${targetLeadimId}#${targetStatusId}`);
 
-    const updateParams = new URLSearchParams();
-    updateParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
-    updateParams.append('__EVENTARGUMENT', '');
-    updateParams.append('__CMD', 'leads_chngstt');
-    updateParams.append('__ARG', `1#${accountId}#${targetLeadimId}#${numericStatusId}`);
-    updateParams.append('__VIEWSTATE', leadsViewstate);
-    updateParams.append('__VIEWSTATEGENERATOR', leadsViewstategen);
-    updateParams.append('lm$mpi$scms_csm_txt', 'passed');
-
-    const updateRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+    const changeRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Cookie': allCookies,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
-      body: updateParams.toString(),
+      body: changeStatusParams.toString(),
     });
 
-    logSync(`Lead.IM update status response: ${updateRes.status}`);
-
-    return NextResponse.json({
-      success: true,
-      numericStatusId,
-      leadimId: targetLeadimId,
-      message: 'הסטטוס ב-Lead.IM עודכן בהצלחה',
-    });
-  } catch (err: any) {
-    logSync(`Sync error: ${err.message}`);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    logSync(`Status change HTTP result: ${changeRes.status}`);
+    return NextResponse.json({ success: true, leadimId: targetLeadimId, statusId: targetStatusId });
+  } catch (error: any) {
+    logSync(`Sync status error: ${error.message}`);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
