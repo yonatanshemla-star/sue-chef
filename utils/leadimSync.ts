@@ -102,23 +102,20 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
 
       const campaign = tds[4] || undefined;
       const rawName = tds[6] || '';
-      const clientName = (rawName && rawName !== 'כן' && rawName !== 'לא' && rawName.length >= 2) ? rawName : 'ליד מ-LeadIM';
+      const clientName = (rawName && rawName !== '&nbsp;' && rawName.trim().length > 0) ? rawName.trim() : 'ליד מ-LeadIM';
 
-      const phoneInTd = tds[7] ? tds[7].match(/0\d{8,9}/)?.[0] : undefined;
-      const phoneMatch = phoneInTd || rowText.match(/0\d{8,9}/)?.[0];
-      const phone = phoneMatch || undefined;
+      const rawPhone = tds[7] || '';
+      const phoneClean = (rawPhone && rawPhone !== '&nbsp;' && rawPhone.trim().length > 0) ? rawPhone.trim() : (rowText.match(/0\d{8,9}/)?.[0] || undefined);
+      const phone = phoneClean || undefined;
       const normPhone = phone ? phone.replace(/\D/g, '').slice(-9) : null;
 
-      if (normPhone && deleted.phones.has(normPhone)) continue;
-
-      // If phone exists in DB but that existing lead had NO leadimId, bind its leadimId
+      // If phone exists in DB on an old lead with NO leadimId, bind its leadimId
       if (normPhone && existingPhones.has(normPhone)) {
         const target = dbLeads.find(l => l.phone && l.phone.replace(/\D/g, '').slice(-9) === normPhone && !l.leadimId);
         if (target) {
           await updateLead({ ...target, leadimId, createdAt });
           continue;
         }
-        // If the existing lead ALREADY had a leadimId, this is a new duplicate submission (e.g. "Ofek", "Iris Sedi"), proceed to create new lead record below!
       }
 
       const taxTdVal = tds[12] || '';
