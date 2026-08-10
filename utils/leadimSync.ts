@@ -79,8 +79,9 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     const dbLeads = await getLeads();
     const deleted = await getDeletedLeadimIdentifiers();
 
-    const existingLeadimIds = new Set(dbLeads.map(l => l.leadimId).filter(Boolean));
-    const existingPhones = new Set(dbLeads.map(l => l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null).filter(Boolean));
+    const mainCrmLeads = dbLeads.filter(l => l.source !== 'CSV Campaign' && !l.id?.startsWith('cmp_'));
+    const existingLeadimIds = new Set(mainCrmLeads.map(l => l.leadimId).filter(Boolean));
+    const existingPhones = new Set(mainCrmLeads.map(l => l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null).filter(Boolean));
 
     const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
     let trMatch;
@@ -103,8 +104,8 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       const rawName = tds[6] || '';
       const clientName = (rawName && rawName !== 'כן' && rawName !== 'לא' && rawName.length >= 2) ? rawName : 'ליד מ-LeadIM';
 
-      const phoneInTd = tds[7] ? tds[7].match(/05\d{8}|0[23489]\d{7}/)?.[0] : undefined;
-      const phoneMatch = phoneInTd || rowText.match(/05\d{8}|0[23489]\d{7}/)?.[0];
+      const phoneInTd = tds[7] ? tds[7].match(/0\d{8,9}/)?.[0] : undefined;
+      const phoneMatch = phoneInTd || rowText.match(/0\d{8,9}/)?.[0];
       const phone = phoneMatch || undefined;
       const normPhone = phone ? phone.replace(/\D/g, '').slice(-9) : null;
 
