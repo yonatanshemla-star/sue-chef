@@ -1,14 +1,14 @@
 
 ⚠️⚠️⚠️ התראת שגיאה בבוט ה-WhatsApp ⚠️⚠️⚠️
-זמן: 26.5.2026, 15:59:10
+זמן: 10.8.2026, 11:03:42
 
 הודעה:
-שגיאה לא מטופלת בשרת הבוט (Unhandled Rejection): The browser is already running for C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\.wwebjs_auth\session. Use a different `userDataDir` or stop the running browser first.
+שגיאה לא מטופלת בשרת הבוט (Unhandled Rejection): Error: EBUSY: resource busy or locked, unlink 'C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\.wwebjs_auth\session\first_party_sets.db-journal'
 
 פרטי השגיאה:
-Error: The browser is already running for C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\.wwebjs_auth\session. Use a different `userDataDir` or stop the running browser first.
-    at ChromeLauncher.launch (C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\node_modules\puppeteer-core\lib\cjs\puppeteer\node\BrowserLauncher.js:175:23)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async Client.initialize (C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\node_modules\whatsapp-web.js\src\Client.js:331:23)
+Error: Error: EBUSY: resource busy or locked, unlink 'C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\.wwebjs_auth\session\first_party_sets.db-journal'
+    at C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\node_modules\whatsapp-web.js\src\authStrategies\LocalAuth.js:51:27
+    at async LocalAuth.logout (C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\node_modules\whatsapp-web.js\src\authStrategies\LocalAuth.js:49:13)
+    at async C:\Users\Yonatan\my-leads-dashboard\whatsapp-bot\node_modules\whatsapp-web.js\src\Client.js:378:17
 
 אנא בדוק את השרת!
