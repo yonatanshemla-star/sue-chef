@@ -1,6 +1,16 @@
 import { getLeads, saveLead, updateLead, getDeletedLeadimIdentifiers } from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
+function parseLeadimDate(dateStr?: string): string {
+  if (!dateStr) return new Date().toISOString();
+  // Format: "DD/MM/YYYY HH:mm" e.g. "10/08/2026 09:00"
+  const parts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  if (!parts) return new Date().toISOString();
+  const [_, day, month, year, hours, minutes] = parts;
+  const date = new Date(Date.UTC(+year, +month - 1, +day, +hours - 3, +minutes)); // Israel UTC+3 offset
+  return date.toISOString();
+}
+
 export async function syncNewLeadsFromLeadim(): Promise<number> {
   try {
     const username = process.env.LEADIM_USERNAME || 'gili.harutz@gmail.com';
@@ -86,6 +96,9 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
 
       const tds = Array.from(rowContent.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
 
+      const dateStr = tds[2] || '';
+      const createdAt = parseLeadimDate(dateStr);
+
       const campaign = tds[4] || undefined;
       const rawName = tds[6] || '';
       const clientName = (rawName && rawName !== 'כן' && rawName !== 'לא' && rawName.length >= 2) ? rawName : 'ליד מ-LeadIM';
@@ -101,9 +114,10 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       if (normPhone && existingPhones.has(normPhone)) {
         const target = dbLeads.find(l => l.phone && l.phone.replace(/\D/g, '').slice(-9) === normPhone && !l.leadimId);
         if (target) {
-          await updateLead({ ...target, leadimId });
+          await updateLead({ ...target, leadimId, createdAt });
           continue;
         }
+        // If the existing lead ALREADY had a leadimId, this is a new duplicate submission (e.g. "Ofek", "Iris Sedi"), proceed to create new lead record below!
       }
 
       const hasHighTax = rowText.includes('משלם מעל 1,000') ||
@@ -115,7 +129,7 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         clientName: clientName,
         phone: phone || undefined,
         source: 'LeadIM' as const,
-        createdAt: new Date().toISOString(),
+        createdAt: createdAt,
         lastContacted: null,
         status: 'חדש',
         followUpDate: '',
