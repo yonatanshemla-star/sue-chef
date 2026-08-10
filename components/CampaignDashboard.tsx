@@ -323,12 +323,38 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
     }
   };
 
+  // Normalize Hebrew text for fuzzy searching (e.g., handles ליבוביץ vs לבוביץ)
+  const normalizeHebrew = (str: string) => {
+    return (str || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[״"׳'-]/g, '')
+      .replace(/[\u0591-\u05C7]/g, ''); // strip niqqud
+  };
+
   // Filter leads
   const filteredLeads = leads.filter(lead => {
-    const matchesSearch = 
-      (lead.clientName && lead.clientName.includes(searchQuery)) ||
-      (lead.phone && lead.phone.includes(searchQuery)) ||
-      (lead.email && lead.email.includes(searchQuery));
+    if (!searchQuery.trim()) return true;
+
+    const q = searchQuery.trim().toLowerCase();
+    const qCleanPhone = q.replace(/\D/g, '');
+    const qNorm = normalizeHebrew(q);
+    const qNoYudVav = qNorm.replace(/[יו]/g, '');
+
+    const nameNorm = normalizeHebrew(lead.clientName || '');
+    const nameNoYudVav = nameNorm.replace(/[יו]/g, '');
+    const leadPhone = (lead.phone || '').replace(/\D/g, '');
+    const leadEmail = (lead.email || '').toLowerCase();
+    const notes = (lead.generalNotes || '' + ' ' + (lead.liveCallNotes || '')).toLowerCase();
+    const leadId = (lead.id || '').toLowerCase();
+
+    const matchesSearch =
+      nameNorm.includes(qNorm) ||
+      (qNoYudVav.length >= 3 && nameNoYudVav.includes(qNoYudVav)) ||
+      (qCleanPhone && leadPhone.includes(qCleanPhone)) ||
+      leadEmail.includes(q) ||
+      notes.includes(q) ||
+      leadId.includes(q);
 
     if (!matchesSearch) return false;
 
