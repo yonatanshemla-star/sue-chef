@@ -37,25 +37,28 @@ export async function POST(req: Request) {
 תודה`;
     const emailBodyToSend = emailBodyTemplate ? emailBodyTemplate.trim() : defaultEmailBody;
 
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    // Trim env vars to remove any trailing whitespace from Vercel env injection
+    const smtpUser = (process.env.SMTP_USER || '').trim();
+    const smtpPass = (process.env.SMTP_PASS || '').trim();
 
-    if (smtpHost && smtpUser && smtpPass) {
+    if (smtpUser && smtpPass) {
       try {
+        // Use service: 'gmail' instead of host/port - works reliably on Vercel serverless
         const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
+          service: 'gmail',
           auth: { user: smtpUser, pass: smtpPass }
         });
 
-        const htmlBody = `<div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.8; color: #222;">
-${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0;">${line}</p>`).join('\n')}
-</div>`;
+        const htmlBody = `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="utf-8"></head>
+<body style="direction: rtl; text-align: right; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.8; color: #222;">
+${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0; direction: rtl; text-align: right;">${line}</p>`).join('\n')}
+</body>
+</html>`;
 
         await transporter.sendMail({
-          from: process.env.SMTP_FROM || `"משרד עו״ד HBA" <${smtpUser}>`,
+          from: `"משרד עו״ד HBA" <${smtpUser}>`,
           to: lead.email,
           subject: emailSubject || 'פנייה ממשרד עו"ד HBA - זכויות רפואיות',
           text: emailBodyToSend,
@@ -70,10 +73,10 @@ ${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0;">$
         return NextResponse.json({ success: false, error: mailErr.message }, { status: 500 });
       }
     } else {
-      console.log(`⚠️ SMTP not configured. SMTP_HOST=${smtpHost}, SMTP_USER=${smtpUser ? 'set' : 'missing'}, SMTP_PASS=${smtpPass ? 'set' : 'missing'}`);
+      console.log(`⚠️ SMTP not configured. SMTP_USER=${smtpUser ? 'set' : 'missing'}, SMTP_PASS=${smtpPass ? 'set' : 'missing'}`);
       return NextResponse.json({ 
         success: false, 
-        error: 'הגדרות SMTP חסרות בשרת. ודא ש-SMTP_HOST, SMTP_USER ו-SMTP_PASS מוגדרים.'
+        error: 'הגדרות SMTP חסרות בשרת. ודא ש-SMTP_USER ו-SMTP_PASS מוגדרים.'
       }, { status: 500 });
     }
 
