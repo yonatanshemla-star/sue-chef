@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getLeads, updateLead } from '@/utils/storage';
+import nodemailer from 'nodemailer';
 
 export async function POST(req: Request) {
   try {
@@ -14,13 +15,14 @@ export async function POST(req: Request) {
       l => l.email && l.email.includes('@')
     );
 
+    // When targeting a specific lead, always allow re-sending (ignore status)
     const leadsToSend = targetLeadId
       ? eligibleLeads.filter(l => l.id === targetLeadId)
       : eligibleLeads.filter(l => l.campaignEmailStatus === 'pending' || !l.campaignEmailStatus);
 
     if (leadsToSend.length === 0) {
       return NextResponse.json({
-        success: true,
+        success: false,
         message: 'אין לידים זמינים עם מייל להמתנה בשליחה',
         processedCount: 0
       });
@@ -35,14 +37,12 @@ export async function POST(req: Request) {
 תודה`;
     const emailBodyToSend = emailBodyTemplate ? emailBodyTemplate.trim() : defaultEmailBody;
 
-    // If Nodemailer / SMTP environment variables are present, use nodemailer:
     const smtpHost = process.env.SMTP_HOST;
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
 
     if (smtpHost && smtpUser && smtpPass) {
       try {
-        const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
           host: smtpHost,
           port: parseInt(process.env.SMTP_PORT || '587'),
@@ -62,8 +62,7 @@ ${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0;">$
           html: htmlBody,
         });
 
-        const clientName = lead.clientName || 'לקוח';
-        console.log(`✉️ Real Email sent to ${lead.email} (${clientName})`);
+        console.log(`✉️ Real Email sent to ${lead.email} (${lead.clientName})`);
       } catch (mailErr: any) {
         console.error(`❌ Mail send failed for ${lead.email}:`, mailErr.message);
         lead.campaignEmailStatus = 'failed';
@@ -71,9 +70,11 @@ ${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0;">$
         return NextResponse.json({ success: false, error: mailErr.message }, { status: 500 });
       }
     } else {
-      const clientName = lead.clientName || 'לקוח';
-      // Simulate / Mark as sent in system if SMTP credentials not configured yet
-      console.log(`✉️ Email marked as sent to ${lead.email} (${clientName}) - SMTP config pending in .env.local`);
+      console.log(`⚠️ SMTP not configured. SMTP_HOST=${smtpHost}, SMTP_USER=${smtpUser ? 'set' : 'missing'}, SMTP_PASS=${smtpPass ? 'set' : 'missing'}`);
+      return NextResponse.json({ 
+        success: false, 
+        error: 'הגדרות SMTP חסרות בשרת. ודא ש-SMTP_HOST, SMTP_USER ו-SMTP_PASS מוגדרים.'
+      }, { status: 500 });
     }
 
     lead.campaignEmailStatus = 'sent';
