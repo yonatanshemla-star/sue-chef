@@ -120,7 +120,11 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         // If the existing lead ALREADY had a leadimId, this is a new duplicate submission (e.g. "Ofek", "Iris Sedi"), proceed to create new lead record below!
       }
 
-      const hasHighTax = rowText.includes('משלם מעל 1,000') ||
+      const taxTdVal = tds[12] || '';
+      const hasHighTax = taxTdVal.includes('כן') ||
+                         taxTdVal.includes('מעל 1,000') ||
+                         taxTdVal.includes('מעל 1000') ||
+                         rowText.includes('משלם מעל 1,000') ||
                          rowText.includes('מעל 1000') ||
                          (rowText.includes('מס הכנסה') && (rowText.includes('כן') || rowText.includes('מעל 1,000') || rowText.includes('מעל 1000')));
 
