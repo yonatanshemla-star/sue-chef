@@ -3433,7 +3433,10 @@ const ringback = new RingbackGenerator();
           
           {activeTab === 'campaign' && (
             <div className="p-4 md:p-8 pb-28 md:pb-8 h-full max-w-7xl mx-auto">
-              <CampaignDashboard onCallLead={(phone) => { setAgentPhone(phone); }} />
+              <CampaignDashboard 
+                onCallLead={(phone) => { setAgentPhone(phone); }} 
+                onLeadMovedToMain={() => { fetchLeads(); }} 
+              />
             </div>
           )}
 

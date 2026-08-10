@@ -27,9 +27,13 @@ export async function POST(req: Request) {
     }
 
     const lead = leadsToSend[0];
-    const clientName = lead.clientName || 'לקוח';
-    const personalizedBody = (emailBodyTemplate || `שלום ${clientName},\n\nבעבר היית בקשר עם משרד עו"ד HBA לגבי זכויותיך הרפואיות.\nפנינו אליך כעת לבדוק האם חל שינוי במצבך.\n\nבברכה,\nמשרד עו"ד HBA`)
-      .replace(/\{name\}|\[שם\]|\[שם הלקוח\]/g, clientName);
+    const defaultEmailBody = `שלום, 
+בעבר היית בקשר עם המשרד עו"ד HBA 
+לגבי זכויותיך הרפואיות, 
+פנינו אליך כעת כדי לבדוק האם מאז חל שינוי במצבך או בטיפול במקרה
+אם הנושא עדיין רלוונטי עבורך, ניתן להשיב להודעה זו ונציג מהמשרד יחזור אליך בהקדם.
+תודה`;
+    const emailBodyToSend = emailBodyTemplate ? emailBodyTemplate.trim() : defaultEmailBody;
 
     // If Nodemailer / SMTP environment variables are present, use nodemailer:
     const smtpHost = process.env.SMTP_HOST;
@@ -50,9 +54,10 @@ export async function POST(req: Request) {
           from: process.env.SMTP_FROM || `"משרד עו״ד HBA" <${smtpUser}>`,
           to: lead.email,
           subject: emailSubject || 'פנייה ממשרד עו"ד HBA - זכויות רפואיות',
-          text: personalizedBody,
+          text: emailBodyToSend,
         });
 
+        const clientName = lead.clientName || 'לקוח';
         console.log(`✉️ Real Email sent to ${lead.email} (${clientName})`);
       } catch (mailErr: any) {
         console.error(`❌ Mail send failed for ${lead.email}:`, mailErr.message);
@@ -61,6 +66,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: mailErr.message }, { status: 500 });
       }
     } else {
+      const clientName = lead.clientName || 'לקוח';
       // Simulate / Mark as sent in system if SMTP credentials not configured yet
       console.log(`✉️ Email marked as sent to ${lead.email} (${clientName}) - SMTP config pending in .env.local`);
     }

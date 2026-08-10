@@ -20,11 +20,13 @@ export async function POST(req: Request) {
     }
 
     const lead = leadsToSend[0];
-    const clientName = lead.clientName || 'לקוח';
-    
-    // Personalize message if template contains {name} or [שם]
-    const personalizedMessage = (messageTemplate || `שלום ${clientName}, משרד עו"ד HBA פונה אליך לבדוק האם חל שינוי במצבך. ניתן להשיב להודעה זו.`)
-      .replace(/\{name\}|\[שם\]|\[שם הלקוח\]/g, clientName);
+    const defaultWaMessage = `שלום, 
+בעבר היית בקשר עם המשרד עו"ד HBA 
+לגבי זכויותיך הרפואיות, 
+פנינו אליך כעת כדי לבדוק האם מאז חל שינוי במצבך או בטיפול במקרה
+אם הנושא עדיין רלוונטי עבורך, ניתן להשיב להודעה זו ונציג מהמשרד יחזור אליך בהקדם.
+תודה`;
+    const messageToSend = messageTemplate ? messageTemplate.trim() : defaultWaMessage;
 
     const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3001';
     const apiKey = process.env.WHATSAPP_API_KEY || 'sue-chef-secret-whatsapp-key-123';
@@ -38,7 +40,7 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           phone: lead.phone,
-          message: personalizedMessage
+          message: messageToSend
         })
       });
 
