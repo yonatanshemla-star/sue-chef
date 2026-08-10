@@ -30,7 +30,7 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
   );
   
   const [emailSubject, setEmailSubject] = useState<string>('פנייה ממשרד עו"ד HBA - בדיקת זכויות רפואיות');
-  const [senderEmail, setSenderEmail] = useState<string>('office@hba-law.co.il');
+
   const [emailTemplate, setEmailTemplate] = useState<string>(
 `שלום, 
 בעבר היית בקשר עם המשרד עו"ד HBA 
@@ -149,7 +149,6 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           emailSubject,
-          senderEmail,
           emailBodyTemplate: emailTemplate,
           targetLeadId: lead.id
         })
@@ -224,7 +223,7 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
   const startBatchEmail = async () => {
     setIsSendingEmail(true);
     cancelSendingRef.current = false;
-    setSendLogs(prev => [`✉️ מתחיל שליחת אימיילים אוטומטית ממייל ${senderEmail}...`, ...prev]);
+    setSendLogs(prev => [`✉️ מתחיל שליחת אימיילים אוטומטית...`, ...prev]);
 
     const pendingLeads = leads.filter(l => l.email && l.email.includes('@') && (l.campaignEmailStatus === 'pending' || !l.campaignEmailStatus));
 
@@ -243,7 +242,6 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             emailSubject,
-            senderEmail,
             emailBodyTemplate: emailTemplate,
             targetLeadId: lead.id
           })
@@ -488,28 +486,15 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
               </h2>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">שולח (Sender Email):</label>
-                <input
-                  type="text"
-                  value={senderEmail}
-                  onChange={(e) => setSenderEmail(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
-                  placeholder="office@hba-law.co.il"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">נושא האימייל:</label>
-                <input
-                  type="text"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
-                  placeholder="נושא האימייל"
-                />
-              </div>
+            <div className="mb-3">
+              <label className="text-xs text-slate-500 font-bold mb-1 block">נושא האימייל:</label>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+                placeholder="נושא האימייל"
+              />
             </div>
 
             <textarea

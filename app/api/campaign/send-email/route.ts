@@ -50,11 +50,16 @@ export async function POST(req: Request) {
           auth: { user: smtpUser, pass: smtpPass }
         });
 
+        const htmlBody = `<div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.8; color: #222;">
+${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0;">${line}</p>`).join('\n')}
+</div>`;
+
         await transporter.sendMail({
           from: process.env.SMTP_FROM || `"משרד עו״ד HBA" <${smtpUser}>`,
           to: lead.email,
           subject: emailSubject || 'פנייה ממשרד עו"ד HBA - זכויות רפואיות',
           text: emailBodyToSend,
+          html: htmlBody,
         });
 
         const clientName = lead.clientName || 'לקוח';

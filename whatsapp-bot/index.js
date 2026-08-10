@@ -181,6 +181,10 @@ function initWhatsAppClient() {
     console.log('Initializing WhatsApp Client instance...');
     client = new Client({
         authStrategy: new LocalAuth(),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1018980757-alpha.html',
+        },
         puppeteer: {
             headless: true,
             args: [
