@@ -54,3 +54,6 @@ whatsapp-bot/check_db.js
 whatsapp-bot/show_notes.js
 whatsapp-bot/test_gemini.js
 public/qr.png
+
+.vercel
+.env*
