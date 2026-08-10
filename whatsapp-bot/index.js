@@ -810,6 +810,12 @@ async function handleIncomingMessage(msg, eventSource) {
                 }
                 latestLead.generalNotes = newGeneralNotes;
                 
+                // Set campaign response tracking fields
+                latestLead.campaignReplied = true;
+                latestLead.campaignReplyChannel = 'whatsapp';
+                latestLead.campaignReplyText = combinedText;
+                latestLead.campaignRepliedAt = new Date().toISOString();
+
                 // Set the persistent reply analyzed flag!
                 latestLead.whatsappReplyAnalyzed = true;
                 

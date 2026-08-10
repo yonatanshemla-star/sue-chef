@@ -9,8 +9,13 @@ export async function GET() {
 
     const leads = await getLeads();
     
+    // Filter out campaign leads so main CRM table remains separate
+    const mainCrmLeads = leads.filter(
+      l => !l.id?.startsWith('cmp_') && l.source !== 'CSV Campaign' && l.campaignTag !== 'קמפיין פולואפ 2026'
+    );
+
     // Sort leads by newest first
-    const sortedLeads = leads.sort((a, b) => {
+    const sortedLeads = mainCrmLeads.sort((a, b) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 

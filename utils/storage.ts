@@ -13,7 +13,8 @@ export interface Lead {
   id: string;
   clientName: string;
   phone?: string;
-  source: 'Twilio' | 'LeadIM' | 'Manual';
+  email?: string;
+  source: 'Twilio' | 'LeadIM' | 'Manual' | 'CSV Campaign';
   createdAt: string;
   lastContacted: string | null;
   status: string;
@@ -44,6 +45,13 @@ export interface Lead {
   isStarred?: boolean;
   whatsappReplyAnalyzed?: boolean;
   campaign?: string;
+  campaignTag?: string;
+  campaignWhatsAppStatus?: 'pending' | 'sent' | 'failed';
+  campaignEmailStatus?: 'pending' | 'sent' | 'failed' | 'no_email';
+  campaignReplied?: boolean;
+  campaignReplyChannel?: 'whatsapp' | 'email';
+  campaignReplyText?: string;
+  campaignRepliedAt?: string;
   leadimId?: string;
   aiTasks?: AITask[];
 }

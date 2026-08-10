@@ -9,6 +9,7 @@ import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
 import DisqualificationDonutChart from "@/components/DisqualificationDonutChart";
 import AudioSettingsModal from "@/components/AudioSettingsModal";
+import CampaignDashboard from "@/components/CampaignDashboard";
 
 // -- Simple CountUp Component --
 function SimpleCountUp({ value, suffix = '', prefix = '' }: { value: number | string, suffix?: string, prefix?: string }) {
@@ -104,7 +105,7 @@ function matchLeadByPhone(rawPhone: string | undefined | null, leadsList: Lead[]
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup' | 'settings' | 'noanswer'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'campaign' | 'calls' | 'archive' | 'analytics' | 'tree' | 'followup' | 'settings' | 'noanswer'>('crm');
   const [darkMode, setDarkMode] = useState(false);
   const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [recentCalls, setRecentCalls] = useState<any[]>([]);
@@ -2309,8 +2310,8 @@ const ringback = new RingbackGenerator();
           {/* Tabs - Centered */}
           <div className="hidden md:flex flex-wrap gap-2 p-2 w-fit rounded-[28px] bg-indigo-600 dark:bg-slate-900/50 dark:border dark:border-indigo-500/30 shadow-2xl shadow-indigo-500/20 dark:shadow-none overflow-hidden backdrop-blur-xl relative z-10">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[80px] rounded-full translate-x-12 -translate-y-12" />
-            {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700 dark:text-indigo-300'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400'}] as const).map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-10 py-4 rounded-[22px] text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
+            {([{id: 'crm', label: 'טבלת מעקב', accent: 'text-indigo-700 dark:text-indigo-300'}, {id: 'campaign', label: '📢 קמפיין פולואפ', accent: 'text-emerald-600 dark:text-emerald-400'}, {id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400'}, {id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400'}] as const).map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-10 py-4 rounded-[22px] text-sm font-bold transition-all relative group overflow-hidden z-10 ${activeTab === tab.id ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-xl scale-105` : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'}`}>
                 <span className="relative z-10">{tab.label}</span>
               </button>
             ))}
@@ -3430,6 +3431,12 @@ const ringback = new RingbackGenerator();
             </div>
           )}
           
+          {activeTab === 'campaign' && (
+            <div className="p-4 md:p-8 pb-28 md:pb-8 h-full max-w-7xl mx-auto">
+              <CampaignDashboard onCallLead={(phone) => { setAgentPhone(phone); }} />
+            </div>
+          )}
+
           {activeTab === 'tree' && <div className="p-4 md:p-8 pb-28 md:pb-8 h-full"><LegalDecisionTree /></div>}
           
           {activeTab === 'settings' && (
