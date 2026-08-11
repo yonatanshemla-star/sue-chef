@@ -5,7 +5,7 @@ import { Lead } from '@/utils/storage';
 import { 
   Send, Mail, RefreshCw, Upload, Search, MessageSquare, 
   CheckCircle2, Clock, XCircle, Play, Pause,
-  Users, Reply, PhoneCall, Sparkles, ArrowRightLeft, Check, AlertCircle
+  Users, Reply, PhoneCall, Sparkles, ArrowRightLeft, Check, AlertCircle, Trash2
 } from 'lucide-react';
 
 interface CampaignDashboardProps {
@@ -46,6 +46,7 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
   const [sendLogs, setSendLogs] = useState<string[]>([]);
   const [currentSendingLead, setCurrentSendingLead] = useState<string | null>(null);
   const [movingLeadId, setMovingLeadId] = useState<string | null>(null);
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Selected lead modal for reply details
@@ -131,6 +132,35 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
       alert(`שגיאה בהעברה: ${err.message}`);
     } finally {
       setMovingLeadId(null);
+    }
+  };
+
+  // Delete lead from campaign (e.g. if marked as not relevant)
+  const deleteCampaignLead = async (lead: Lead) => {
+    if (!confirm(`האם למחוק את הליד "${lead.clientName}" מהקמפיין לצמיתות?`)) {
+      return;
+    }
+    try {
+      setDeletingLeadId(lead.id);
+      const res = await fetch('/api/leads/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: lead.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLeads(prev => prev.filter(l => l.id !== lead.id));
+        triggerToast(`🗑️ הליד "${lead.clientName}" נמחק מהקמפיין.`);
+        if (selectedLead && selectedLead.id === lead.id) {
+          setSelectedLead(null);
+        }
+      } else {
+        alert(`שגיאה במחיקת הליד: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`שגיאה במחיקה: ${err.message}`);
+    } finally {
+      setDeletingLeadId(null);
     }
   };
 
@@ -872,6 +902,16 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
                               <PhoneCall className="w-3.5 h-3.5" />
                             </button>
                           )}
+
+                          {/* Delete Campaign Lead Button */}
+                          <button
+                            onClick={() => deleteCampaignLead(lead)}
+                            disabled={deletingLeadId === lead.id}
+                            title="מחק ליד מהקמפיין (לא רלוונטי)"
+                            className="p-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-lg transition"
+                          >
+                            {deletingLeadId === lead.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -910,39 +950,52 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
               </p>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <button
                 onClick={() => {
-                  const leadToMove = selectedLead;
-                  setSelectedLead(null);
-                  moveLeadToMainTable(leadToMove);
+                  const leadToDelete = selectedLead;
+                  deleteCampaignLead(leadToDelete);
                 }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition flex items-center gap-1.5 shadow-md"
+                className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
               >
-                <ArrowRightLeft className="w-4 h-4" />
-                העבר לטבלה הראשית
+                <Trash2 className="w-3.5 h-3.5" />
+                מחק ליד (לא רלוונטי)
               </button>
 
-              {selectedLead.phone && onCallLead && (
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    const phone = selectedLead.phone!;
+                    const leadToMove = selectedLead;
                     setSelectedLead(null);
-                    onCallLead(phone);
+                    moveLeadToMainTable(leadToMove);
                   }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition flex items-center gap-1.5 shadow-md"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition flex items-center gap-1.5 shadow-md"
                 >
-                  <PhoneCall className="w-4 h-4" />
-                  חייג ללקוח
+                  <ArrowRightLeft className="w-4 h-4" />
+                  העבר לטבלה הראשית
                 </button>
-              )}
 
-              <button
-                onClick={() => setSelectedLead(null)}
-                className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl transition"
-              >
-                סגור
-              </button>
+                {selectedLead.phone && onCallLead && (
+                  <button
+                    onClick={() => {
+                      const phone = selectedLead.phone!;
+                      setSelectedLead(null);
+                      onCallLead(phone);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition flex items-center gap-1.5 shadow-md"
+                  >
+                    <PhoneCall className="w-4 h-4" />
+                    חייג ללקוח
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setSelectedLead(null)}
+                  className="px-3.5 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl transition"
+                >
+                  סגור
+                </button>
+              </div>
             </div>
           </div>
         </div>
