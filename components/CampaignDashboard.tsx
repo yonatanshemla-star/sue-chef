@@ -381,7 +381,7 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
     if (!matchesSearch) return false;
 
     if (statusFilter === 'replied') {
-      return lead.campaignReplied || (lead.liveCallNotes && (lead.liveCallNotes.includes('תשובת וואטסאפ') || lead.liveCallNotes.includes('הליד ענה')));
+      return lead.campaignReplied || (lead.liveCallNotes && (lead.liveCallNotes.includes('תשובת וואטסאפ') || lead.liveCallNotes.includes('הליד ענה') || lead.liveCallNotes.includes('תשובת אימייל')));
     }
     if (statusFilter === 'wa_pending') return lead.campaignWhatsAppStatus === 'pending' || !lead.campaignWhatsAppStatus;
     if (statusFilter === 'wa_sent') return lead.campaignWhatsAppStatus === 'sent';
@@ -389,6 +389,25 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
     if (statusFilter === 'email_sent') return lead.campaignEmailStatus === 'sent';
 
     return true;
+  }).sort((a, b) => {
+    const aReplied = a.campaignReplied || Boolean(a.liveCallNotes && (a.liveCallNotes.includes('תשובת וואטסאפ') || a.liveCallNotes.includes('הליד ענה') || a.liveCallNotes.includes('תשובת אימייל')));
+    const bReplied = b.campaignReplied || Boolean(b.liveCallNotes && (b.liveCallNotes.includes('תשובת וואטסאפ') || b.liveCallNotes.includes('הליד ענה') || b.liveCallNotes.includes('תשובת אימייל')));
+
+    // Replied leads float to the top
+    if (aReplied && !bReplied) return -1;
+    if (!aReplied && bReplied) return 1;
+
+    // If both replied, sort by replied date descending
+    if (aReplied && bReplied) {
+      const aDate = new Date(a.campaignRepliedAt || a.lastContacted || a.createdAt || 0).getTime();
+      const bDate = new Date(b.campaignRepliedAt || b.lastContacted || b.createdAt || 0).getTime();
+      return bDate - aDate;
+    }
+
+    // Otherwise sort by creation date descending
+    const aTime = new Date(a.createdAt || 0).getTime();
+    const bTime = new Date(b.createdAt || 0).getTime();
+    return bTime - aTime;
   });
 
   return (
