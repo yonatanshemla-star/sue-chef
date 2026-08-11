@@ -46,7 +46,8 @@ export interface Lead {
   whatsappReplyAnalyzed?: boolean;
   campaign?: string;
   campaignTag?: string;
-  campaignWhatsAppStatus?: 'pending' | 'sent' | 'failed';
+  campaignWhatsAppStatus?: 'pending' | 'queued' | 'sent' | 'failed';
+  campaignWhatsAppQueue?: { messageTemplate: string; queuedAt: string };
   campaignEmailStatus?: 'pending' | 'sent' | 'failed' | 'no_email';
   campaignReplied?: boolean;
   campaignReplyChannel?: 'whatsapp' | 'email';

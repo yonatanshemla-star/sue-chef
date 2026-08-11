@@ -221,7 +221,7 @@ function initWhatsAppClient() {
             console.log(`🖼️ Saved QR code PNG to ${publicQrPath}`);
 
             // 2. Save to the Brain/Artifacts folder so the Assistant can display it directly in the markdown transcript!
-            const brainDir = `C:\\Users\\Yonatan\\.gemini\\antigravity\\brain\\482c84de-13c1-47c3-b2be-1182c08aa65f`;
+            const brainDir = `C:\\Users\\Yonatan\\.gemini\\antigravity\\brain\\80b38e25-f245-4ca8-8cdc-8188acebbdac`;
             if (fs.existsSync(brainDir)) {
                 const brainQrPath = path.join(brainDir, 'qr.png');
                 await QRCodeImage.toFile(brainQrPath, qr, {
@@ -522,8 +522,72 @@ async function checkAndSendPendingWhatsAppMessages() {
     }
 }
 
-// Set up periodic DB polling every 60 seconds
+// Function to poll Neon DB for queued Campaign WhatsApp messages
+async function checkAndSendCampaignWhatsAppQueue() {
+    if (!isClientReady) return;
+    
+    try {
+        const query = `
+            SELECT id, data 
+            FROM leads 
+            WHERE data->>'campaignWhatsAppStatus' = 'queued'
+            ORDER BY created_at ASC
+            LIMIT 5
+        `;
+        const res = await pool.query(query);
+        if (res.rows.length === 0) return;
+
+        console.log(`📨 Found ${res.rows.length} queued Campaign WhatsApp message(s).`);
+
+        for (const row of res.rows) {
+            const leadId = row.id;
+            const lead = row.data;
+            const phone = lead.phone ? lead.phone.replace(/\D/g, '') : '';
+            const msgTemplate = (lead.campaignWhatsAppQueue && lead.campaignWhatsAppQueue.messageTemplate) || `שלום, 
+בעבר היית בקשר עם המשרד עו"ד HBA 
+לגבי זכויותיך הרפואיות, 
+פנינו אליך כעת כדי לבדוק האם מאז חל שינוי במצבך או בטיפול במקרה
+אם הנושא עדיין רלוונטי עבורך, ניתן להשיב להודעה זו ונציג מהמשרד יחזור אליך בהקדם.
+תודה`;
+
+            if (!phone) {
+                lead.campaignWhatsAppStatus = 'failed';
+                await pool.query(`UPDATE leads SET data = $1 WHERE id = $2`, [JSON.stringify(lead), leadId]);
+                continue;
+            }
+
+            let targetPhone = phone;
+            if (targetPhone.startsWith('0')) targetPhone = '972' + targetPhone.substring(1);
+            else if (!targetPhone.startsWith('972')) targetPhone = '972' + targetPhone;
+            const chatId = `${targetPhone}@c.us`;
+
+            try {
+                console.log(`📤 Sending queued WhatsApp message to ${lead.clientName} (${chatId})...`);
+                await client.sendMessage(chatId, msgTemplate);
+                console.log(`✅ Sent WhatsApp message to ${lead.clientName}!`);
+
+                lead.campaignWhatsAppStatus = 'sent';
+                lead.whatsappSentAt = new Date().toISOString();
+                lead.lastContacted = new Date().toISOString();
+                delete lead.campaignWhatsAppQueue;
+                await pool.query(`UPDATE leads SET data = $1 WHERE id = $2`, [JSON.stringify(lead), leadId]);
+            } catch (sendErr) {
+                console.error(`❌ Failed to send WhatsApp to ${lead.clientName}:`, sendErr.message);
+                lead.campaignWhatsAppStatus = 'failed';
+                await pool.query(`UPDATE leads SET data = $1 WHERE id = $2`, [JSON.stringify(lead), leadId]);
+            }
+
+            // Safe pause between messages
+            await new Promise(r => setTimeout(r, 2500));
+        }
+    } catch (err) {
+        console.error('Error polling campaign WhatsApp queue:', err.message);
+    }
+}
+
+// Set up periodic DB polling
 setInterval(checkAndSendPendingWhatsAppMessages, 60000);
+setInterval(checkAndSendCampaignWhatsAppQueue, 3000);
 
 // Helper function to call Gemini API and analyze a WhatsApp reply
 async function analyzeWhatsAppReply(replyText) {

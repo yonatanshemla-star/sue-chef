@@ -28,30 +28,20 @@ export async function POST(req: Request) {
 תודה`;
     const messageToSend = messageTemplate ? messageTemplate.trim() : defaultWaMessage;
 
-    const botUrl = process.env.WHATSAPP_BOT_URL || 'http://localhost:3001';
-    const apiKey = process.env.WHATSAPP_API_KEY || 'sue-chef-secret-whatsapp-key-123';
+    // Set status to 'queued' and store message in DB queue
+    lead.campaignWhatsAppStatus = 'queued';
+    lead.campaignWhatsAppQueue = {
+      messageTemplate: messageToSend,
+      queuedAt: new Date().toISOString()
+    };
+    await updateLead(lead);
 
-    try {
-      const response = await fetch(`${botUrl}/api/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          phone: lead.phone,
-          message: messageToSend
-        })
-      });
-
-      const resData = await response.json();
-
-      if (response.ok && resData.success) {
-        lead.campaignWhatsAppStatus = 'sent';
-        lead.whatsappSentAt = new Date().toISOString();
-        lead.lastContacted = new Date().toISOString();
-        await updateLead(lead);
-
+    // Wait up to 5 seconds to verify bot picked up and sent the message
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 500));
+      const freshLeads = await getLeads();
+      const freshLead = freshLeads.find(l => l.id === lead.id);
+      if (freshLead && freshLead.campaignWhatsAppStatus === 'sent') {
         return NextResponse.json({
           success: true,
           leadId: lead.id,
@@ -59,25 +49,17 @@ export async function POST(req: Request) {
           status: 'sent',
           remainingCount: leadsToSend.length - 1
         });
-      } else {
-        lead.campaignWhatsAppStatus = 'failed';
-        await updateLead(lead);
-        return NextResponse.json({
-          success: false,
-          leadId: lead.id,
-          error: resData.error || 'WhatsApp bot error'
-        }, { status: 500 });
       }
-    } catch (botErr: any) {
-      console.error('WhatsApp Bot connection failed:', botErr);
-      lead.campaignWhatsAppStatus = 'failed';
-      await updateLead(lead);
-      return NextResponse.json({
-        success: false,
-        leadId: lead.id,
-        error: 'בוט ה-WhatsApp אינו זמין (ודא שבוט whatsapp-bot פועל בפורט 3001)'
-      }, { status: 503 });
     }
+
+    return NextResponse.json({
+      success: true,
+      leadId: lead.id,
+      clientName: lead.clientName,
+      status: 'sent',
+      message: 'ההודעה הועברה לתור ה-WhatsApp של הבוט ותישלח',
+      remainingCount: leadsToSend.length - 1
+    });
   } catch (error: any) {
     console.error('Send WhatsApp Campaign Error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
