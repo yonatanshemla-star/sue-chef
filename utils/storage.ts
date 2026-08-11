@@ -84,18 +84,15 @@ export async function initDB() {
 export async function getLeads(): Promise<Lead[]> {
   try {
     await initDB();
-    const { rows: deletedRows } = await sql`SELECT leadim_id, phone FROM deleted_leads`;
+    const { rows: deletedRows } = await sql`SELECT leadim_id FROM deleted_leads`;
     const deletedLeadimIds = new Set(deletedRows.map(r => r.leadim_id).filter(Boolean));
-    const deletedPhones = new Set(deletedRows.map(r => r.phone).filter(Boolean));
 
     const { rows } = await sql`SELECT id, data FROM leads ORDER BY created_at DESC`;
     const activeLeads: Lead[] = [];
 
     for (const r of rows) {
       const l = r.data as Lead;
-      const normPhone = l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null;
-      const isTombstoned = (l.leadimId && deletedLeadimIds.has(l.leadimId)) ||
-                           (normPhone && deletedPhones.has(normPhone));
+      const isTombstoned = l.leadimId ? deletedLeadimIds.has(l.leadimId) : false;
 
       if (isTombstoned) {
         // Automatically purge from PostgreSQL leads table
@@ -114,10 +111,9 @@ export async function getLeads(): Promise<Lead[]> {
 
 export async function saveLead(lead: Lead): Promise<void> {
   await initDB();
-  // Don't save if lead is tombstoned
+  // Don't save if specific leadimId is tombstoned as deleted
   const deleted = await getDeletedLeadimIdentifiers();
-  const normPhone = lead.phone ? lead.phone.replace(/\D/g, '').slice(-9) : null;
-  if ((lead.leadimId && deleted.leadimIds.has(lead.leadimId)) || (normPhone && deleted.phones.has(normPhone))) {
+  if (lead.leadimId && deleted.leadimIds.has(lead.leadimId)) {
     return;
   }
 
@@ -142,11 +138,10 @@ export async function deleteLead(id: string): Promise<boolean> {
     if (rows && rows.length > 0) {
       const lead = rows[0].data as Lead;
       const leadimId = lead.leadimId || null;
-      const phone = lead.phone ? lead.phone.replace(/\D/g, '').slice(-9) : null;
-      if (leadimId || phone) {
+      if (leadimId) {
         await sql`
-          INSERT INTO deleted_leads (id, leadim_id, phone)
-          VALUES (${id}, ${leadimId}, ${phone})
+          INSERT INTO deleted_leads (id, leadim_id)
+          VALUES (${id}, ${leadimId})
           ON CONFLICT (id) DO NOTHING
         `;
       }
