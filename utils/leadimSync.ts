@@ -107,23 +107,6 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       const rawPhone = tds[7] || '';
       const phoneClean = (rawPhone && rawPhone !== '&nbsp;' && rawPhone.trim().length > 0) ? rawPhone.trim() : (rowText.match(/0\d{8,9}/)?.[0] || undefined);
       const phone = phoneClean || undefined;
-      const normPhone = phone ? phone.replace(/\D/g, '').slice(-9) : null;
-
-      // If phone exists in DB on an old lead with NO leadimId, bind its leadimId and revive it to "חדש" if it was archived/disqualified
-      if (normPhone && existingPhones.has(normPhone)) {
-        const target = dbLeads.find(l => l.phone && l.phone.replace(/\D/g, '').slice(-9) === normPhone && !l.leadimId);
-        if (target) {
-          const isArchived = target.status === 'נגמר' || target.status === 'לא רלוונטי' || target.status === 'פסול';
-          await updateLead({
-            ...target,
-            leadimId,
-            createdAt,
-            status: isArchived ? 'חדש' : target.status,
-            disqualificationReason: isArchived ? undefined : target.disqualificationReason,
-          });
-          continue;
-        }
-      }
 
       const taxTdVal = tds[12] || '';
       const hasHighTax = taxTdVal.includes('כן') ||
