@@ -68,6 +68,20 @@ ${emailBodyToSend.split('\n').map((line: string) => `<p style="margin: 4px 0; di
         console.log(`✉️ Real Email sent to ${lead.email} (${lead.clientName})`);
       } catch (mailErr: any) {
         console.error(`❌ Mail send failed for ${lead.email}:`, mailErr.message);
+        const errMsg = mailErr.message || '';
+        const isQuota = /quota|limit|exceeded|550|454|rate/i.test(errMsg);
+
+        if (isQuota) {
+          // Keep as pending so it can be resumed next day
+          lead.campaignEmailStatus = 'pending';
+          await updateLead(lead);
+          return NextResponse.json({ 
+            success: false, 
+            isQuotaExceeded: true, 
+            error: 'מכסת השליחה היומית של Gmail מוצתה להיום (Quota Exceeded)' 
+          }, { status: 429 });
+        }
+
         lead.campaignEmailStatus = 'failed';
         await updateLead(lead);
         return NextResponse.json({ success: false, error: mailErr.message }, { status: 500 });

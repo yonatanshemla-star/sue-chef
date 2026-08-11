@@ -241,17 +241,59 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
     setCurrentSendingLead(null);
   };
 
-  // Batch Email dispatch
+  // Batch Email dispatch with automatic daily quota spreading (400/day safe Gmail limit)
   const startBatchEmail = async () => {
     setIsSendingEmail(true);
     cancelSendingRef.current = false;
-    setSendLogs(prev => [`✉️ מתחיל שליחת אימיילים אוטומטית...`, ...prev]);
 
-    const pendingLeads = leads.filter(l => l.email && l.email.includes('@') && (l.campaignEmailStatus === 'pending' || !l.campaignEmailStatus));
+    const todayStr = new Date().toISOString().split('T')[0];
+    const alreadySentToday = leads.filter(
+      l => l.campaignEmailStatus === 'sent' && l.lastContacted && l.lastContacted.startsWith(todayStr)
+    ).length;
+
+    const DAILY_SAFE_CAP = 400;
+    const remainingTodayQuota = Math.max(0, DAILY_SAFE_CAP - alreadySentToday);
+
+    const pendingLeads = leads.filter(
+      l => l.email && l.email.includes('@') && (l.campaignEmailStatus === 'pending' || !l.campaignEmailStatus)
+    );
+
+    if (pendingLeads.length === 0) {
+      triggerToast('כל הלידים בעלי המייל כבר נשלחו!');
+      setIsSendingEmail(false);
+      return;
+    }
+
+    if (remainingTodayQuota <= 0) {
+      setSendLogs(prev => [
+        `⏸️ כבר נשלחו היום ${alreadySentToday} מיילים (המכסה היומית הבטוחה של Gmail היא ${DAILY_SAFE_CAP}). המערכת שומרת על חשבונך – נמשיך מחר!`,
+        ...prev
+      ]);
+      triggerToast(`הושלמה המכסה היומית (${alreadySentToday}/${DAILY_SAFE_CAP}). מומלץ להמשיך מחר.`);
+      setIsSendingEmail(false);
+      return;
+    }
+
+    setSendLogs(prev => [
+      `✉️ מתחיל שליחת אימיילים אוטומטית (מכסה להיום: ${remainingTodayQuota} מיילים מתוך ${pendingLeads.length} ממתינים)...`,
+      ...prev
+    ]);
+
+    let sentInThisSession = 0;
 
     for (let i = 0; i < pendingLeads.length; i++) {
       if (cancelSendingRef.current) {
         setSendLogs(prev => [`🛑 שליחת אימיילים הופסקה על ידי המשתמש`, ...prev]);
+        break;
+      }
+
+      // Check if daily cap reached during this run
+      if (sentInThisSession >= remainingTodayQuota) {
+        setSendLogs(prev => [
+          `🎉 הושלמה מכסת השליחה הבטוחה להיום (${DAILY_SAFE_CAP} מיילים סה"כ היום)! המערכת עצרה בבטחה כדי להגן על ה-Gmail שלך. שאר הלידים שמורים ומוכנים להמשך מחר.`,
+          ...prev
+        ]);
+        triggerToast(`🎉 נשלחו ${DAILY_SAFE_CAP} מיילים היום! המשך מחר.`);
         break;
       }
 
@@ -271,16 +313,30 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
 
         const data = await res.json();
         if (data.success) {
-          setSendLogs(prev => [`✅ מייל נשלח ל-${lead.clientName} (${lead.email})`, ...prev]);
+          sentInThisSession++;
+          const currentTotalToday = alreadySentToday + sentInThisSession;
+          setSendLogs(prev => [
+            `✅ [${currentTotalToday}/${DAILY_SAFE_CAP}] מייל נשלח ל-${lead.clientName} (${lead.email})`,
+            ...prev
+          ]);
           await fetchCampaignLeads();
+        } else if (data.isQuotaExceeded) {
+          setSendLogs(prev => [
+            `⚠️ זוהתה מגבלת שליחה יומית של Gmail (${data.error}). המערכת השהתה את השליחה בבטחה – שאר הלידים יישארו להמשך מחר!`,
+            ...prev
+          ]);
+          triggerToast('הגענו למגבלת Gmail להיום – השליחה הושהתה בבטחה.');
+          break;
         } else {
           setSendLogs(prev => [`❌ מייל נכשל ל-${lead.clientName}: ${data.error}`, ...prev]);
         }
       } catch (err: any) {
-        setSendLogs(prev => [`⚠️ שגיאת מייל ל-${lead.clientName}: ${err.message}`, ...prev]);
+        setSendLogs(prev => [`⚠️ שגיאת רשת בשליחה ל-${lead.clientName}: ${err.message}`, ...prev]);
       }
 
-      await new Promise(r => setTimeout(r, 1500));
+      // Organic randomized pause (2.2 - 3.8 seconds) between emails
+      const pauseTime = 2200 + Math.floor(Math.random() * 1600);
+      await new Promise(r => setTimeout(r, pauseTime));
     }
 
     setIsSendingEmail(false);
