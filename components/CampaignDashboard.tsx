@@ -50,8 +50,26 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
 
   // Selected lead modal for reply details
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [isCheckingEmails, setIsCheckingEmails] = useState<boolean>(false);
   
   const cancelSendingRef = useRef<boolean>(false);
+
+  // Check email replies from Gmail inbox
+  const checkEmailReplies = async () => {
+    try {
+      setIsCheckingEmails(true);
+      const res = await fetch('/api/campaign/check-email-replies');
+      const data = await res.json();
+      if (data.success && data.repliesFound > 0) {
+        triggerToast(`🎉 התקבלו ${data.repliesFound} תשובות חדשות במייל!`);
+        fetchCampaignLeads();
+      }
+    } catch (err) {
+      console.error('Failed to check email replies:', err);
+    } finally {
+      setIsCheckingEmails(false);
+    }
+  };
 
   // Fetch campaign leads
   const fetchCampaignLeads = async () => {
@@ -71,7 +89,11 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
 
   useEffect(() => {
     fetchCampaignLeads();
-    const interval = setInterval(fetchCampaignLeads, 12000);
+    checkEmailReplies();
+    const interval = setInterval(() => {
+      fetchCampaignLeads();
+      checkEmailReplies();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -399,6 +421,16 @@ export default function CampaignDashboard({ onCallLead, onLeadMovedToMain }: Cam
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={checkEmailReplies}
+              disabled={isCheckingEmails}
+              className="px-4 py-2.5 bg-pink-50 hover:bg-pink-100 dark:bg-pink-500/20 dark:hover:bg-pink-500/30 text-pink-700 dark:text-pink-300 rounded-xl text-sm font-bold border border-pink-200 dark:border-pink-500/40 transition flex items-center gap-2 shadow-sm"
+              title="סרוק את תיבת ה-Gmail לתשובות חדשות מלקוחות"
+            >
+              <Mail className={`w-4 h-4 ${isCheckingEmails ? 'animate-spin text-pink-600' : ''}`} />
+              בדוק תשובות במייל
+            </button>
+
             <button
               onClick={fetchCampaignLeads}
               disabled={loading}
