@@ -2292,18 +2292,7 @@ const ringback = new RingbackGenerator();
 
 
 
-        {/* Notifications Bar */}
-        {notifications.length > 0 && (activeTab === 'crm' || activeTab === 'followup') && (
-          <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[32px] relative shadow-inner">
-            <button onClick={() => setNotifications([])} className="absolute left-6 top-6 text-amber-600 hover:rotate-90 transition-all z-10"><X size={20} /></button>
-            <h3 className="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-3 mb-2">
-               <Clock size={18} className="animate-bounce" /> הגיע הזמן לחזור ללקוחות:
-            </h3>
-            <div className="flex flex-wrap gap-2">
-               {notifications.map(n => <span key={n.id} className="bg-white dark:bg-slate-900 px-4 py-1.5 rounded-xl border border-amber-200 text-xs font-bold shadow-sm transform hover:scale-105 transition-all">{n.name} - {formatDate(n.time)}</span>)}
-            </div>
-          </div>
-        )}
+
 
         {/* Tabs and Desktop Sticky Note Container */}
         <div className="relative flex justify-center items-start mb-10 w-full z-30">
