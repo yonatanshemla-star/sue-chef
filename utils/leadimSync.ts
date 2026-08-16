@@ -52,14 +52,26 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     const authCookie = loginRes.headers.get('set-cookie');
     const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // 2. Fetch leads page with cleared date range filter
+    // 2. Fetch initial leads page to get actual leads page ViewState
+    const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      headers: {
+        'Cookie': allCookies,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+    });
+
+    const initialLeadsHtml = await leadsPageRes.text();
+    const leadsVs = initialLeadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || viewstate;
+    const leadsVsg = initialLeadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || viewstategen;
+
+    // 3. Fetch leads page with cleared date range filter using actual leads page ViewState
     const drangeParams = new URLSearchParams();
     drangeParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
     drangeParams.append('__EVENTARGUMENT', '');
     drangeParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
     drangeParams.append('__ARG', '');
-    drangeParams.append('__VIEWSTATE', viewstate);
-    drangeParams.append('__VIEWSTATEGENERATOR', viewstategen);
+    drangeParams.append('__VIEWSTATE', leadsVs);
+    drangeParams.append('__VIEWSTATEGENERATOR', leadsVsg);
     drangeParams.append('lm$mpi$scms_csm_txt', 'passed');
     drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
     drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
