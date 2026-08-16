@@ -95,17 +95,20 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     const existingLeadimIds = new Set(mainCrmLeads.map(l => l.leadimId).filter(Boolean));
     const existingPhones = new Set(mainCrmLeads.map(l => l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null).filter(Boolean));
 
-    const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
-    let trMatch;
+    const htmlSources = [initialLeadsHtml, leadsHtml];
     let newLeadsCount = 0;
 
-    while ((trMatch = trRegex.exec(leadsHtml)) !== null) {
-      const leadimId = trMatch[1];
-      const rowContent = trMatch[2];
-      const rowText = rowContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    for (const sourceHtml of htmlSources) {
+      const trRegex = /<tr[^>]*data-arg="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
 
-      // Skip if active lead by leadimId or tombstoned deleted lead
-      if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
+      while ((trMatch = trRegex.exec(sourceHtml)) !== null) {
+        const leadimId = trMatch[1];
+        const rowContent = trMatch[2];
+        const rowText = rowContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+        // Skip if active lead by leadimId or tombstoned deleted lead
+        if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
 
       const tds = Array.from(rowContent.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
 
@@ -147,8 +150,10 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
       };
 
       await saveLead(newLead as any);
+      existingLeadimIds.add(leadimId);
       newLeadsCount++;
     }
+  }
 
     return newLeadsCount;
   } catch (err: any) {
