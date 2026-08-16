@@ -52,7 +52,13 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     const authCookie = loginRes.headers.get('set-cookie');
     const allCookies = [initCookie, authCookie].filter(Boolean).map(c => c!.split(';')[0]).join('; ');
 
-    // 2. Fetch initial leads page to get actual leads page ViewState
+    const dbLeads = await getLeads();
+    const deleted = await getDeletedLeadimIdentifiers();
+
+    const mainCrmLeads = dbLeads.filter(l => l.source !== 'CSV Campaign' && !l.id?.startsWith('cmp_'));
+    const existingLeadimIds = new Set(mainCrmLeads.map(l => l.leadimId).filter(Boolean));
+
+    // Fetch initial leads page to get actual leads page ViewState
     const leadsPageRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
       headers: {
         'Cookie': allCookies,
@@ -64,38 +70,48 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     const leadsVs = initialLeadsHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || viewstate;
     const leadsVsg = initialLeadsHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || viewstategen;
 
-    // 3. Fetch leads page with cleared date range filter using actual leads page ViewState
-    const drangeParams = new URLSearchParams();
-    drangeParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
-    drangeParams.append('__EVENTARGUMENT', '');
-    drangeParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
-    drangeParams.append('__ARG', '');
-    drangeParams.append('__VIEWSTATE', leadsVs);
-    drangeParams.append('__VIEWSTATEGENERATOR', leadsVsg);
-    drangeParams.append('lm$mpi$scms_csm_txt', 'passed');
-    drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
-    drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
+    // Fetch recent 14 days in chunks + cleared date range to ensure zero pagination omission
+    const now = new Date();
+    const dateRanges = [
+      { from: '01/01/2020 00:00', to: '' },
+    ];
+    for (let i = 0; i < 14; i += 3) {
+      const dFrom = new Date(now.getTime() - (i + 3) * 86400000);
+      const dTo = new Date(now.getTime() - i * 86400000);
+      const fmt = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} 00:00`;
+      dateRanges.push({ from: fmt(dFrom), to: fmt(dTo) });
+    }
 
-    const drangeRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie': allCookies,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      },
-      body: drangeParams.toString(),
-    });
+    const htmlSources = [initialLeadsHtml];
 
-    const leadsHtml = await drangeRes.text();
+    for (const range of dateRanges) {
+      const drangeParams = new URLSearchParams();
+      drangeParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+      drangeParams.append('__EVENTARGUMENT', '');
+      drangeParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
+      drangeParams.append('__ARG', '');
+      drangeParams.append('__VIEWSTATE', leadsVs);
+      drangeParams.append('__VIEWSTATEGENERATOR', leadsVsg);
+      drangeParams.append('lm$mpi$scms_csm_txt', 'passed');
+      drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', range.from);
+      if (range.to) {
+        drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrTo$txtDate', range.to);
+      }
+      drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
 
-    const dbLeads = await getLeads();
-    const deleted = await getDeletedLeadimIdentifiers();
+      const drangeRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': allCookies,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+        body: drangeParams.toString(),
+      });
 
-    const mainCrmLeads = dbLeads.filter(l => l.source !== 'CSV Campaign' && !l.id?.startsWith('cmp_'));
-    const existingLeadimIds = new Set(mainCrmLeads.map(l => l.leadimId).filter(Boolean));
-    const existingPhones = new Set(mainCrmLeads.map(l => l.phone ? l.phone.replace(/\D/g, '').slice(-9) : null).filter(Boolean));
+      htmlSources.push(await drangeRes.text());
+    }
 
-    const htmlSources = [initialLeadsHtml, leadsHtml];
     let newLeadsCount = 0;
 
     for (const sourceHtml of htmlSources) {
