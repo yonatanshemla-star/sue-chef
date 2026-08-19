@@ -1862,17 +1862,25 @@ const ringback = new RingbackGenerator();
       const targetId = isMobile ? `mob-lead-row-${lead.id}` : `lead-row-${lead.id}`;
       const el = document.getElementById(targetId) || document.getElementById(`mob-lead-row-${lead.id}`) || document.getElementById(`lead-row-${lead.id}`);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        const parentContainer = el.closest('.overflow-y-auto') || el.parentElement;
+        if (parentContainer) {
+          const parentRect = parentContainer.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const relativeTop = elRect.top - parentRect.top + parentContainer.scrollTop;
+          const targetScrollTop = relativeTop - (parentContainer.clientHeight / 2) + (elRect.height / 2);
+          parentContainer.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
+        }
       } else if (attemptsLeft > 0) {
-        setTimeout(() => tryScroll(attemptsLeft - 1), 300);
+        setTimeout(() => tryScroll(attemptsLeft - 1), 250);
       }
     };
 
-    setTimeout(() => tryScroll(5), 300);
+    setTimeout(() => tryScroll(6), 250);
 
     setTimeout(() => {
       setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
-    }, 4000);
+    }, 5000);
   }, [getLeadTabLocation]);
 
   const openWhatsAppMessage = useCallback((lead: Lead) => {
@@ -3682,29 +3690,29 @@ const ringback = new RingbackGenerator();
       {liveNotesLead && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all overflow-hidden">
           <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] max-h-[100dvh] md:max-w-[95vw] md:h-[95vh] md:max-h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800">
-            {/* Header - Compact & Responsive */}
-            <div className="p-3 md:p-4 border-b dark:border-slate-800 flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white dark:bg-slate-900 z-10 gap-3" dir="rtl">
-              <div className="flex items-center gap-2 md:gap-4 text-right flex-1 min-w-0">
+            {/* Header - Top Row */}
+            <div className="p-3 md:p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10 gap-2 md:gap-3" dir="rtl">
+              <div className="flex items-center gap-3 md:gap-4 text-right flex-1 min-w-0">
                 {/* Rightmost: Action Call & Hangup Buttons (Enlarged) */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button 
                     onClick={() => liveNotesLead && initiateCall(liveNotesLead)} 
                     disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
                     title="חייג לליד"
-                    className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
+                    className={`w-14 h-14 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
                       (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
                         ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed animate-none opacity-50' 
                         : 'bg-indigo-600 animate-pulse'
                     }`}
                   >
-                    <PhoneCall className="w-6 h-6 md:w-7 md:h-7" />
+                    <PhoneCall className="w-7 h-7 md:w-7 md:h-7" />
                   </button>
                   <button 
                     onClick={handleHangupCall} 
                     title="נתק שיחה פעילה"
-                    className="w-12 h-12 md:w-14 md:h-14 bg-rose-600 hover:bg-rose-700 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
+                    className="w-14 h-14 md:w-14 md:h-14 bg-rose-600 hover:bg-rose-700 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
                   >
-                    <PhoneOff className="w-6 h-6 md:w-7 md:h-7" />
+                    <PhoneOff className="w-7 h-7 md:w-7 md:h-7" />
                   </button>
                 </div>
 
@@ -3712,7 +3720,7 @@ const ringback = new RingbackGenerator();
                   <button 
                     onClick={handleToggleMute} 
                     title={isMuted ? "בטל השתקת מיקרופון" : "השתק מיקרופון"}
-                    className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none flex-shrink-0 ${
+                    className={`w-11 h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none flex-shrink-0 ${
                       isMuted ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-700 hover:bg-slate-800'
                     }`}
                   >
@@ -3722,7 +3730,7 @@ const ringback = new RingbackGenerator();
 
                 {/* Lead Info Header */}
                 <div className="flex flex-col flex-1 min-w-0 pr-1">
-                  <h2 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight break-words">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight break-words">
                     {liveNotesLead?.clientName || 'לקוח בשיחה'}
                   </h2>
                   <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
@@ -3736,9 +3744,9 @@ const ringback = new RingbackGenerator();
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
-                {/* Dial Mode Selector */}
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Desktop-only Dial Mode Selector */}
+                <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => handleSetDialMode('browser')}
@@ -3768,7 +3776,7 @@ const ringback = new RingbackGenerator();
                 </div>
 
                 {callStatusMessage && (
-                  <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800/80 px-3 py-1 rounded-2xl animate-in fade-in zoom-in duration-300">
+                  <div className="hidden sm:flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800/80 px-3 py-1 rounded-2xl animate-in fade-in zoom-in duration-300">
                     <span className={`w-2.5 h-2.5 rounded-full ${
                       callStatus === 'initiating' ? 'bg-amber-500 animate-ping' :
                       callStatus === 'ringing_lead' ? 'bg-blue-500 animate-pulse' :
@@ -3780,10 +3788,12 @@ const ringback = new RingbackGenerator();
                   </div>
                 )}
 
+                {/* Desktop-only Decision Tree button */}
                 <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`hidden md:flex px-2.5 py-1.5 md:px-5 md:py-2 rounded-xl md:rounded-2xl border font-bold text-xs transition-all items-center gap-1 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
                   <ClipboardList className="w-4 h-4" /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
                 </button>
-                <button onClick={handleCloseLiveNotes} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X className="w-5 h-5 md:w-6 md:h-6" /></button>
+
+                <button onClick={handleCloseLiveNotes} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X className="w-5 h-5 md:w-6 md:h-6" /></button>
               </div>
             </div>
 
@@ -3795,31 +3805,65 @@ const ringback = new RingbackGenerator();
                  <div className="flex-1 flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden">
                     {/* RIGHT SIDE: Notes Area */}
                     <div className="flex-[2] flex flex-col p-3 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[35vh] md:min-h-0">
-                       <div className="flex justify-between items-center mb-3 gap-2">
+                       <div className="flex justify-between items-center mb-3 gap-2 flex-wrap">
+                         {/* Desktop label / Mobile Dial Mode Selector */}
                          <div className="flex items-center gap-2">
-                            <label className="text-xs font-bold uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-1 group">
+                            <label className="hidden md:flex text-xs font-bold uppercase text-indigo-600 items-center gap-2 tracking-widest px-1 group">
                                תיעוד שיחה <span className="animate-pulse">●</span>
                             </label>
-                            <span className="hidden sm:inline text-[10px] font-bold text-slate-300 italic">הטקסט נשמר אוטומטית</span>
+                            
+                            {/* Mobile Dial Mode Selector (replaces תיעוד שיחה on phone) */}
+                            <div className="flex md:hidden items-center bg-indigo-50/90 dark:bg-slate-900 p-1 rounded-xl border-2 border-indigo-500/40 shadow-sm text-xs font-bold">
+                              <button
+                                type="button"
+                                onClick={() => handleSetDialMode('browser')}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
+                                  dialMode === 'browser'
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
+                                }`}
+                                title="חיוג בדפדפן"
+                              >
+                                <Wifi className="w-3.5 h-3.5" />
+                                <span>חיוג בדפדפן</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSetDialMode('phone')}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
+                                  dialMode === 'phone'
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
+                                }`}
+                                title="חיוג לנייד"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>חיוג לנייד</span>
+                              </button>
+                            </div>
 
-                            {/* Mobile Button to Toggle Script & Key Fields */}
-                            <button 
-                              onClick={() => setShowMobileScriptPanel(!showMobileScriptPanel)}
-                              className="md:hidden flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl border border-indigo-100 dark:border-indigo-900/30 transition-all active:scale-95"
-                            >
-                              <FileText size={13} />
-                              <span>{showMobileScriptPanel ? 'הסתר תסריט/שדות' : 'תסריט שיחה ושדות'}</span>
-                            </button>
+                            <span className="hidden sm:inline text-[10px] font-bold text-slate-300 italic">הטקסט נשמר אוטומטית</span>
                          </div>
 
-                         {/* Compact Copy Icon Button */}
-                         <button 
-                           onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} 
-                           title="העתק סיכום"
-                           className="flex items-center justify-center p-2 text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group"
-                         >
-                           <Copy size={14} className="group-hover:scale-110 transition-transform" />
-                         </button>
+                         <div className="flex items-center gap-2">
+                           {/* Mobile Button to Toggle Script & Key Fields */}
+                           <button 
+                             onClick={() => setShowMobileScriptPanel(!showMobileScriptPanel)}
+                             className="md:hidden flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/30 transition-all active:scale-95"
+                           >
+                             <FileText size={13} />
+                             <span>{showMobileScriptPanel ? 'הסתר תסריט' : 'תסריט/שדות'}</span>
+                           </button>
+
+                           {/* Compact Copy Icon Button (Enlarged) */}
+                           <button 
+                             onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} 
+                             title="העתק סיכום"
+                             className="flex items-center justify-center px-3 py-2 text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group active:scale-95"
+                           >
+                             <Copy size={18} className="group-hover:scale-110 transition-transform" />
+                           </button>
+                         </div>
                        </div>
                        <textarea 
                          autoFocus 
