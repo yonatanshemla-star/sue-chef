@@ -2629,11 +2629,11 @@ const ringback = new RingbackGenerator();
                                 {lead.isStarred && (
                                   <Star size={18} className="text-amber-500 fill-amber-500 animate-in zoom-in duration-300 flex-shrink-0" />
                                 )}
-                                <input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-bold text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
+<input type="text" value={lead.clientName} onChange={e => handleLeadUpdate(lead.id, { clientName: e.target.value })} className="font-bold text-xl bg-transparent outline-none focus:text-indigo-600 dark:focus:text-indigo-400 transition-colors flex-1" placeholder="שם הלקוח..." />
                                 {duplicateMap.has(lead.id) && (
                                   <div className="flex flex-col items-center gap-0.5">
                                     <button 
-                                      onClick={() => navigateToDuplicate(duplicateMap.get(lead.id)!)} 
+                                      onClick={(e) => { e.stopPropagation(); navigateToDuplicate(duplicateMap.get(lead.id)!); }} 
                                       className={`flex-shrink-0 hover:scale-125 transition-all animate-pulse ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'text-blue-500 hover:text-blue-600' : 'text-red-500 hover:text-red-600'}`} 
                                       title={`ליד כפול לפי ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'שם' : 'מספר טלפון'}! (${duplicateMap.get(lead.id)!.lead.clientName || duplicateMap.get(lead.id)!.lead.phone})`}
                                     >
@@ -2667,14 +2667,7 @@ const ringback = new RingbackGenerator();
                               <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
                               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200" dir="rtl">
                                 <button onClick={() => {
-                                  const phone = lead.phone?.replace(/^0/, '972');
-                                  const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
-                                  const isNotRelevant = lead.status === 'לא רלוונטי';
-                                  const msgText = isNotRelevant 
-                                    ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
-                                    : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
-                                  const msg = encodeURIComponent(msgText);
-                                  window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+                                  openWhatsAppMessage(lead);
                                   setOpenMenuId(null);
                                 }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 transition-colors"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                                 <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"><Copy className="w-4 h-4" /> העתק מספר</button>
@@ -2779,7 +2772,7 @@ const ringback = new RingbackGenerator();
               {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
                 <div 
                   key={`mob-${lead.id}`} 
-                  id={`lead-row-${lead.id}`} 
+                  id={`mob-lead-row-${lead.id}`} 
                   className={`rounded-[32px] p-5 shadow-sm border flex flex-col gap-5 relative transition-all duration-300 ${
                     highlightedLeadId === lead.id
                       ? 'bg-rose-100/90 dark:bg-rose-950/80 ring-4 ring-rose-500 shadow-2xl shadow-rose-500/50 border-rose-500 scale-[1.01] z-30 animate-pulse'
@@ -2807,14 +2800,7 @@ const ringback = new RingbackGenerator();
                         <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
                         <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-2xl z-30 overflow-hidden" dir="rtl">
                           <button onClick={() => {
-                            const phone = lead.phone?.replace(/^0/, '972');
-                            const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
-                            const isNotRelevant = lead.status === 'לא רלוונטי';
-                            const msgText = isNotRelevant 
-                              ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
-                              : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
-                            const msg = encodeURIComponent(msgText);
-                            window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+                            openWhatsAppMessage(lead);
                             setOpenMenuId(null);
                           }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-emerald-600 hover:bg-emerald-50"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                           <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-100"><Copy className="w-4 h-4" /> העתק מספר</button>
@@ -3694,36 +3680,39 @@ const ringback = new RingbackGenerator();
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all">
-          <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] md:max-w-[95vw] md:h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800">
-            {/* Header - Compact */}
-            <div className="p-3.5 md:p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10" dir="rtl">
-              <div className="flex items-center gap-2 md:gap-4 text-right">
-                <button 
-                  onClick={() => liveNotesLead && initiateCall(liveNotesLead)} 
-                  disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
-                  title="חייג לליד"
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
-                    (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
-                      ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed animate-none opacity-50' 
-                      : 'bg-indigo-600 animate-pulse'
-                  }`}
-                >
-                  <PhoneCall className="w-5 h-5 md:w-6 md:h-6" />
-                </button>
-                <button 
-                  onClick={handleHangupCall} 
-                  title="נתק שיחה פעילה"
-                  className="w-10 h-10 md:w-12 md:h-12 bg-rose-600 hover:bg-rose-700 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
-                >
-                  <PhoneOff className="w-5 h-5 md:w-6 md:h-6" />
-                </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 w-full h-[100dvh] max-h-[100dvh] md:max-w-[95vw] md:h-[95vh] md:max-h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800">
+            {/* Header - Compact & Responsive */}
+            <div className="p-3 md:p-4 border-b dark:border-slate-800 flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white dark:bg-slate-900 z-10 gap-3" dir="rtl">
+              <div className="flex items-center gap-2 md:gap-4 text-right flex-1 min-w-0">
+                {/* Rightmost: Action Call & Hangup Buttons (Enlarged) */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button 
+                    onClick={() => liveNotesLead && initiateCall(liveNotesLead)} 
+                    disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
+                    title="חייג לליד"
+                    className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
+                      (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
+                        ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed animate-none opacity-50' 
+                        : 'bg-indigo-600 animate-pulse'
+                    }`}
+                  >
+                    <PhoneCall className="w-6 h-6 md:w-7 md:h-7" />
+                  </button>
+                  <button 
+                    onClick={handleHangupCall} 
+                    title="נתק שיחה פעילה"
+                    className="w-12 h-12 md:w-14 md:h-14 bg-rose-600 hover:bg-rose-700 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none"
+                  >
+                    <PhoneOff className="w-6 h-6 md:w-7 md:h-7" />
+                  </button>
+                </div>
 
                 {activeCall && (
                   <button 
                     onClick={handleToggleMute} 
                     title={isMuted ? "בטל השתקת מיקרופון" : "השתק מיקרופון"}
-                    className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[20px] flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none ${
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all outline-none flex-shrink-0 ${
                       isMuted ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-700 hover:bg-slate-800'
                     }`}
                   >
@@ -3731,7 +3720,25 @@ const ringback = new RingbackGenerator();
                   </button>
                 )}
 
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold mr-1">
+                {/* Lead Info Header */}
+                <div className="flex flex-col flex-1 min-w-0 pr-1">
+                  <h2 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight break-words">
+                    {liveNotesLead?.clientName || 'לקוח בשיחה'}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                    <span className="text-xs md:text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead?.phone}</span>
+                    {liveNotesLead?.campaign && (
+                      <span className="text-[10px] md:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-2 py-0.5 rounded-lg border border-indigo-100/60 dark:border-indigo-900/30 break-all">
+                        קמפיין: {liveNotesLead.campaign}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+                {/* Dial Mode Selector */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border dark:border-slate-700/60 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => handleSetDialMode('browser')}
@@ -3740,10 +3747,10 @@ const ringback = new RingbackGenerator();
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
-                    title="חיוג דרך ה-Wi-Fi מהדפדפן"
+                    title="חיוג בדפדפן"
                   >
                     <Wifi className="w-3.5 h-3.5" />
-                    <span>דפדפן (Wi-Fi)</span>
+                    <span>חיוג בדפדפן</span>
                   </button>
                   <button
                     type="button"
@@ -3753,15 +3760,15 @@ const ringback = new RingbackGenerator();
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                     }`}
-                    title="חיוג לטלפון הנייד שלך (שיחה סלולרית)"
+                    title="חיוג לנייד"
                   >
                     <Phone className="w-3.5 h-3.5" />
-                    <span>לנייד שלי</span>
+                    <span>חיוג לנייד</span>
                   </button>
                 </div>
 
                 {callStatusMessage && (
-                  <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800/80 px-3.5 py-1.5 rounded-2xl mr-2 animate-in fade-in zoom-in duration-300">
+                  <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800/80 px-3 py-1 rounded-2xl animate-in fade-in zoom-in duration-300">
                     <span className={`w-2.5 h-2.5 rounded-full ${
                       callStatus === 'initiating' ? 'bg-amber-500 animate-ping' :
                       callStatus === 'ringing_lead' ? 'bg-blue-500 animate-pulse' :
@@ -3769,26 +3776,12 @@ const ringback = new RingbackGenerator();
                       ['busy', 'no-answer', 'failed'].includes(callStatus) ? 'bg-rose-500' :
                       'bg-slate-400'
                     }`} />
-                    <span className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-300">{callStatusMessage}</span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{callStatusMessage}</span>
                   </div>
                 )}
-                <div>
-                  <div className="flex items-center gap-1.5 md:gap-2.5 mb-1">
-                    <h2 className="text-base xs:text-lg md:text-2xl font-bold tracking-tight mb-0 text-slate-900 dark:text-white leading-none">
-                      {liveNotesLead?.clientName || 'לקוח בשיחה'}
-                    </h2>
-                    {liveNotesLead?.campaign && (
-                      <span className="text-[9px] md:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-lg md:rounded-xl border border-indigo-100/60 dark:border-indigo-900/30 whitespace-nowrap self-center">
-                        קמפיין: {liveNotesLead.campaign}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs md:text-sm font-mono text-slate-400" dir="ltr">{liveNotesLead?.phone}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 md:gap-3">
-                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`px-2.5 py-1.5 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl border font-bold text-xs transition-all flex items-center gap-1 md:gap-2 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                  <ClipboardList className="w-4 h-4 md:w-5 md:h-5" /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
+
+                <button onClick={() => setShowDecisionTree(!showDecisionTree)} className={`hidden md:flex px-2.5 py-1.5 md:px-5 md:py-2 rounded-xl md:rounded-2xl border font-bold text-xs transition-all items-center gap-1 hover:scale-105 ${showDecisionTree ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                  <ClipboardList className="w-4 h-4" /> {showDecisionTree ? 'חזרה' : 'עץ החלטות'}
                 </button>
                 <button onClick={handleCloseLiveNotes} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-slate-400 hover:text-red-500 transition-all"><X className="w-5 h-5 md:w-6 md:h-6" /></button>
               </div>
@@ -3800,30 +3793,45 @@ const ringback = new RingbackGenerator();
                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar"><LegalDecisionTree compact={true} onComplete={handleTreeComplete} /></div>
                ) : (
                  <div className="flex-1 flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden">
-                    {/* RIGHT SIDE: Notes Area (Expanded) */}
-                    <div className="flex-[2] flex flex-col p-3 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[40vh] md:min-h-0">
-                       <div className="flex justify-between items-center mb-3">
-                         <div className="flex items-center gap-3">
-                            <label className="text-xs font-bold uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-2 group">
+                    {/* RIGHT SIDE: Notes Area */}
+                    <div className="flex-[2] flex flex-col p-3 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-[35vh] md:min-h-0">
+                       <div className="flex justify-between items-center mb-3 gap-2">
+                         <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold uppercase text-indigo-600 flex items-center gap-2 tracking-widest px-1 group">
                                תיעוד שיחה <span className="animate-pulse">●</span>
                             </label>
-                            <span className="text-[10px] font-bold text-slate-300 italic">הטקסט נשמר אוטומטית</span>
+                            <span className="hidden sm:inline text-[10px] font-bold text-slate-300 italic">הטקסט נשמר אוטומטית</span>
+
+                            {/* Mobile Button to Toggle Script & Key Fields */}
+                            <button 
+                              onClick={() => setShowMobileScriptPanel(!showMobileScriptPanel)}
+                              className="md:hidden flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-xl border border-indigo-100 dark:border-indigo-900/30 transition-all active:scale-95"
+                            >
+                              <FileText size={13} />
+                              <span>{showMobileScriptPanel ? 'הסתר תסריט/שדות' : 'תסריט שיחה ושדות'}</span>
+                            </button>
                          </div>
-                         <button onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-5 py-2.5 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group">
-                           <Copy size={12} className="group-hover:scale-110 transition-transform" /> העתק סיכום (Ctrl+C)
+
+                         {/* Compact Copy Icon Button */}
+                         <button 
+                           onClick={() => { copyToClipboard(liveNotesLead.liveCallNotes || ''); }} 
+                           title="העתק סיכום"
+                           className="flex items-center justify-center p-2 text-indigo-600 hover:text-white hover:bg-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 transition-all shadow-sm group"
+                         >
+                           <Copy size={14} className="group-hover:scale-110 transition-transform" />
                          </button>
                        </div>
                        <textarea 
                          autoFocus 
                          value={liveNotesLead.liveCallNotes || ''} 
                          onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} 
-                         className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-2xl md:rounded-[32px] p-4 md:p-8 text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white" 
+                         className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-2xl md:rounded-[32px] p-4 md:p-8 text-lg md:text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white min-h-[160px]" 
                          placeholder="כתוב כאן מה הלקוח אומר..." 
                        />
                     </div>
 
-                    {/* LEFT SIDE: New Permanent Script & Key Fields (Expanded) */}
-                    <div className="flex-[1.2] flex flex-col p-3 md:p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar md:border-r border-t md:border-t-0 dark:border-slate-800">
+                    {/* LEFT SIDE: Script & Key Fields Panel */}
+                    <div className={`${showMobileScriptPanel ? 'flex' : 'hidden md:flex'} flex-[1.2] flex-col p-3 md:p-6 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto custom-scrollbar md:border-r border-t md:border-t-0 dark:border-slate-800`}>
                        
                        {/* Glassmorphic Tabs Toggle */}
                        <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[22px] mb-6 border dark:border-slate-700/50 shadow-inner">
