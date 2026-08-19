@@ -187,6 +187,7 @@ function initWhatsAppClient() {
         },
         puppeteer: {
             headless: true,
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -197,6 +198,14 @@ function initWhatsAppClient() {
                 '--disable-gpu'
             ]
         }
+    });
+
+    client.on('loading_screen', (percent, message) => {
+        console.log(`📱 WhatsApp Web Loading: ${percent}% - ${message}`);
+    });
+
+    client.on('authenticated', () => {
+        console.log('🔐 WhatsApp Client Authenticated Successfully!');
     });
 
     client.on('qr', async (qr) => {

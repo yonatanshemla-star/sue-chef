@@ -124,6 +124,7 @@ export default function Home() {
   const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
   const [dropdownDirection, setDropdownDirection] = useState<'up' | 'down'>('down');
   const [showScriptPanel, setShowScriptPanel] = useState(false);
+  const [showMobileScriptPanel, setShowMobileScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
   const [leftPanelTab, setLeftPanelTab] = useState<'script' | 'fields'>('script');
   const [isNegligenceActive, setIsNegligenceActive] = useState(false);
@@ -131,7 +132,16 @@ export default function Home() {
   const [historyLead, setHistoryLead] = useState<Lead | null>(null);
   
   // Sorting/Search
+  const [searchInput, setSearchInput] = useState('');
   const [globalSearch, setGlobalSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setGlobalSearch(searchInput);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   const [showAdvancedStageOnly, setShowAdvancedStageOnly] = useState(false);
   const [notifications, setNotifications] = useState<{id: string, name: string, time: string}[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
@@ -1842,12 +1852,15 @@ const ringback = new RingbackGenerator();
   const scrollToLead = useCallback((lead: Lead) => {
     const targetLocation = getLeadTabLocation(lead);
     setActiveTab(targetLocation as any);
+    setSearchInput('');
     setGlobalSearch('');
     setShowAdvancedStageOnly(false);
     setHighlightedLeadId(lead.id);
 
     const tryScroll = (attemptsLeft: number) => {
-      const el = document.getElementById(`lead-row-${lead.id}`);
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const targetId = isMobile ? `mob-lead-row-${lead.id}` : `lead-row-${lead.id}`;
+      const el = document.getElementById(targetId) || document.getElementById(`mob-lead-row-${lead.id}`) || document.getElementById(`lead-row-${lead.id}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (attemptsLeft > 0) {
@@ -1861,6 +1874,26 @@ const ringback = new RingbackGenerator();
       setHighlightedLeadId(prev => (prev === lead.id ? null : prev));
     }, 4000);
   }, [getLeadTabLocation]);
+
+  const openWhatsAppMessage = useCallback((lead: Lead) => {
+    let phone = lead.phone?.replace(/\D/g, '') || '';
+    if (phone.startsWith('0')) {
+      phone = '972' + phone.substring(1);
+    }
+    const firstName = lead.clientName?.split(' ')[0] || 'לקוח';
+    const isNotRelevant = lead.status === 'לא רלוונטי';
+    const msgText = isNotRelevant 
+      ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
+      : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
+    const msg = encodeURIComponent(msgText);
+
+    const isMobile = typeof window !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768);
+    if (isMobile) {
+      window.location.href = `whatsapp-business://send?phone=${phone}&text=${msg}`;
+    } else {
+      window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
+    }
+  }, []);
 
   const navigateToDuplicate = useCallback((dupInfo: { lead: Lead, location: string }) => {
     scrollToLead(dupInfo.lead);
@@ -2399,76 +2432,81 @@ const ringback = new RingbackGenerator();
 
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 items-center">
-            {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
-            <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start items-center">
-              {/* Prominent Dial Mode Selector */}
-              <div className="flex-shrink-0 flex items-center bg-indigo-50/90 dark:bg-slate-900 p-1.5 rounded-[14px] md:rounded-2xl border-2 border-indigo-500/40 shadow-md text-xs md:text-sm font-bold">
+          <div className="flex flex-col gap-4 mb-8">
+            {/* Top Row: Dial Mode Selector */}
+            <div className="flex justify-center md:justify-start items-center">
+              <div className="flex items-center bg-indigo-50/90 dark:bg-slate-900 p-1.5 rounded-[14px] md:rounded-2xl border-2 border-indigo-500/40 shadow-md text-xs md:text-sm font-bold">
                 <button
                   type="button"
                   onClick={() => handleSetDialMode('browser')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all ${
                     dialMode === 'browser'
                       ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
                   }`}
-                  title="חיוג ישיר דרך ה-Wi-Fi בדפדפן"
+                  title="חיוג בדפדפן"
                 >
                   <Wifi className="w-4 h-4" />
-                  <span>חיוג בדפדפן (Wi-Fi)</span>
+                  <span>חיוג בדפדפן</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSetDialMode('phone')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all ${
                     dialMode === 'phone'
                       ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
                   }`}
-                  title="חיוג לטלפון הנייד שלך (שיחה סלולרית)"
+                  title="חיוג לנייד"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>חיוג לנייד שלי</span>
+                  <span>חיוג לנייד</span>
                 </button>
               </div>
-
-              {activeTab !== 'archive' && (
-                <div className="flex gap-2">
-                  <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
-                    <Plus size={16} className="md:w-[20px] md:h-[20px] group-hover:rotate-90 transition-transform duration-300" /> <span className="hidden sm:inline">הוסף ליד</span><span className="sm:hidden">הוסף</span>
-                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                  {showSecretPanel && (
-                    <button onClick={() => setShowImportModal(true)} className="flex-shrink-0 bg-emerald-600 dark:bg-slate-900/40 dark:border dark:border-emerald-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-emerald-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
-                      <Upload size={16} className="md:w-[20px] md:h-[20px] transition-transform duration-300" /> <span>ייבוא מ-CSV</span>
-                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  )}
-                </div>
-              )}
-              {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'noanswer') && (
-                <>
-                  <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
-                    <Clock size={14} className="md:w-[18px] md:h-[18px]" /> במעקב
-                  </button>
-                  <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
-                    <Zap size={14} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
-                  </button>
-                  <button onClick={() => setActiveTab(activeTab === 'noanswer' ? 'crm' : 'noanswer')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'noanswer' ? 'bg-gray-700 text-white border-gray-800 ring-4 ring-gray-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-gray-400'}`}>
-                    <PhoneOff size={14} className="md:w-[18px] md:h-[18px]" /> לא ענו ({noAnswerLeads.length})
-                  </button>
-                </>
-              )}
             </div>
 
-            <div className="relative flex-1 group">
-              <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-              <input type="text" placeholder="חיפוש לפי שם, טלפון או הערות..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full text-base bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
-              {globalSearch && (
-                <button onClick={() => setGlobalSearch('')} className="absolute left-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 transition-all">
-                  <X size={14} />
-                </button>
-              )}
+            {/* Bottom Row: Actions, Status Tabs & Search */}
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-center">
+              {/* ACTION BUTTONS (Placed RIGHT in RTL flex-row) */}
+              <div className="flex gap-2 md:gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar justify-center md:justify-start items-center">
+                {activeTab !== 'archive' && (
+                  <div className="flex gap-2">
+                    <button onClick={addNewLead} className="flex-shrink-0 bg-indigo-600 dark:bg-slate-900/40 dark:border dark:border-indigo-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-indigo-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                      <Plus size={16} className="md:w-[20px] md:h-[20px] group-hover:rotate-90 transition-transform duration-300" /> <span className="hidden sm:inline">הוסף ליד</span><span className="sm:hidden">הוסף</span>
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                    {showSecretPanel && (
+                      <button onClick={() => setShowImportModal(true)} className="flex-shrink-0 bg-emerald-600 dark:bg-slate-900/40 dark:border dark:border-emerald-500/30 text-white px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold shadow-lg shadow-emerald-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-2 relative group overflow-hidden backdrop-blur-sm text-xs md:text-sm">
+                        <Upload size={16} className="md:w-[20px] md:h-[20px] transition-transform duration-300" /> <span>ייבוא מ-CSV</span>
+                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'noanswer') && (
+                  <>
+                    <button onClick={() => setActiveTab(activeTab === 'followup' ? 'crm' : 'followup')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'followup' ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-amber-400'}`}>
+                      <Clock size={14} className="md:w-[18px] md:h-[18px]" /> במעקב
+                    </button>
+                    <button onClick={() => setShowAdvancedStageOnly(!showAdvancedStageOnly)} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${showAdvancedStageOnly ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-emerald-400'}`}>
+                      <Zap size={14} className="md:w-[18px] md:h-[18px]" /> שלב מתקדם
+                    </button>
+                    <button onClick={() => setActiveTab(activeTab === 'noanswer' ? 'crm' : 'noanswer')} className={`flex-shrink-0 px-4 md:px-8 py-3 md:py-4 rounded-[14px] md:rounded-2xl font-bold text-xs md:text-sm border flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${activeTab === 'noanswer' ? 'bg-gray-700 text-white border-gray-800 ring-4 ring-gray-500/10' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:border-gray-400'}`}>
+                      <PhoneOff size={14} className="md:w-[18px] md:h-[18px]" /> לא ענו ({noAnswerLeads.length})
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="relative flex-1 w-full group">
+                <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                <input type="text" placeholder="חיפוש לפי שם, טלפון או הערות..." value={searchInput} onChange={e => setSearchInput(e.target.value)} className="w-full text-base bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl pr-14 pl-12 py-4 outline-none font-bold shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all font-assistant text-slate-900 dark:text-white" />
+                {searchInput && (
+                  <button onClick={() => { setSearchInput(''); setGlobalSearch(''); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 transition-all">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
