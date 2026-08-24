@@ -101,7 +101,7 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
         codecPreferences: ['opus', 'pcmu'],
         audioConstraints: { autoGainControl: true, echoCancellation: true, noiseSuppression: true },
         maxAverageBitrate: 64000, 
-        edge: ['frankfurt', 'dublin', 'roaming'], 
+        edge: ['roaming', 'frankfurt', 'ashburn'], 
         dscp: true,
         debug: true
       } as any);
@@ -129,6 +129,27 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       });
 
       await device.register();
+
+      // Apply hardware devices if saved in localStorage
+      const savedMicId = localStorage.getItem('selectedMicId');
+      const savedSpeakerId = localStorage.getItem('selectedSpeakerId');
+
+      if (savedMicId && (device as any).audio) {
+        try {
+          await (device as any).audio.setInputDevice(savedMicId);
+        } catch (e) {
+          console.warn('Could not set custom mic device in WebPhone:', e);
+        }
+      }
+
+      if (savedSpeakerId && (device as any).audio && (device as any).audio.speakerDevices) {
+        try {
+          await (device as any).audio.speakerDevices.set(savedSpeakerId);
+        } catch (e) {
+          console.warn('Could not set custom speaker device in WebPhone:', e);
+        }
+      }
+
     } catch (err: any) {
       console.error('Twilio init failed', err);
       addLog(`Init FAIL: ${err.message}`);
@@ -150,6 +171,12 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       const device = deviceRef.current;
       if (!device) throw new Error("Device not initialized");
 
+      // Ensure AudioContext is active on user click
+      if (device.audio && device.audio.audioContext && device.audio.audioContext.state === 'suspended') {
+        addLog('Resuming suspended AudioContext...');
+        await device.audio.audioContext.resume().catch(() => {});
+      }
+
       addLog('Connecting via SDK...');
       const call = await device.connect({ 
         params: { 
@@ -164,6 +191,14 @@ export default function WebPhone({ isOpen, onClose, onCallEnd, targetName, targe
       });
 
       call.on('ringing', () => addLog('Ringing...'));
+
+      call.on('warning', (name: string, data: any) => {
+        addLog(`Call WARN: ${name}`);
+      });
+
+      call.on('warning-cleared', (name: string) => {
+        addLog(`WARN CLEARED: ${name}`);
+      });
 
       call.on('disconnect', () => {
         addLog('Call DISCONNECTED');

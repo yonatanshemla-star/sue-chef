@@ -1126,53 +1126,27 @@ class RingbackGenerator {
 
 const ringback = new RingbackGenerator();
 
-  const attachRemoteAudio = async (call: any) => {
+  const attachRemoteAudio = async (call: any, device?: any) => {
     try {
       if (!call) return;
 
-      let audioEl = document.getElementById('twilio-remote-audio-player') as HTMLAudioElement;
-      if (!audioEl) {
-        audioEl = document.createElement('audio');
-        audioEl.id = 'twilio-remote-audio-player';
-        audioEl.autoplay = true;
-        audioEl.style.display = 'none';
-        document.body.appendChild(audioEl);
-      }
-
-      const remoteStream = new MediaStream();
-
-      const addTrackToAudio = (track: any) => {
-        if (track && (track.kind === 'audio' || track.mediaStreamTrack)) {
-          const mediaTrack = track.mediaStreamTrack || track;
-          remoteStream.addTrack(mediaTrack);
-          audioEl.srcObject = remoteStream;
-          audioEl.play().catch(e => console.warn('Audio play error:', e));
-        }
-      };
-
-      if (typeof call.getRemoteAudioTracks === 'function') {
-        const tracks = call.getRemoteAudioTracks();
-        if (tracks && tracks.length > 0) {
-          tracks.forEach((track: any) => addTrackToAudio(track));
+      // Resume AudioContext if browser suspended it
+      const targetDevice = device || deviceInstance;
+      if (targetDevice && (targetDevice as any).audio && (targetDevice as any).audio.audioContext) {
+        if ((targetDevice as any).audio.audioContext.state === 'suspended') {
+          await (targetDevice as any).audio.audioContext.resume().catch(() => {});
         }
       }
 
-      if (typeof call.on === 'function') {
-        call.on('trackAdded', (track: any) => {
-          addTrackToAudio(track);
-        });
-      }
-
+      // Apply selected speaker hardware sink if present
       const savedSpeakerId = localStorage.getItem('selectedSpeakerId');
-      if (savedSpeakerId && savedSpeakerId !== 'default' && (audioEl as any).setSinkId) {
+      if (savedSpeakerId && targetDevice && (targetDevice as any).audio && (targetDevice as any).audio.speakerDevices) {
         try {
-          await (audioEl as any).setSinkId(savedSpeakerId);
+          await (targetDevice as any).audio.speakerDevices.set(savedSpeakerId);
         } catch (e) {
           console.warn('Failed to set speaker output sink:', e);
         }
       }
-
-      audioEl.play().catch(e => console.warn('Audio play catch:', e));
     } catch (err) {
       console.warn('attachRemoteAudio error:', err);
     }
@@ -1191,6 +1165,7 @@ const ringback = new RingbackGenerator();
       const device = new Device(data.token, {
         logLevel: 1,
         codecPreferences: ['opus' as any, 'pcmu' as any],
+        edge: ['roaming', 'frankfurt', 'ashburn'],
       });
 
       device.on('error', (error: any) => {
@@ -1206,7 +1181,11 @@ const ringback = new RingbackGenerator();
         setIncomingWebRtcCall({ call, callerNumber: callerNum });
 
         call.on('accept', () => {
-          attachRemoteAudio(call);
+          attachRemoteAudio(call, device);
+        });
+
+        call.on('warning', (name: string, data: any) => {
+          console.warn('[WebRTC Warning]', name, data);
         });
 
         call.on('disconnect', () => {
@@ -1258,12 +1237,19 @@ const ringback = new RingbackGenerator();
     }
   }, [dialMode]);
 
-  const handleAcceptIncomingCall = () => {
+  const handleAcceptIncomingCall = async () => {
     if (!incomingWebRtcCall) return;
     const callObj = incomingWebRtcCall.call || incomingWebRtcCall;
+
+    if (deviceInstance && (deviceInstance as any).audio && (deviceInstance as any).audio.audioContext) {
+      if ((deviceInstance as any).audio.audioContext.state === 'suspended') {
+        await (deviceInstance as any).audio.audioContext.resume().catch(() => {});
+      }
+    }
+
     if (callObj && typeof callObj.accept === 'function') {
       callObj.accept();
-      attachRemoteAudio(callObj);
+      attachRemoteAudio(callObj, deviceInstance);
     }
     setActiveCall(callObj);
     setIncomingWebRtcCall(null);
@@ -1313,6 +1299,13 @@ const ringback = new RingbackGenerator();
         setCallStatusMessage('מתחבר דרך ה-Wi-Fi בדפדפן...');
         const device = await getOrCreateDevice();
         
+        // Ensure browser AudioContext is active on user click
+        if (device && (device as any).audio && (device as any).audio.audioContext) {
+          if ((device as any).audio.audioContext.state === 'suspended') {
+            await (device as any).audio.audioContext.resume().catch(() => {});
+          }
+        }
+
         const call = await device.connect({
           params: {
             phone: lead.phone,
@@ -1327,7 +1320,7 @@ const ringback = new RingbackGenerator();
 
         call.on('accept', () => {
           ringback.stop();
-          attachRemoteAudio(call);
+          attachRemoteAudio(call, device);
           setCallStatus('connected');
           setCallStatusMessage('בשיחה פעילה (דפדפן Wi-Fi)');
         });
