@@ -2444,63 +2444,63 @@ const ringback = new RingbackGenerator();
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
           <div className="flex flex-col gap-4 mb-8">
-            {/* Top Row: Dial Mode Selector & Mobile View Switcher */}
-            <div className="flex flex-col sm:flex-row justify-between md:justify-start items-center gap-3 w-full">
+            {/* Top Row: Dial Mode Selector & Compact Icon-only Mobile View Switcher */}
+            <div className="flex justify-between md:justify-start items-center gap-2 w-full">
               {/* Dial Mode Selector */}
-              <div className="flex items-center bg-indigo-50/90 dark:bg-slate-900 p-1.5 rounded-[14px] md:rounded-2xl border-2 border-indigo-500/40 shadow-md text-xs md:text-sm font-bold">
+              <div className="flex items-center bg-indigo-50/90 dark:bg-slate-900 p-1 md:p-1.5 rounded-[14px] md:rounded-2xl border-2 border-indigo-500/40 shadow-md text-xs md:text-sm font-bold">
                 <button
                   type="button"
                   onClick={() => handleSetDialMode('browser')}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all ${
+                  className={`flex items-center gap-1 px-3 md:px-4 py-1.5 md:py-2.5 rounded-xl transition-all ${
                     dialMode === 'browser'
                       ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
                   }`}
                   title="חיוג בדפדפן"
                 >
-                  <Wifi className="w-4 h-4" />
-                  <span>חיוג בדפדפן</span>
+                  <Wifi className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <span className="text-xs md:text-sm">חיוג בדפדפן</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSetDialMode('phone')}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all ${
+                  className={`flex items-center gap-1 px-3 md:px-4 py-1.5 md:py-2.5 rounded-xl transition-all ${
                     dialMode === 'phone'
                       ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-800'
                   }`}
                   title="חיוג לנייד"
                 >
-                  <Phone className="w-4 h-4" />
-                  <span>חיוג לנייד</span>
+                  <Phone className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <span className="text-xs md:text-sm">חיוג לנייד</span>
                 </button>
               </div>
 
-              {/* Mobile View Switcher (Cards vs List) */}
-              <div className="md:hidden flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[14px] border border-slate-200 dark:border-slate-700 shadow-md text-xs font-bold w-full sm:w-auto justify-center">
+              {/* Mobile View Switcher (Icons Only, Same Row) */}
+              <div className="md:hidden flex items-center bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md">
                 <button
                   type="button"
                   onClick={() => handleSetMobileViewMode('cards')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
+                  className={`p-2 rounded-lg transition-all ${
                     mobileViewMode === 'cards'
-                      ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      ? 'bg-indigo-600 text-white shadow-sm font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
                   }`}
+                  title="תצוגת כרטיסים"
                 >
-                  <LayoutGrid size={15} />
-                  <span>תצוגת כרטיסים</span>
+                  <LayoutGrid size={18} />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSetMobileViewMode('list')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
+                  className={`p-2 rounded-lg transition-all ${
                     mobileViewMode === 'list'
-                      ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      ? 'bg-indigo-600 text-white shadow-sm font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
                   }`}
+                  title="תצוגת רשימה מצומצמת"
                 >
-                  <List size={15} />
-                  <span>תצוגת רשימה</span>
+                  <List size={18} />
                 </button>
               </div>
             </div>
@@ -2867,27 +2867,29 @@ const ringback = new RingbackGenerator();
 
                       {/* Status & Options */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {/* Open File / Live Notes Button */}
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setLiveNotesLead(lead); }} 
+                          className="p-2 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-xl border border-indigo-100 dark:border-indigo-900/30 active:scale-95 transition-all flex-shrink-0"
+                          title="פתח תיק נתונים / שיחה"
+                        >
+                          <Maximize2 size={14} />
+                        </button>
+
+                        {/* Status Select Pill */}
                         <div className="relative">
                           <select
                             value={lead.status}
                             onChange={(e) => handleLeadUpdate(lead.id, { status: e.target.value })}
-                            className={`text-[11px] font-bold py-1 px-2 pr-5 rounded-xl border outline-none cursor-pointer appearance-none ${
-                              lead.status === 'חדש' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800' :
-                              lead.status === 'במעקב' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800' :
-                              lead.status === 'שלב מתקדם' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' :
-                              lead.status === 'לא ענו' ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' :
-                              'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                            }`}
+                            className={`text-[11px] font-bold py-1.5 px-2 pr-5 rounded-xl border outline-none cursor-pointer appearance-none max-w-[105px] truncate ${getStatusStyle(lead.status).bg} ${getStatusStyle(lead.status).color} ${getStatusStyle(lead.status).border}`}
                           >
-                            <option value="חדש">חדש 🆕</option>
-                            <option value="במעקב">במעקב ⏳</option>
-                            <option value="שלב מתקדם">שלב מתקדם ⚡</option>
-                            <option value="לא ענו">לא ענו 🚫</option>
-                            <option value="סגור / פגישה">סגור / פגישה ✅</option>
-                            <option value="לא רלוונטי">לא רלוונטי ❌</option>
-                            <option value="ארכיון">ארכיון 📦</option>
+                            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                              <option key={k} value={k} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                                {v.label}
+                              </option>
+                            ))}
                           </select>
-                          <ChevronDown size={12} className="absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                          <ChevronDown size={11} className="absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none opacity-80" />
                         </div>
 
                         <div className="relative">
