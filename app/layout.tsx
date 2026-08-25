@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Sue-Chef | Lead Management",
   description: "Lead management system",
   icons: {
-    icon: '/sue_chef_icon.png?v=3',
+    icon: '/sue_chef_icon.png?v=4',
   },
 };
 
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <head>
-        <link rel="icon" href="/sue_chef_icon.png?v=3" />
+        <link rel="icon" href="/sue_chef_icon.png?v=4" />
       </head>
       <body
         className={`${assistant.variable} font-sans antialiased`}
