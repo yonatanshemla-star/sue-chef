@@ -1900,7 +1900,19 @@ const ringback = new RingbackGenerator();
 
     const isMobile = typeof window !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768);
     if (isMobile) {
-      window.location.href = `whatsapp-business://send?phone=${phone}&text=${msg}`;
+      const waBusinessUrl = `whatsapp-business://send?phone=${phone}&text=${msg}`;
+      const waUniversalUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+      
+      const link = document.createElement('a');
+      link.href = waBusinessUrl;
+      link.target = '_top';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        window.location.href = waUniversalUrl;
+      }, 400);
     } else {
       window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`, '_blank');
     }
