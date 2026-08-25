@@ -188,6 +188,7 @@ export default function Home() {
   const [callStatus, setCallStatus] = useState<'idle' | 'initiating' | 'ringing_lead' | 'connected' | 'completed' | 'busy' | 'no-answer' | 'failed'>('idle');
   const [callStatusMessage, setCallStatusMessage] = useState<string | null>(null);
   const [dialMode, setDialMode] = useState<'browser' | 'phone'>('browser');
+  const [mobileViewMode, setMobileViewMode] = useState<'cards' | 'list'>('cards');
   const [activeCall, setActiveCall] = useState<any>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [deviceInstance, setDeviceInstance] = useState<any>(null);
@@ -331,11 +332,20 @@ export default function Home() {
     if (savedMode === 'browser' || savedMode === 'phone') {
       setDialMode(savedMode);
     }
+    const savedMobileMode = localStorage.getItem('mobileViewMode');
+    if (savedMobileMode === 'cards' || savedMobileMode === 'list') {
+      setMobileViewMode(savedMobileMode);
+    }
   }, []);
 
   const handleSetDialMode = (mode: 'browser' | 'phone') => {
     setDialMode(mode);
     localStorage.setItem('dialMode', mode);
+  };
+
+  const handleSetMobileViewMode = (mode: 'cards' | 'list') => {
+    setMobileViewMode(mode);
+    localStorage.setItem('mobileViewMode', mode);
   };
 
   const [callDuration, setCallDuration] = useState<number>(0);
@@ -2768,18 +2778,126 @@ const ringback = new RingbackGenerator();
               </tbody>
             </table>
 
-            {/* Mobile Cards View */}
-            <div className="md:hidden flex flex-col gap-4 p-4 overflow-y-auto pb-28">
-              {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
-                <div 
-                  key={`mob-${lead.id}`} 
-                  id={`mob-lead-row-${lead.id}`} 
-                  className={`rounded-[32px] p-5 shadow-sm border flex flex-col gap-5 relative transition-all duration-300 ${
-                    highlightedLeadId === lead.id
-                      ? 'bg-rose-100/90 dark:bg-rose-950/80 ring-4 ring-rose-500 shadow-2xl shadow-rose-500/50 border-rose-500 scale-[1.01] z-30 animate-pulse'
-                      : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
-                  }`}
-                >
+            {/* Mobile View: Compact List OR Detailed Cards */}
+            <div className="md:hidden">
+              {mobileViewMode === 'list' ? (
+                <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80 p-2 overflow-y-auto pb-28">
+                  {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
+                    <div 
+                      key={`mob-list-${lead.id}`} 
+                      id={`mob-lead-row-${lead.id}`} 
+                      className={`py-3 px-2 flex items-center justify-between gap-2 transition-all rounded-2xl relative ${
+                        highlightedLeadId === lead.id
+                          ? 'bg-rose-100/90 dark:bg-rose-950/80 ring-2 ring-rose-500 shadow-md scale-[1.01] z-10 animate-pulse'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      {/* Call Button & Lead Info (Clicking opens Live Notes modal) */}
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0 text-right cursor-pointer" onClick={() => setLiveNotesLead(lead)}>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); initiateCall(lead); }} 
+                          disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
+                          className={`flex-shrink-0 flex items-center justify-center w-10 h-10 text-white rounded-xl shadow-sm transition-all active:scale-95 ${
+                            (callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer')
+                              ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed opacity-50' 
+                              : 'bg-indigo-600 active:scale-95'
+                          }`}
+                          title="חיוג לליד"
+                        >
+                          <Phone className="w-4 h-4" />
+                        </button>
+
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            {lead.isStarred && (
+                              <Star size={14} className="text-amber-500 fill-amber-500 flex-shrink-0" />
+                            )}
+                            <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                              {lead.clientName || 'ללא שם'}
+                            </span>
+                            {duplicateMap.has(lead.id) && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); navigateToDuplicate(duplicateMap.get(lead.id)!); }} 
+                                className={`flex-shrink-0 hover:scale-125 transition-all ${duplicateMap.get(lead.id)!.matchType === 'name' ? 'text-blue-500' : 'text-red-500'}`} 
+                                title="ליד כפול!"
+                              >
+                                <Star size={14} fill="currentColor" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-400 font-mono" dir="ltr">
+                            <span>{lead.phone}</span>
+                            {lead.campaign && (
+                              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-sans truncate max-w-[120px]">
+                                • {lead.campaign}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status & Options */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="relative">
+                          <select
+                            value={lead.status}
+                            onChange={(e) => handleLeadUpdate(lead.id, { status: e.target.value })}
+                            className={`text-[11px] font-bold py-1 px-2 pr-5 rounded-xl border outline-none cursor-pointer appearance-none ${
+                              lead.status === 'חדש' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800' :
+                              lead.status === 'במעקב' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800' :
+                              lead.status === 'שלב מתקדם' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' :
+                              lead.status === 'לא ענו' ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' :
+                              'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                            }`}
+                          >
+                            <option value="חדש">חדש 🆕</option>
+                            <option value="במעקב">במעקב ⏳</option>
+                            <option value="שלב מתקדם">שלב מתקדם ⚡</option>
+                            <option value="לא ענו">לא ענו 🚫</option>
+                            <option value="סגור / פגישה">סגור / פגישה ✅</option>
+                            <option value="לא רלוונטי">לא רלוונטי ❌</option>
+                            <option value="ארכיון">ארכיון 📦</option>
+                          </select>
+                          <ChevronDown size={12} className="absolute left-1 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                        </div>
+
+                        <div className="relative">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id); }} 
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                          {openMenuId === lead.id && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                              <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-2xl z-30 overflow-hidden text-right" dir="rtl">
+                                <button onClick={() => { setLiveNotesLead(lead); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-indigo-600 hover:bg-indigo-50"><FileText className="w-4 h-4" /> פתח תיק / שיחה</button>
+                                <button onClick={() => { openWhatsAppMessage(lead); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-emerald-600 hover:bg-emerald-50"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
+                                <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-100"><Copy className="w-4 h-4" /> העתק מספר</button>
+                                <button onClick={() => { handleLeadUpdate(lead.id, { isStarred: !lead.isStarred }); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-amber-500 hover:bg-amber-50"><Star className={`w-4 h-4 ${lead.isStarred ? 'fill-amber-500' : ''}`} /> {lead.isStarred ? 'הסר כוכב' : 'סמן בכוכב'}</button>
+                                <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                                <button onClick={() => { deleteLeadDirectly(lead.id); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /> מחק ליד</button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4 p-4 overflow-y-auto pb-28">
+                  {(activeTab === 'crm' ? crmLeads : activeTab === 'followup' ? followupLeads : activeTab === 'noanswer' ? noAnswerLeads : archiveLeads).map((lead) => (
+                    <div 
+                      key={`mob-${lead.id}`} 
+                      id={`mob-lead-row-${lead.id}`} 
+                      className={`rounded-[32px] p-5 shadow-sm border flex flex-col gap-5 relative transition-all duration-300 ${
+                        highlightedLeadId === lead.id
+                          ? 'bg-rose-100/90 dark:bg-rose-950/80 ring-4 ring-rose-500 shadow-2xl shadow-rose-500/50 border-rose-500 scale-[1.01] z-30 animate-pulse'
+                          : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
                   
                   {/* Bulk Select Checkbox (when developer panel is active) */}
                   {showSecretPanel && (
@@ -2946,6 +3064,8 @@ const ringback = new RingbackGenerator();
                   )}
                 </div>
               ))}
+                </div>
+              )}
             </div>
             </div>
             </>
