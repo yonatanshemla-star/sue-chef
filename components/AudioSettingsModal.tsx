@@ -99,15 +99,25 @@ export default function AudioSettingsModal({ isOpen, onClose, onSelectDevices }:
   const startLiveVolumeMeter = async (micId: string, existingStream?: MediaStream | null) => {
     stopMicStream();
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: micId ? { deviceId: { exact: micId } } : true
-      };
-
-      const stream = existingStream || await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
+      if (existingStream) {
+        stream = existingStream;
+      } else {
+        const audioConstraint = micId && micId !== 'default' ? { deviceId: { exact: micId } } : true;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint });
+        } catch (e) {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+      }
       streamRef.current = stream;
 
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const audioCtx = new AudioCtx();
       audioContextRef.current = audioCtx;
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume().catch(() => {});
+      }
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
       analyserRef.current = analyser;
@@ -153,20 +163,36 @@ export default function AudioSettingsModal({ isOpen, onClose, onSelectDevices }:
   const handleStartMicTest = async () => {
     if (testState !== 'idle') return;
     try {
+      // Unlock HTML audio player on user click to bypass Chrome Autoplay restrictions 5s later
+      let player = document.getElementById('mic-test-audio-player') as HTMLAudioElement;
+      if (!player) {
+        player = document.createElement('audio');
+        player.id = 'mic-test-audio-player';
+        document.body.appendChild(player);
+      }
+      player.volume = 1.0;
+      player.muted = false;
+      testAudioPlayerRef.current = player;
+
       setTestState('recording');
       setRecordCountdown(5);
       recordedChunksRef.current = [];
 
-      // Acquire dedicated stream for recording test
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true
-      });
+      // Acquire dedicated stream for recording test with fallback
+      let stream: MediaStream;
+      const audioConstraint = selectedMicId && selectedMicId !== 'default' ? { deviceId: { exact: selectedMicId } } : true;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint });
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
 
-      const mimeType = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : '';
+      let mimeType = '';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+      }
 
       const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -190,15 +216,6 @@ export default function AudioSettingsModal({ isOpen, onClose, onSelectDevices }:
         const audioBlob = new Blob(recordedChunksRef.current, { type: mimeType || 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
 
-        let player = document.getElementById('mic-test-audio-player') as HTMLAudioElement;
-        if (!player) {
-          player = document.createElement('audio');
-          player.id = 'mic-test-audio-player';
-          player.autoplay = true;
-          document.body.appendChild(player);
-        }
-
-        testAudioPlayerRef.current = player;
         player.src = audioUrl;
 
         if (selectedSpeakerId && selectedSpeakerId !== 'default' && (player as any).setSinkId) {
@@ -210,15 +227,20 @@ export default function AudioSettingsModal({ isOpen, onClose, onSelectDevices }:
         }
 
         setTestState('playing');
+        
+        player.onended = () => {
+          setTestState('idle');
+        };
+        player.onerror = () => {
+          setTestState('idle');
+        };
+
         try {
           await player.play();
         } catch (e) {
           console.error('Audio test playback failed:', e);
-        }
-
-        player.onended = () => {
           setTestState('idle');
-        };
+        }
       };
 
       mediaRecorder.start(100);
