@@ -3,7 +3,7 @@
 
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, ArrowDownLeft, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi, Scale } from "lucide-react";
+import { Phone, Clock, RefreshCw, History, DollarSign, Plus, Moon, Sun, TableProperties, PhoneCall, ArrowUpDown, X, Maximize2, Loader2, FileText, Trash2, Copy, Check, HelpCircle, PhoneOff, BarChart, CheckCircle, MessageSquare, MoreVertical, UserPlus, ClipboardList, ChevronDown, Zap, Brain, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowUp, Star, Search, Calendar, ArrowUpRight, ArrowDownRight, ArrowDownLeft, TrendingUp, AlertTriangle, Users, Briefcase, Lock, Archive, Menu, Settings, Download, Upload, Shield, StickyNote, Square, CheckSquare, Sparkles, Mic, MicOff, Wifi, Scale, LayoutGrid, List } from "lucide-react";
 import type { Lead, AITask } from "@/utils/storage";
 import LegalDecisionTree from '@/components/LegalDecisionTree';
 import InteractiveSVGChart from "@/components/InteractiveSVGChart";
@@ -2444,8 +2444,9 @@ const ringback = new RingbackGenerator();
         {/* Search & Actions */}
         {(activeTab === 'crm' || activeTab === 'followup' || activeTab === 'archive' || activeTab === 'noanswer') && (
           <div className="flex flex-col gap-4 mb-8">
-            {/* Top Row: Dial Mode Selector */}
-            <div className="flex justify-center md:justify-start items-center">
+            {/* Top Row: Dial Mode Selector & Mobile View Switcher */}
+            <div className="flex flex-col sm:flex-row justify-between md:justify-start items-center gap-3 w-full">
+              {/* Dial Mode Selector */}
               <div className="flex items-center bg-indigo-50/90 dark:bg-slate-900 p-1.5 rounded-[14px] md:rounded-2xl border-2 border-indigo-500/40 shadow-md text-xs md:text-sm font-bold">
                 <button
                   type="button"
@@ -2472,6 +2473,34 @@ const ringback = new RingbackGenerator();
                 >
                   <Phone className="w-4 h-4" />
                   <span>חיוג לנייד</span>
+                </button>
+              </div>
+
+              {/* Mobile View Switcher (Cards vs List) */}
+              <div className="md:hidden flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[14px] border border-slate-200 dark:border-slate-700 shadow-md text-xs font-bold w-full sm:w-auto justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleSetMobileViewMode('cards')}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
+                    mobileViewMode === 'cards'
+                      ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <LayoutGrid size={15} />
+                  <span>תצוגת כרטיסים</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetMobileViewMode('list')}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
+                    mobileViewMode === 'list'
+                      ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <List size={15} />
+                  <span>תצוגת רשימה</span>
                 </button>
               </div>
             </div>
