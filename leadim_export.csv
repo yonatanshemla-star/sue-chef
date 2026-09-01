@@ -1,0 +1,616 @@
+
+<!DOCTYPE html>
+<html lang="he">
+<head id="lm_head"><link href="/scms/css/reset.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><title>לידים</title><meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="Content-Language" content="he-IL" />
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="copyright" content="(c) lead.im" />
+<meta name="robots" content="noindex,nofollow,noarchive,nocache,noimageindex" />
+<meta name="viewport" content="width=device-width, initial-scale=1" /><!--[if lt IE 9]><script type="text/javascript" src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+<link rel="dns-prefetch" href="//cdn.lead.im" />
+<link rel="preload" as="font" type="font/woff2" href="//cdn.lead.im/fw/fa/4.6.3/fonts/fontawesome-webfont.woff2?v=4.6.3" crossorigin="anonymus" />
+<link rel="preload" as="font" type="font/woff2" href="//cdn.lead.im/fw/mdi/MaterialIcons-Regular.woff2" crossorigin="anonymus" />
+<link rel="preload" as="style" href="//cdn.lead.im/fw/fa/4.6.3/css/font-awesome.min.css" />
+<link rel="preload" as="style" href="//cdn.lead.im/fw/mdi/material-icons.css" />
+<link rel="preload" as="script" href="//cdn.lead.im/tools/ckeditor/4.11.3/ckeditor.js?v=4.11.3" />
+<link rel="preload" as="script" href="//cdn.lead.im/tools/ckeditor/4.11.3/adapters/jquery.js?v=4.11.3" />
+<link rel="preload" as="script" href="//cdn.lead.im/fw/jquery/jquery-3.3.1.min.js" />
+<link rel="preload" as="script" href="//cdn.lead.im/fw/jquery/jquery-migrate-3.0.1.js" />
+<link rel="preload" as="script" href="//cdn.lead.im/fw/jquery/jquery-ui-1.12.1.min.js" />
+<link rel="preload" as="script" href="/jq/soundmanager/berniecode-animator.js?dpl=639208635700000000" />
+<link rel="preload" as="script" href="/jq/soundmanager/soundmanager2-nodebug-jsmin.js?dpl=639208635700000000" />
+<link rel="preload" as="script" href="/jq/soundmanager/360player/360player.js?dpl=639208635700000000" />
+<link rel="preload" as="script" href="/scms/js/scms.js?dpl=639208635700000000" />
+<link rel="preload" as="script" href="/scms/js/scms.ui.js?dpl=639208635700000000" />
+<link rel="preload" as="script" href="/scms/js/scms.util.js?dpl=639208635700000000" />
+<link rel="preload" as="script" href="/js/scms.lm.js?dpl=639208635700000000" />
+<!-- -->
+<link rel="stylesheet" href="//cdn.lead.im/fw/fa/4.6.3/css/font-awesome.min.css" />
+<link rel="stylesheet" href="//cdn.lead.im/fw/mdi/material-icons.css" />
+<!-- -->
+<link href="/App_Themes/lm/2.layout.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/App_Themes/lm/4.style.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/scms/jq/css/smoothness/jquery-ui.min.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/scms/jq/periodpicker/jquery.periodpicker.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/scms/jq/periodpicker/jquery.timepicker.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/scms/css/jquery.plugins.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/App_Themes/lm/5.effects.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/App_Themes/lm/8.jquery.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /><link href="/App_Themes/lm/9.print.css?dpl=639208635700000000" type="text/css" rel="stylesheet" /></head>
+<body id="lm_bdyAdmin" class="cms_rtl cms_heb page_leads page_leads page_leads">
+	<div id="minwidthheight">
+		<form method="post" action="./leads" onsubmit="javascript:return WebForm_OnSubmit();" id="aspnetForm">
+<div class="aspNetHidden">
+<input type="hidden" name="__CMD" id="__CMD" value="" />
+<input type="hidden" name="__ARG" id="__ARG" value="" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="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" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['aspnetForm'];
+if (!theForm) {
+    theForm = document.aspnetForm;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="//cdn.lead.im/fw/aspnet/4.6/1/WebForms.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+window.WebForm_PostBackOptions||document.write('<script type="text/javascript" src="//cdn.lead.im/fw/aspnet/4.6/1/WebForms.js"><\/script>');//]]>
+</script>
+
+
+
+<script src="//cdn.lead.im/fw/jquery/jquery-3.7.1.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+window.jQuery||document.write('<script type="text/javascript" src="/scms/jquery/jquery.min.js"><\/script>');//]]>
+</script>
+<script src="//cdn.lead.im/fw/jquery/jquery-migrate-3.5.2.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+window.jQuery||document.write('<script type="text/javascript" src="/scms/jquery/jquery-migrate.js"><\/script>');//]]>
+</script>
+<script src="//cdn.lead.im/fw/jquery/jquery-ui-1.14.1.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+window.jQuery.ui||document.write('<script type="text/javascript" src="/scms/jquery/jquery-ui.min.js"><\/script>');//]]>
+</script>
+<script type="text/javascript">
+//<![CDATA[
+function __uiload(){scms.ui.initui('he', true, '/', '/he/', '/App_Themes/lm/', true);}
+function __cpuiload(){scms.lm.initui('/adm/','.cms' ,'6553','41172','10','leads','gili.harutz@gmail.com','dd/MM/yyyy');}
+function prcdrvalidator(s, a){
+	var isValid=true;
+	var ddl=$('#lm_cpViewbar_tmplc_contViewbar_tabLdDtls_cpLeadEdit_tmplc_ddlLeadDReason');
+	var val=ddl.val();
+	if(parseFloat(scms.$$('lm_cpViewbar_tmplc_contViewbar_tabLdDtls_cpLeadEdit_tmplc_txtLeadEditPriceSupplier').value)==0 && val!='' && ddl.find('option[value="'+val+'"][fpmnt="1"]').length)
+		isValid=false;
+	a.IsValid=isValid;
+	return;
+}function __cmdproc(){__doPostBack('lm$mpi$scms_csm','');}//]]>
+</script>
+
+<script src="//cdn.lead.im/fw/aspnet/4.6/1/WebUIValidation.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+window.Page_ValidationVer||document.write('<script type="text/javascript" src="//cdn.lead.im/fw/aspnet/4.6/1/WebUIValidation.js"><\/script>');//]]>
+</script>
+<script src="//cdn.lead.im/fw/aspnet/4.6/1/ajax/MicrosoftAjax.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+(window.Sys && Sys._Application && Sys.Observer)||document.write('<script type="text/javascript" src="//cdn.lead.im/fw/aspnet/4.6/1/ajax/MicrosoftAjax.js"><\/script>');//]]>
+</script>
+
+<script src="//cdn.lead.im/fw/aspnet/4.6/1/ajax/MicrosoftAjaxWebForms.js" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+(window.Sys && Sys.WebForms)||document.write('<script type="text/javascript" src="//cdn.lead.im/fw/aspnet/4.6/1/ajax/MicrosoftAjaxWebForms.js"><\/script>');//]]>
+</script>
+
+<script src="/ScriptResource.axd?d=_9nt3us83FtcQjusL13-JXJPLf-nhCMvn--Iw8xkVGWbyC-xDcG8Y5ml7Tt6hfUm7yXrZmQmAbYjMQL7qwmDY-7hNYw5xc9MBkmjR7eZwboqrJVxHlsSHxI468urfu5lcTJRAaG1M53zhXZb92lDAnA74zHzWio5cpJ7fF287pbw5gWspOKxcTeHJrY93_KXjgWEqS4rSyPfYqS67rqSq80KD97bX1VdGuZ4xO9aFGSUdx_UPLYiqSVJoEpH5F0o0" type="text/javascript"></script>
+<script src="/scms/js/tools/matchMedia.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/js/tools/jquery.history.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/js/jquery.ui.overrides.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/periodpicker/jquery.periodpicker.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/periodpicker/jquery.timepicker.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/js/jquery.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.ui.sliderAccess.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/screenfull.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.multiselect.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.multiselect.filter.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.mousewheel.min.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.matchHeight.min.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.jscrollpane.min.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/jq/jquery.pnotify.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/js/scms.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/js/scms.ui.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/scms/js/scms.util.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/jq/jquery.cprogress.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/jq/Datepair.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/js/scms.lm.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/js/help-he-js.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/jq/jquery.tablesorter.min.js?dpl=639208635700000000" type="text/javascript"></script>
+<script src="/ws/lms.asmx/js?dpl=639208635700000000" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+function WebForm_OnSubmit() {
+if(!scms.ui.isloaded('אנא חכה לטעינה מלאה של עמוד')) return false;
+if(!scms.lm.leads.validateQlf()) return false;
+if (typeof(ValidatorOnSubmit) == "function" && ValidatorOnSubmit() == false) return false;
+return true;
+}
+//]]>
+</script>
+
+			
+			<div>
+				<script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('lm$smManager', 'aspnetForm', ['tlm$mpi$scms_mpi_up','scms_mpi_up','tlm$sidebar$contSidebar$sideMenu$dv$up','','tlm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$up','','tlm$toolbar$contToolbar$upTbar','','tlm$contMain$mupMoreSelMem$upc','','tlm$contMain$mupMoreSelMem$tmplf$upNew','','tlm$contMain$leadRoutesTable$mupNewR$upc','','tlm$contMain$leadRoutesTable$mupNewR$tmplf$upNew','','tlm$contMain$mupAlrtThanks$upc','','tlm$contMain$mupAlrtThanks$tmplf$upNew','','tlm$contMain$up','','tlm$statusbar$contStatusbar$upSB','','tlm$cpViewbar$upc','','tlm$feedback$mup$upc','','tlm$feedback$mup$tmplf$upNew',''], ['lm$mpi$scms_csm',''], [], 1200, 'lm');
+//]]>
+</script>
+
+			</div>
+			<div class="noclick noselection">
+				<script type="text/javascript">scms.initapp()</script>
+<input type="hidden" name="__dtrndr" value="01/Sep/2026 11:36:09" />
+<div id="scms_mpi_up">
+	
+		<span id="lm_mpi_scms_csm" style="display:none;"><input name="lm$mpi$scms_csm_txt" type="text" value="passed" id="scms_csm_txt" /><span data-val-controltovalidate="scms_csm_txt" id="scms_csm_rfv" class="vldtr" data-val="true" data-val-evaluationfunction="RequiredFieldValidatorEvaluateIsValid" data-val-initialvalue="" style="visibility:hidden;"></span></span>
+	
+</div>
+
+
+		<div id="scms_pstbck"></div><div id="scms_pstbckprcs"></div>
+
+				
+			</div>
+		
+			<div id="dialog_offset"></div>		
+		
+			
+			<div id="menubar" class="noselection">
+				<div class="lmlogo"><a onclick="return false;"><img class="own" src="/App_Themes/lm/images/logo-master-small.png" /><span class="noselection"></span></a></div>
+				
+<span class="menubar-icon toggle-hor-mob"></span>
+<div class="lmmenu"><div class="lmmenuddl flt_l noclick"></div><ul class="mnu_main flt_l"><li class="mnu_dash"><a><i></i></a></li><li class="mnu_leads"><a><i></i>לידים</a></li><li class="mnu_tasks"><a><i></i></a></li><li class="mnu_cmp"><a><i></i>קמפיינים</a></li><li class="mnu_users"><a><i></i>משתמשים</a></li><li class="mnu_marketing"><a><i></i>דיוור</a></li><li class="mnu_aff"><a><i></i>שותפים</a></li><li class="mnu_reports withmenu"><span><i></i>דוחות</span>
+			<div class="menubar-menu noclick crvbrdr crvbrdrntr crvbrdrntl shadow-lbr">
+				
+			</div>
+		</li></ul>
+	
+	<ul class="mnu-side flt_r clearfix">
+		<li class="min mnu_settings withmenu"><span class="crvbrdr radius20"></span>
+			<div class="menubar-menu noclick crvbrdr crvbrdrntr crvbrdrntl shadow-lbr">
+				<ul>
+					<li><span onclick="return false;">שינוי שפה</span>
+						<ul class="shadow-lbr">
+							<li><span onclick="if($(this).hasClass('aspNetDisabled'))return false;return scms.pb.cmd('lang','en');">English</span></li>
+							<li><span onclick="if($(this).hasClass('aspNetDisabled'))return false;return scms.pb.cmd('lang','he');">עברית</span></li>
+							<li><span onclick="if($(this).hasClass('aspNetDisabled'))return false;return scms.pb.cmd('lang','ru');">Русский</span></li>
+							
+						</ul>
+					</li>
+					<li><span>מסך</span>
+						<ul class="shadow-lbr">
+							<li class="fscreen"><span>מסך מלא &nbsp;&nbsp;<small>alt+f</small></span></li>
+							<li><span>פיצול מסך &nbsp;&nbsp;<small>alt+l</small></span>
+								<ul class="shadow-lbr">
+									<li class="splitmode nsplit"><span>לא מפוצל</span></li>
+									<li class="splitmode vsplit"><span>פיצול אנכי</span></li>
+									<li class="splitmode hsplit"><span>פיצול אופקי</span></li>
+								</ul>
+							</li>
+						</ul>
+					</li>
+					
+					<li class="settings"><span>הגדרות &nbsp;&nbsp;<small>alt+s</small></span></li>
+					
+				</ul>
+			</div>
+		</li><li class="min mnu_alerts actionslist withmenu">
+<span class="crvbrdr radius20"><span class="icn"></span></span>
+<div class="menubar-menu noclick crvbrdr crvbrdrntr crvbrdrntl shadow-lbr">
+	<div class="mnu_alerts_tabs">
+		<div data-tab="alerts" data-ttl="התראות" class="tabttl crvbrdr flt_l open">התראות</div>
+		<div data-tab="async" data-ttl="פעולות רקע" class="tabttl crvbrdr flt_l">פעולות רקע</div>
+	</div>
+	<div class="alerts_ctx border-box alerts_ctx_alerts" style="display:none;">
+	</div>
+	<div class="alerts_ctx border-box alerts_ctx_alerts alerts_ctx_alerts_view" style="display:none;">
+	</div>
+	<div style="display:none;" class="alerts_ctx border-box alerts_ctx_async">
+		...
+	</div>
+</div>
+</li><li class="mnu_profile withmenu"><span><span class="r1">גיל חרוץ</span><span class="r2"></span>
+		<span class="tri"></span>
+	</span><div class="menubar-menu menubar-menu-prfl noclick crvbrdr crvbrdrntr crvbrdrntl shadow-lbr"><label class="fltr"><input name="lm$menubar$menu_bar$menu$liProfile$dvAccountMenu$txtFilter" type="text" id="lm_menubar_menu_bar_menu_liProfile_dvAccountMenu_txtFilter" onkeyup="scms.lm.menu.accounts.filter(this);" onkeypress="if(scms.dom.enterPressed(event)){return false;}" autocomplete="off" placeholder="סינון חשבונות" /></label><span class="hr"></span>
+		<ul>
+			
+			<li><span onclick="scms.lm.settings.open('/settings/profile');return false;">שינוי סיסמא</span></li>
+			<li><a class="logout" href="/account/login?logoff=ok">יציאה&nbsp;&nbsp;&nbsp;<small>alt+q</small></a></li>
+		</ul>
+		</div></li>
+	
+	</ul>
+
+</div>
+
+</div>
+		
+			<div id="wrapper" class="clearfix">
+				
+				
+
+				<div id="sidebar" class="jqscrollbar">
+					<span class="lmdock lmdock-hor crvbrdr"></span>
+					
+					<div class="sidebar_ctx clearfix">
+						
+	<div class="pagettl">לידים</div>
+	<div class="sbmenu union"><div id="lm_sidebar_contSidebar_sideMenu_dv_up" class="sbmenu_blckul">
+	
+			
+			
+			
+			<div class="sbmenu_blck sbmenu_blck_hl">
+<label>
+	<i>תצוגות</i>
+	<select onchange="$('.fs_btn_search&gt;.abtn-srch').trigger('click');" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterViews" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterViews">
+
+</select></label>
+
+<label>
+	<i>פולים</i>
+	<select onchange="$('.fs_btn_search&gt;.abtn-srch').trigger('click');" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterQualifPools" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterQualifPools">
+
+</select></label>
+
+<div class="mnulbl clearfix"><i>תאריך ליד</i>
+<div class="lmbtn-wrp lmclndr noselection flt_l hasval"><span title="סינון לפי תאריכים" class="lmbtn lmbtn-btn crvbrdr btn_drange"></span><div data-cmd="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange" class="lmbtn-menu lmclndr-menu noclick noselection crvbrdr crvbrdrntl shadow-lbr">
+		<ul>
+			<li><span data-arg="today">היום</span></li><li><span data-arg="yesterday">אתמול</span></li><li><span data-arg="thisweek">שבוע נוכחי</span></li><li><span data-arg="lastweek">שבוע קודם</span></li><li><span data-arg="thismonth">חודש נוכחי</span></li><li><span data-arg="lastmonth">חודש קודם</span></li><li><span data-arg="thisquarter">רבעון נוכחי</span></li><li><span data-arg="lastquarter">רבעון קודם</span></li><li><span data-arg="thisyear">שנה נוכחית</span></li><li><span data-arg="lastyear">שנה קודמת</span></li><li><span data-arg="allleads">כל התקופה</span></li><li class="clndr cur"><span>
+				<table>
+					<tr>
+						<td class="nwrp">
+							<div id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrFrom_dvCal" class="jsclndr" style="margin:0px;padding:0px;display:inline;">
+	
+	<div class="flt_l">
+		<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate" type="text" value="20/08/2026 00:00" readonly="readonly" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrFrom_txtDate" class="clndr_datetime date time start" />
+		<img class="imgCal" onclick="$(this).prev().trigger('click');return false;" src="/App_Themes/lm/images/calendar.png" />
+		
+	</div>
+	<span data-val-controltovalidate="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrFrom_txtDate" data-val-focusOnError="t" data-val-errormessage="Enter date" data-val-display="Dynamic" data-val-validationGroup="vgRprt" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrFrom_rfvDate" class="vldtr" data-val="true" data-val-evaluationfunction="RequiredFieldValidatorEvaluateIsValid" data-val-initialvalue="" style="display:none;">*</span>
+</div>
+						</td>
+						
+						<td class="nwrp">&nbsp;-&nbsp;</td>
+						
+						<td class="nwrp">
+							<div id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrTo_dvCal" class="jsclndr" style="margin:0px;padding:0px;display:inline;">
+	
+	<div class="flt_l">
+		<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrTo$txtDate" type="text" value="01/09/2026 00:00" readonly="readonly" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrTo_txtDate" class="clndr_datetime date time end" />
+		<img class="imgCal" onclick="$(this).prev().trigger('click');return false;" src="/App_Themes/lm/images/calendar.png" />
+		
+	</div>
+	<span data-val-controltovalidate="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrTo_txtDate" data-val-focusOnError="t" data-val-errormessage="Enter date" data-val-display="Dynamic" data-val-validationGroup="vgRprt" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrTo_rfvDate" class="vldtr" data-val="true" data-val-evaluationfunction="RequiredFieldValidatorEvaluateIsValid" data-val-initialvalue="" style="display:none;">*</span>
+</div>
+						</td>
+						
+						<td class="nwrp"><span class="lmclndr-go crvbrdr flt_l" onclick="scms.lm.screen.closePopups();scms.pb.cmd('lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');return false;"></span></td>
+					</tr>
+				</table></span>
+			</li>
+		</ul>
+	</div></div>
+</div>
+
+
+
+<label>
+	<i>חיפוש חופשי</i>
+	
+<div id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_up">
+		
+		<div data-cmd="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox" class="srchbar-box">
+			<span class="tri"></span>
+			<span class="clear"></span>
+			<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$txtSearchFor" type="text" maxlength="300" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_txtSearchFor" class="crvbrdr input lm_srch" autocomplete="off" /><span class="abtn abtn-srch crvbrdr" onclick="if($(this).hasClass('aspNetDisabled'))return false;scms.lm.screen.closePopups();return scms.pb.cmd($(this).attr('data-cmd'), $(this).attr('data-arg'), 'vgsrch');" data-cmd="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_lm_srch"></span><div class="srchbar-box-menu srchbar-box-menu-aside noclick crvbrdr crvbrdrntl shadow-lbr">
+				<div class="srchbar-search-in">
+					<label>חפש ב:</label>
+					<select class="search-in-select" onchange="scms.lm.srchbox.updateSearchField(this, false, true)" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_ddlSearchIn" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$ddlSearchIn">
+	<optgroup label="פרטים בסיסיים"><option value="-1" sto-num="1" optgroup="פרטים בסיסיים">מספר ליד</option></optgroup>
+	<optgroup label="פרטי ליד"><option value="223858" sto-str="1" sto-nmtch="1" sto-cntns="1" optgroup="פרטי ליד">שם מלא</option><option value="223860" sto-str="1" sto-phn="1" sto-nmtch="1" sto-cntns="1">טלפון</option><option value="223861" sto-str="1" sto-nmtch="1" sto-cntns="1">דוא&quot;ל</option><option value="243657" sto-bool="1">הסכמה לדיוור</option></optgroup>
+	<optgroup label="פרטים"><option value="243644" sto-str="1" sto-nmtch="1" sto-cntns="1" optgroup="פרטים">האם אתם סובלים ממחלה אחת או יותר מהרשימה?</option><option value="243649" sto-str="1" sto-nmtch="1" sto-cntns="1">הפסקתי לעבוד עקב הבעיות הרפואיות שלי</option><option value="243651" sto-str="1" sto-nmtch="1" sto-cntns="1">אני מקבל/ת קצבה מביטוח לאומי</option><option value="243653" sto-str="1" sto-nmtch="1" sto-cntns="1">הגעתי לגיל פרישה</option><option value="247937" sto-str="1" sto-nmtch="1" sto-cntns="1">האם אתם משלמים מס הכנסה יותר מ- 1000 ₪ בחודש?</option><option value="247936" sto-str="1" sto-nmtch="1" sto-cntns="1">מתי סבלתם מהמחלה?</option><option value="274097" sto-str="1" sto-nmtch="1" sto-cntns="1">האם אתם מקבלים פנסיית נכות או אובדן כושר עבודה מחברת הביטוח?</option><option value="375879" sto-str="1" sto-nmtch="1" sto-cntns="1">גיל</option><option value="375880" sto-str="1" sto-nmtch="1" sto-cntns="1">הכנסה חודשית</option><option value="375881" sto-str="1" sto-nmtch="1" sto-cntns="1">איך נוכל לעזור</option></optgroup>
+	<optgroup label="פטור ממס הכנסה - כללי"><option value="289675" sto-str="1" sto-nmtch="1" sto-cntns="1" optgroup="פטור ממס הכנסה - כללי">מה קבוצת הגיל שלכם?</option><option value="289676" sto-str="1" sto-nmtch="1" sto-cntns="1">ההכנסה החודשית של החולה מעבודה/פנסיה</option><option value="289677" sto-str="1" sto-nmtch="1" sto-cntns="1">ליקויים רפואיים</option><option value="364132" sto-str="1" sto-nmtch="1" sto-cntns="1">סוג מפרצת</option><option value="289678" sto-str="1" sto-nmtch="1" sto-cntns="1">בעיות נוספות מהן סובל החולה</option></optgroup>
+	<optgroup label="UTM"><option value="243642" sto-str="1" sto-nmtch="1" sto-cntns="1" optgroup="UTM">utm_source</option><option value="243646" sto-str="1" sto-nmtch="1" sto-cntns="1">utm_campaign</option><option value="243655" sto-str="1" sto-nmtch="1" sto-cntns="1">gclid</option><option value="243645" sto-str="1" sto-nmtch="1" sto-cntns="1">utm_medium</option><option value="243647" sto-str="1" sto-nmtch="1" sto-cntns="1">utm_medium</option><option value="243648" sto-str="1" sto-nmtch="1" sto-cntns="1">utm_content</option><option value="243650" sto-str="1" sto-nmtch="1" sto-cntns="1">utm_term</option><option value="243652" sto-str="1" sto-nmtch="1" sto-cntns="1">cid</option><option value="243654" sto-str="1" sto-nmtch="1" sto-cntns="1">tid</option><option value="243656" sto-str="1" sto-nmtch="1" sto-cntns="1">Taboola Click Id</option></optgroup>
+	<optgroup label="פרטי מקור"><option value="-4" sto-str="1" optgroup="פרטי מקור">מקור</option><option value="-5" sto-str="1">מפנה</option><option value="-6" sto-str="1">מפנה חיצוני</option><option value="-7" sto-num="1">ip</option></optgroup>
+
+</select>
+				</div>
+				<div class="srchbar-search-for">
+					<label class="fltr"><input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$txtFilter" type="text" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_txtFilter" onkeyup="scms.lm.srchbox.filter(this);" onkeypress="if(scms.dom.enterPressed(event)){return false;}" autocomplete="off" placeholder="filter rows" /></label><ul><li><span data-val="True" data-prmid="243657">כן</span></li><li><span data-val="False" data-prmid="243657">לא</span></li></ul>
+<div class="lmbtn-wrp lmclndr noselection">
+	<span title="סינון לפי תאריכים" class="lmbtn lmbtn-btn crvbrdr fcal btn_drange" data-time="1" lng-from="מתאריך" lng-to="עד תאריך" data-textcb="scms.lm.srchbox.setText"></span>
+	<div class="lmbtn-menu lmclndr-menu noclick noselection">
+		<ul>
+			<li><span data-arg="today" data-text="היום">היום</span></li><li><span data-arg="yesterday" data-text="אתמול">אתמול</span></li><li><span data-arg="thisweek" data-text="שבוע נוכחי">שבוע נוכחי</span></li><li><span data-arg="lastweek" data-text="שבוע קודם">שבוע קודם</span></li><li><span data-arg="thismonth" data-text="חודש נוכחי">חודש נוכחי</span></li><li><span data-arg="lastmonth" data-text="חודש קודם">חודש קודם</span></li><li><span data-arg="thisquarter" data-text="רבעון נוכחי">רבעון נוכחי</span></li><li><span data-arg="lastquarter" data-text="רבעון קודם">רבעון קודם</span></li><li><span data-arg="thisyear" data-text="שנה נוכחית">שנה נוכחית</span></li><li><span data-arg="lastyear" data-text="שנה קודמת">שנה קודמת</span></li><li><span data-arg="allleads" data-text="כל התקופה">כל התקופה</span></li><li><span data-arg="novalue" data-text="ללא ערך">ללא ערך</span></li><li class="clndr"><span>
+				<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$crange$dvMenu$txtType" type="text" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_crange_dvMenu_txtType" class="lmclndr-type nodisp" />
+				<table>
+					<tr>
+						<td class="nwrp">
+							<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$crange$dvMenu$txtFrom" type="text" autocomplete="off" maxlength="16" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_crange_dvMenu_txtFrom" class="date time start dir_ltr aln_c" />
+						</td>
+						<td class="nwrp">&nbsp;-&nbsp;</td>
+						<td class="nwrp">
+							<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$crange$dvMenu$txtTo" type="text" autocomplete="off" maxlength="16" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_crange_dvMenu_txtTo" class="date time end dir_ltr aln_c" />
+						</td>
+						
+					</tr>
+				</table></span>
+			</li>
+		</ul>
+	</div>
+</div>
+
+				</div>
+				<div class="srchbar-search-match">
+					<span class="srchbar-search-contains"><input id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_chkContains" type="checkbox" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$chkContains" /><label for="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_chkContains">התאמה חלקית</label>&nbsp; &nbsp;</span><input id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_chkNotMatch" type="checkbox" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$sbox$dvBox$dvMenu$chkNotMatch" /><label for="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_chkNotMatch">חיפוש לא כולל</label>
+				</div>
+			</div>
+			<input type="hidden" name="hdnUID" class="srch-hdnuid" />
+		</div>
+		
+	
+	</div>
+
+</label>
+
+
+
+<label>
+	<i>סטטוסים</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterStatuses" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses">
+
+</select></label>
+
+<label>
+	<i>סטטוסים מיוחדים</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterSpecialStatuses" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterSpecialStatuses">
+
+</select></label>
+
+<label class="">
+	<i>נותב למשתמש</i>
+	<div class="srchbar-box srchbar-box2">
+		<span class="clear"></span>
+		<input name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$txtFilterRUser" type="text" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_txtFilterRUser" class="input crvbrdr" onkeypress="if(scms.dom.enterPressed(event)) $('.sbmenu_blck .abtn-srch').trigger('click');" />
+		<input type="hidden" name="hdnRUser" class="hdnRUser" />
+	</div>
+</label>
+
+
+
+
+
+<label>
+	<i>סטטוס טיוב</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterQualif" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterQualif">
+
+</select></label>
+
+<label>
+	<i>מטייב מטפל</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterQualificators" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterQualificators">
+
+</select></label>
+
+<label>
+	<i>סיבות פסילה</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterDisq" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterDisq">
+
+</select></label>
+
+<label><i></i><select onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterFeekbacks" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterFeekbacks">
+
+</select></label>
+
+<label>
+	<i>קמפיינים</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterCampaigns" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterCampaigns">
+
+</select></label>
+
+<label>
+	<i>ספקים</i>
+	<select size="4" multiple="multiple" onchange="scms.lm.sbmenu.sethasval(this);" id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ddlFilterSuppliers" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterSuppliers">
+
+</select></label>
+
+<label class="nttl">
+	<span class="lmbtn lmbtn-full crvbrdr chkclick"><span onchange="scms.lm.sbmenu.sethasval($(this).find('&gt;input')[0]);"><input id="lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_chkTrash" type="checkbox" name="lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$chkTrash" /></span> <b></b></span>
+</label>
+
+
+						
+					
+
+<div class="fs_btn_search_holder"></div>
+<label class="aln_c fs_btn_search">
+	<span class="abtn abtn-srch abtn-text crvbrdr" onclick="$(this).closest('.sbmenu_blck').find('.srchbar-box>.abtn-srch').trigger('click');"></span>
+</label>
+</div>
+		
+			
+		
+</div></div>
+
+
+					</div>
+				</div>
+
+				
+		
+				<div id="mainwrapper">
+					<div id="toolbar">
+	<div class="lminnerbar always clearfix">
+		<div id="lm_toolbar_contToolbar_upTbar">
+	
+				<div class="cmpctpager clearfix" data-cmd="lm_toolbar_contToolbar_pgrPager_cmd"><span data-arg="next" class="lmbtn lmbtn-md cmpager-btn cmpager-next mdi" rel="next" title="דף הבא"></span><span class="lmbtn lmbtn-md cmpager-btn cmpager-prev mdi dis"></span><div class="cmpager-text"><span>20-1 מתוך 259</span><div class="cmpager-menu noclick crvbrdr shadow-lbr"><ul><li class="ttl">הצג:</li><li><span class="dis">דף ראשון</span></li><li><span data-arg="last">דף אחרון</span></li><li class="ttl">הצג עד:</li><li><span data-arg="ipp10">10 שורות</span></li><li class="cur"><span class="dis">20 שורות</span></li><li><span data-arg="ipp50">50 שורות</span></li><li><span data-arg="ipp100">100 שורות</span></li></ul></div></div></div>
+
+				
+<div class="lmbtn-wrp lm-chkall flt_l noselection"><input name="lm$toolbar$contToolbar$checkAll$wrp$txt" type="text" id="lm_toolbar_contToolbar_checkAll_wrp_txt" ftbe="digits" style="display:none;width:30px;" /><span class="lmbtn lmbtn-md lmbtn-btn chkclick btn_chk"><input id="lm_toolbar_contToolbar_checkAll_wrp_chkAll" type="checkbox" /></span><div class="lmbtn-menu noclick noselection crvbrdr crvbrdrntl shadow-lbr"><ul><li><span data-arg="thispage">הכל בדף זה</span></li><li><span data-arg="none">הסר הכל</span></li><li><span data-arg="allpages">הכל בכל הדפים</span></li><li><span data-arg="firstx">N רשומות ראשונות</span></li></ul></div></div>
+
+
+				<a class="lmbtn lmbtn-md lmbtn-back lds_btn_back" href="#"><span class="mdi"></span></a>
+				<span title="רענון" class="lmbtn lmbtn-md icon-refresh" onclick="scms.lm.screen.closePopups();if($(this).hasClass('aspNetDisabled'))return false;return scms.pb.cmd('leads_refresh','');"><span class="mdi">refresh</span></span>
+				<span title="צור ליד חדש" class="lmbtn lmbtn-md" onclick="if($(this).hasClass('aspNetDisabled'))return false;return scms.pb.cmd('leads_new','!');"><span class="mdi bold">add</span></span>
+				
+				
+				<div class="lmbtn-wrp lmbtn-more flt_l noselection"><span class="lmbtn lmbtn-md lmbtn-btn"><span class="mdi dnld"></span></span>
+					<div class="lmbtn-menu noclick noselection crvbrdr crvbrdrntl shadow-lbr">
+						<ul>
+							<li><span data-cmd="leads_2excel" data-arg="0">יצוא לאקסל</span></li>
+							<li><span data-cmd="leads_2csv" data-arg="0">יצוא ל-CSV</span></li>
+						</ul>
+					</div>
+				</div>
+
+				
+
+				<span title="מחיקה" class="lmbtn lmbtn-md tlbr_opts" onclick="var _tmp=scms.ui.idchecker.calcAll('lm_contMain_IDChecker', 'בטוח רוצה למחוק?');if(_tmp==-1 || _tmp==0 &amp;&amp; !scms.lm.mainwrapper.viewbar_closed() &amp;&amp; !confirm('בטוח רוצה למחוק?')){return false;};if($(this).hasClass('aspNetDisabled'))return false;return scms.pb.cmd('leads_delete','');"><span class="mdi">delete</span></span>
+				
+
+				<div class="lmbtn-wrp lmbtn-more tlbr_opts flt_l noselection"><span title="עוד" class="lmbtn lmbtn-md lmbtn-btn"><span class="mdi">more_vert</span></span>
+					<div class="lmbtn-menu noclick noselection crvbrdr crvbrdrntl shadow-lbr" data-cmd="leads_more">
+						<ul><li class="dir">עדכון לידים...<ul><li><span data-arg="chngsts">עדכון סטטוס</span></li><li><span data-arg="chngfld">עדכון ערך שדה</span></li></ul></li><li class="dir">פעולות...<ul><li><span data-arg="alrt-send2email">שליחת מייל ללידים</span></li><li><span data-arg="alrt-send2sms">שליחת סמס ללידים</span></li></ul></li></ul>
+					</div>
+				</div>
+			
+</div>
+	</div>
+</div>
+
+					<div id="mainbar" class="mainbarcss jqscrollbar">
+						
+	
+	<div data-cmdpref="lm_contMain_mupMoreSelMem_cmd"><div id="lm_contMain_mupMoreSelMem_upc">
+
+</div><span id="lm_contMain_mupMoreSelMem_tmplf_upNew"></span></div>
+	<script type="text/javascript">
+		function __acselect(atype, id) {
+			$('.trNotForCalcs').show();
+			if (atype == 50) {
+				$('.trRoutePPL').show();
+			} else {
+				$('.trRoutePPL').hide();
+			}
+		}
+	</script>
+
+	<div id="lm_contMain_leadRoutesTable_IDChecker2" style="display:none;"><input type="hidden" name="lm$contMain$leadRoutesTable$IDChecker2$hdn" id="lm_contMain_leadRoutesTable_IDChecker2_hdn" /></div>
+<div data-cmdpref="lm_contMain_leadRoutesTable_mupNewR_cmd"><div id="lm_contMain_leadRoutesTable_mupNewR_upc">
+
+</div><span id="lm_contMain_leadRoutesTable_mupNewR_tmplf_upNew"></span></div>
+
+
+	<div data-cmdpref="lm_contMain_mupAlrtThanks_cmd"><div id="lm_contMain_mupAlrtThanks_upc">
+
+</div><span id="lm_contMain_mupAlrtThanks_tmplf_upNew"></span></div>
+
+	<div id="lm_contMain_IDChecker" style="display:none;"><input type="hidden" name="lm$contMain$IDChecker$hdn" id="lm_contMain_IDChecker_hdn" /></div>
+	<div id="lm_contMain_up">
+	
+			<div>
+
+	</div>
+		
+</div>
+	
+
+					
+						
+					</div>
+					<div id="mainbar2" class="mainbarcss jqscrollbar"><div class="cntnt"></div></div>
+					<span class="lmbtn lmbtn-md mainbar2_close"><em class="mdi md-trr">cancel</em></span>
+					<div id="statusbar">
+	<div id="lm_statusbar_contStatusbar_upSB">
+	
+			<span class="sb_info sbi-total"></span>
+			<span class="sb_info"></span>
+			<span class="sb_info"></span>
+			<span class="sb_info"></span>
+			<span class="sb_info"></span>
+			<span class="sb_info"></span>
+		
+</div>
+</div>
+					<div id="mainwrapper_splitter"></div>
+					<div id="viewbar" class="viewbar jqscrollbar">
+						<div data-cmdpref="lm_cpViewbar_cmd"><div id="lm_cpViewbar_upc">
+
+</div></div>
+					</div>
+				</div>
+			</div>
+			
+<div data-cmdpref="lm_feedback_mup_cmd" title="שלח הצעת שיפור"><div id="lm_feedback_mup_upc">
+
+</div><span id="lm_feedback_mup_tmplf_upNew"></span></div>
+
+		
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="687CD8C9" />
+	<input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+$('#lm_cpViewbar_tmplc_contViewbar_tabLdDtls_cpLeadEdit_tmplc_leadsUploader_utlist_lbl').css('margin-bottom', '0');
+scms.lm.screen.initCheckboxes();
+scms.ui.loaded = true;
+$.ech.multiselect.prototype.options.checkAllText='סמן הכל';$.ech.multiselect.prototype.options.noneSelectedText='בחרו אפשרויות';$.ech.multiselect.prototype.options.selectedText='# נבחרו';$.ech.multiselect.prototype.options.uncheckAllText='הסר כל';$.ech.multiselectfilter.prototype.options.label='מסנן';$.ech.multiselectfilter.prototype.options.placeholder='סינון';
+scms.lm.srchbox.updateSearchField('#lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_sbox_dvBox_dvMenu_ddlSearchIn', true);
+scms.ui.pnotify.notice('פעולה זאת מתבצעת ברקע', 'ניתן לעקוב אחרי התקדמות הפעולה בחלון התראות שנמצא תחת הפעמון בפינה שמאלית למעלה\u003cbr/\u003e\r\n\tניתן להמשיך לבצע פעולות נוספות על כל החתך הנוכחי', true, true, null)
+scms.ui.idchecker.regcheckall('lm_contMain_IDChecker', 'lm_toolbar_contToolbar_checkAll_wrp_chkAll', '');
+scms.ui.select.selMenu('#lm_contMain_mupAlrtThanks_tmplc_tbdAlrtThanks select');
+scms.lm.validation.ddlLeadDReason ='lm_cpViewbar_tmplc_contViewbar_tabLdDtls_cpLeadEdit_tmplc_ddlLeadDReason';
+scms.ui.select.selMenu('.viewbar_block .tblMup tr > td:not([class~="noselect"]) > select:not([class~="noselect"])');
+scms.onReady(function(){ scms.ui.select.multiSelect('#lm_contMain_mupMoreSelMem_tmplc_ddlStatuses,#lm_cpViewbar_tmplc_contViewbar_tabLdDtls_cpLeadEdit_tmplc_ddlLeadDReason', false, '', null, 210, 1, {selectedText: ' '}); });
+scms.ui.select.selMenu('#lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_ft_ddlDNC');
+scms.ui.select.selMenu('select.jqselect:not([class~="noselect"])');
+$('.srchbar-box .hdnRUser').val('0#');
+scms.ui.autocomplete.set($('#lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_txtFilterRUser'), 'Leadim.Sys.WS.LMS.GetAccountUsers', null, scms.lm.widget.autocomplete.src_sls, scms.lm.widget.autocomplete.select3);
+scms.ui.cal.initDoubleDateTime('lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrFrom_txtDate', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_dvWrap_dvMenu_clndrTo_txtDate', {});
+
+scms.ui.idchecker.regchecks('lm_contMain_leadRoutesTable_IDChecker2', 'chks-rts3');
+scms.ui.idchecker.reset('lm_contMain_leadRoutesTable_IDChecker2');
+scms.ui.idchecker.regchecks('lm_contMain_IDChecker', 'chks-leads');
+scms.ui.idchecker.reset('lm_contMain_IDChecker', scms.lm.chkall.oncheck);
+//]]>
+</script>
+</form>
+		<div id="settings_bg"></div>
+		<div id="settings" class="crvbrdr">
+			<span class="lmbtn lmbtn-md btnclose popup_close"><em class="mdi md-trr">cancel</em></span>
+			<!--<div class="settings_ttl">הגדרות
+			</div>-->
+			<div class="popup_iframe_hldr">
+				<iframe id="settings_iframe" src="javascript:false"></iframe>
+			</div>
+		</div>
+
+		
+	</div>
+	<div class="relogin"></div>
+</body>
+</html>
