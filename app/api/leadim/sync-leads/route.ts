@@ -159,7 +159,7 @@ export async function POST() {
       const phone = tds[7] || '';
       const cleanPhone = phone.replace(/\D/g, '').slice(-9);
 
-      if (!existingLeadimIds.has(leadimId) && (!cleanPhone || !existingPhones.has(cleanPhone))) {
+      if (!existingLeadimIds.has(leadimId)) {
         const id = uuidv4();
         const createdAt = parseHebrewDate(tds[2]);
         const status = normalizeStatus(selectedStatus);
