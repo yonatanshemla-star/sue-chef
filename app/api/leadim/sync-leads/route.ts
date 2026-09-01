@@ -15,15 +15,7 @@ function parseHebrewDate(dateStr: string) {
 }
 
 function normalizeStatus(leadimStatus: string) {
-  if (!leadimStatus) return 'חדש';
-  const s = leadimStatus.trim();
-  if (s === 'חדש') return 'חדש';
-  if (s === 'אין מענה') return 'לא ענה';
-  if (s === 'במעקב' || s === 'רלוונטי') return 'במעקב';
-  if (s === 'נסגרה עיסקה') return 'חתם';
-  if (s === 'נפסל - לא רלוונטי' || s === 'לא תקין') return 'נגמר';
-  if (s.includes('יונתן') || s.includes('איתמר')) return 'לחזור אליו';
-  if (s === 'פנייה חוזרת') return 'חדש';
+  // Always import new incoming leads as 'חדש'
   return 'חדש';
 }
 
