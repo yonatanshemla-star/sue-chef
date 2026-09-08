@@ -435,8 +435,8 @@ export default function Home() {
       const rect = e.currentTarget.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      // With 300-340px max height, choose direction with more space to keep popover within screen
-      setDropdownDirection(spaceBelow < 320 && spaceAbove > spaceBelow ? 'up' : 'down');
+      // With compact 2-column grid (~210px height), open direction with more space
+      setDropdownDirection(spaceBelow < 230 && spaceAbove > spaceBelow ? 'up' : 'down');
       setActiveStatusDropdownLeadId(leadId);
     }
   };
@@ -2751,7 +2751,7 @@ const ringback = new RingbackGenerator();
                         {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className={`absolute right-0 min-w-[200px] max-w-[240px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[300px] md:max-h-[340px] overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                            <div className={`absolute right-0 w-[310px] sm:w-[350px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-visible p-2 animate-in fade-in duration-200 grid grid-cols-2 gap-1.5 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -2759,12 +2759,12 @@ const ringback = new RingbackGenerator();
                                     handleLeadUpdate(lead.id, { status: k });
                                     setActiveStatusDropdownLeadId(null);
                                   }}
-                                  className={`w-full text-right px-4 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
+                                  className={`text-right px-2.5 py-2 text-[11px] sm:text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border
                                     ${lead.status === k 
-                                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
-                                      : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
+                                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20' 
+                                      : 'text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
                                 >
-                                  <span>{v.label}</span>
+                                  <span className="truncate">{v.label}</span>
                                 </button>
                               ))}
                             </div>
@@ -3049,7 +3049,7 @@ const ringback = new RingbackGenerator();
                       {activeStatusDropdownLeadId === lead.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div className={`absolute right-0 left-0 z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[280px] md:max-h-[320px] overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                          <div className={`absolute right-0 left-0 z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-visible p-2 animate-in fade-in duration-200 grid grid-cols-2 gap-1.5 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                               <button
                                 key={k}
@@ -3057,12 +3057,12 @@ const ringback = new RingbackGenerator();
                                   handleLeadUpdate(lead.id, { status: k });
                                   setActiveStatusDropdownLeadId(null);
                                 }}
-                                className={`w-full text-right px-4 py-2.5 text-sm rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
+                                className={`text-right px-2.5 py-2 text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border
                                   ${lead.status === k 
-                                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
-                                    : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
+                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20' 
+                                    : 'text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
                               >
-                                <span>{v.label}</span>
+                                <span className="truncate">{v.label}</span>
                               </button>
                             ))}
                           </div>
