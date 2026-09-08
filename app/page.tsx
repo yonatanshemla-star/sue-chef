@@ -2756,6 +2756,28 @@ const ringback = new RingbackGenerator();
                           <ChevronDown size={14} className="opacity-70 flex-shrink-0" />
                         </button>
                         
+                        {activeStatusDropdownLeadId === lead.id && (
+                          <>
+                            <div className="fixed inset-0 z-40 hidden md:block" onClick={() => setActiveStatusDropdownLeadId(null)} />
+                            <div className={`hidden md:block absolute right-0 min-w-[200px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-none overflow-visible p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                                <button
+                                  key={k}
+                                  onClick={() => {
+                                    handleLeadUpdate(lead.id, { status: k });
+                                    setActiveStatusDropdownLeadId(null);
+                                  }}
+                                  className={`w-full text-right px-4 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
+                                    ${lead.status === k 
+                                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
+                                      : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
+                                >
+                                  <span>{v.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -3807,20 +3829,17 @@ const ringback = new RingbackGenerator();
         }} 
       />
 
-      {/* Centralized Status Dropdown / Modal (Fixed portal - NEVER clipped by tables, cards, or containers!) */}
+      {/* Mobile Status Picker Bottom Sheet (Mobile ONLY) */}
       {activeStatusDropdownLeadId && (
-        <>
+        <div className="md:hidden">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 z-[9990] bg-black/40 md:bg-transparent backdrop-blur-[2px] md:backdrop-blur-none transition-all" 
-            onClick={() => {
-              setActiveStatusDropdownLeadId(null);
-              setDropdownCoords(null);
-            }} 
+            className="fixed inset-0 z-[9990] bg-black/40 backdrop-blur-[2px] transition-all" 
+            onClick={() => setActiveStatusDropdownLeadId(null)} 
           />
 
           {/* Mobile: Bottom Sheet Modal */}
-          <div className="fixed inset-x-0 bottom-0 z-[9999] md:hidden bg-white dark:bg-slate-900 rounded-t-[32px] p-5 pb-8 shadow-2xl border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200" dir="rtl">
+          <div className="fixed inset-x-0 bottom-0 z-[9999] bg-white dark:bg-slate-900 rounded-t-[32px] p-5 pb-8 shadow-2xl border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200" dir="rtl">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="font-black text-base text-slate-900 dark:text-white">בחר סטטוס לליד</h3>
@@ -3830,10 +3849,7 @@ const ringback = new RingbackGenerator();
                 })()}
               </div>
               <button 
-                onClick={() => {
-                  setActiveStatusDropdownLeadId(null);
-                  setDropdownCoords(null);
-                }} 
+                onClick={() => setActiveStatusDropdownLeadId(null)} 
                 className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200"
               >
                 <X size={18} />
@@ -3850,7 +3866,6 @@ const ringback = new RingbackGenerator();
                     onClick={() => {
                       handleLeadUpdate(activeStatusDropdownLeadId, { status: k });
                       setActiveStatusDropdownLeadId(null);
-                      setDropdownCoords(null);
                     }}
                     className={`text-right px-3 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border active:scale-95
                       ${isSelected 
@@ -3863,37 +3878,7 @@ const ringback = new RingbackGenerator();
               })}
             </div>
           </div>
-
-          {/* Desktop: Fixed Floating 2-Column Popover (stays within screen bounds!) */}
-          {dropdownCoords && (
-            <div 
-              style={{ top: `${dropdownCoords.top}px`, right: `${dropdownCoords.right}px` }}
-              className="hidden md:grid fixed w-[350px] z-[9999] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-visible p-2 animate-in fade-in zoom-in-95 duration-150 grid-cols-2 gap-1.5"
-              dir="rtl"
-            >
-              {Object.entries(STATUS_CONFIG).map(([k, v]) => {
-                const l = leads.find(x => x.id === activeStatusDropdownLeadId);
-                const isSelected = l?.status === k;
-                return (
-                  <button
-                    key={k}
-                    onClick={() => {
-                      handleLeadUpdate(activeStatusDropdownLeadId, { status: k });
-                      setActiveStatusDropdownLeadId(null);
-                      setDropdownCoords(null);
-                    }}
-                    className={`text-right px-2.5 py-2 text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border
-                      ${isSelected 
-                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20' 
-                        : 'text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
-                  >
-                    <span className="truncate">{v.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {/* Live Notes Modal */}
