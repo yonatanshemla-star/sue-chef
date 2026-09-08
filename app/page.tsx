@@ -123,6 +123,7 @@ export default function Home() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
   const [dropdownDirection, setDropdownDirection] = useState<'up' | 'down'>('down');
+  const [dropdownCoords, setDropdownCoords] = useState<{ top: number; right: number } | null>(null);
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showMobileScriptPanel, setShowMobileScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
@@ -431,12 +432,19 @@ export default function Home() {
     e.stopPropagation();
     if (activeStatusDropdownLeadId === leadId) {
       setActiveStatusDropdownLeadId(null);
+      setDropdownCoords(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      // With compact 2-column grid (~210px height), open direction with more space
-      setDropdownDirection(spaceBelow < 230 && spaceAbove > spaceBelow ? 'up' : 'down');
+      const isUp = spaceBelow < 230 && spaceAbove > spaceBelow;
+      const topPos = isUp 
+        ? Math.max(10, rect.top - 230) 
+        : Math.min(window.innerHeight - 240, rect.bottom + 8);
+      const rightPos = Math.max(10, window.innerWidth - rect.right);
+
+      setDropdownCoords({ top: topPos, right: rightPos });
+      setDropdownDirection(isUp ? 'up' : 'down');
       setActiveStatusDropdownLeadId(leadId);
     }
   };
@@ -2748,28 +2756,6 @@ const ringback = new RingbackGenerator();
                           <ChevronDown size={14} className="opacity-70 flex-shrink-0" />
                         </button>
                         
-                        {activeStatusDropdownLeadId === lead.id && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className={`absolute right-0 w-[310px] sm:w-[350px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-visible p-2 animate-in fade-in duration-200 grid grid-cols-2 gap-1.5 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
-                              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                <button
-                                  key={k}
-                                  onClick={() => {
-                                    handleLeadUpdate(lead.id, { status: k });
-                                    setActiveStatusDropdownLeadId(null);
-                                  }}
-                                  className={`text-right px-2.5 py-2 text-[11px] sm:text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border
-                                    ${lead.status === k 
-                                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20' 
-                                      : 'text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
-                                >
-                                  <span className="truncate">{v.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -3046,29 +3032,7 @@ const ringback = new RingbackGenerator();
                         <ChevronDown size={18} className="opacity-70 flex-shrink-0" />
                       </button>
                       
-                      {activeStatusDropdownLeadId === lead.id && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div className={`absolute right-0 left-0 z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-visible p-2 animate-in fade-in duration-200 grid grid-cols-2 gap-1.5 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
-                            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                              <button
-                                key={k}
-                                onClick={() => {
-                                  handleLeadUpdate(lead.id, { status: k });
-                                  setActiveStatusDropdownLeadId(null);
-                                }}
-                                className={`text-right px-2.5 py-2 text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border
-                                  ${lead.status === k 
-                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20' 
-                                    : 'text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
-                              >
-                                <span className="truncate">{v.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                      </div>
                     
                     <div className="flex gap-2">
                        <button onClick={() => setLiveNotesLead(lead)} className="flex-1 inline-flex justify-center items-center gap-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/30 px-4 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-indigo-200 dark:border-indigo-800"><Maximize2 className="w-4 h-4" /> פתח תיק נתונים</button>
@@ -3842,6 +3806,95 @@ const ringback = new RingbackGenerator();
           }
         }} 
       />
+
+      {/* Centralized Status Dropdown / Modal (Fixed portal - NEVER clipped by tables, cards, or containers!) */}
+      {activeStatusDropdownLeadId && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-[9990] bg-black/40 md:bg-transparent backdrop-blur-[2px] md:backdrop-blur-none transition-all" 
+            onClick={() => {
+              setActiveStatusDropdownLeadId(null);
+              setDropdownCoords(null);
+            }} 
+          />
+
+          {/* Mobile: Bottom Sheet Modal */}
+          <div className="fixed inset-x-0 bottom-0 z-[9999] md:hidden bg-white dark:bg-slate-900 rounded-t-[32px] p-5 pb-8 shadow-2xl border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200" dir="rtl">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="font-black text-base text-slate-900 dark:text-white">בחר סטטוס לליד</h3>
+                {(() => {
+                  const l = leads.find(x => x.id === activeStatusDropdownLeadId);
+                  return l ? <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">{l.clientName || l.phone}</p> : null;
+                })()}
+              </div>
+              <button 
+                onClick={() => {
+                  setActiveStatusDropdownLeadId(null);
+                  setDropdownCoords(null);
+                }} 
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(STATUS_CONFIG).map(([k, v]) => {
+                const l = leads.find(x => x.id === activeStatusDropdownLeadId);
+                const isSelected = l?.status === k;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      handleLeadUpdate(activeStatusDropdownLeadId, { status: k });
+                      setActiveStatusDropdownLeadId(null);
+                      setDropdownCoords(null);
+                    }}
+                    className={`text-right px-3 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border active:scale-95
+                      ${isSelected 
+                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-500/20' 
+                        : 'text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:bg-indigo-50'}`}
+                  >
+                    <span className="truncate">{v.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop: Fixed Floating 2-Column Popover (stays within screen bounds!) */}
+          {dropdownCoords && (
+            <div 
+              style={{ top: `${dropdownCoords.top}px`, right: `${dropdownCoords.right}px` }}
+              className="hidden md:grid fixed w-[350px] z-[9999] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-visible p-2 animate-in fade-in zoom-in-95 duration-150 grid-cols-2 gap-1.5"
+              dir="rtl"
+            >
+              {Object.entries(STATUS_CONFIG).map(([k, v]) => {
+                const l = leads.find(x => x.id === activeStatusDropdownLeadId);
+                const isSelected = l?.status === k;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      handleLeadUpdate(activeStatusDropdownLeadId, { status: k });
+                      setActiveStatusDropdownLeadId(null);
+                      setDropdownCoords(null);
+                    }}
+                    className={`text-right px-2.5 py-2 text-xs rounded-xl font-bold font-assistant transition-all flex items-center justify-start gap-1.5 truncate border
+                      ${isSelected 
+                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20' 
+                        : 'text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
+                  >
+                    <span className="truncate">{v.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
 
       {/* Live Notes Modal */}
       {liveNotesLead && (
