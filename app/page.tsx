@@ -434,8 +434,9 @@ export default function Home() {
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      // If less than 440px space below, open upwards so all options remain visible
-      setDropdownDirection(spaceBelow < 440 ? 'up' : 'down');
+      const spaceAbove = rect.top;
+      // With 300-340px max height, choose direction with more space to keep popover within screen
+      setDropdownDirection(spaceBelow < 320 && spaceAbove > spaceBelow ? 'up' : 'down');
       setActiveStatusDropdownLeadId(leadId);
     }
   };
@@ -2750,7 +2751,7 @@ const ringback = new RingbackGenerator();
                         {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className={`absolute right-0 min-w-[200px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-none overflow-visible p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                            <div className={`absolute right-0 min-w-[200px] max-w-[240px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[300px] md:max-h-[340px] overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -3048,7 +3049,7 @@ const ringback = new RingbackGenerator();
                       {activeStatusDropdownLeadId === lead.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                          <div className={`absolute right-0 left-0 z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-none overflow-visible p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                          <div className={`absolute right-0 left-0 z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[280px] md:max-h-[320px] overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                               <button
                                 key={k}
