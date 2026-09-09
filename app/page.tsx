@@ -122,7 +122,7 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
-  const [dropdownCoords, setDropdownCoords] = useState<{ top: number; right: number } | null>(null);
+  const [dropdownDirection, setDropdownDirection] = useState<'up' | 'down'>('down');
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showMobileScriptPanel, setShowMobileScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
@@ -429,10 +429,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!activeStatusDropdownLeadId) return;
-    const handleClose = () => {
-      setActiveStatusDropdownLeadId(null);
-      setDropdownCoords(null);
-    };
+    const handleClose = () => setActiveStatusDropdownLeadId(null);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
     };
@@ -450,43 +447,15 @@ export default function Home() {
     e.stopPropagation();
     if (activeStatusDropdownLeadId === leadId) {
       setActiveStatusDropdownLeadId(null);
-      setDropdownCoords(null);
     } else {
       if (window.innerWidth < 768) {
         setActiveStatusDropdownLeadId(leadId);
       } else {
         const rect = e.currentTarget.getBoundingClientRect();
-        const menuHeight = 325; // 13 items * 24px + 12px padding = ~324px
-        const menuWidth = 205;
-        const vh = window.innerHeight;
-        const vw = window.innerWidth;
-
-        // RTL alignment: right edge of menu aligns with right edge of button
-        const right = Math.max(10, Math.min(vw - menuWidth - 10, vw - rect.right));
-
-        // Calculate vertical position:
-        let top: number;
-        const spaceBelow = vh - rect.bottom - 12;
-        const spaceAbove = rect.top - 12;
-
-        if (spaceBelow >= menuHeight) {
-          // Fits comfortably below button
-          top = rect.bottom + 6;
-        } else if (spaceAbove >= menuHeight) {
-          // Fits comfortably above button
-          top = rect.top - menuHeight - 6;
-        } else {
-          // Viewport is tight: choose whichever side has more space, clamped within screen bounds
-          if (spaceAbove > spaceBelow) {
-            top = Math.max(10, rect.top - menuHeight - 6);
-          } else {
-            top = Math.min(vh - menuHeight - 10, rect.bottom + 6);
-          }
-          // Final safety clamp so top is never < 10 and bottom never > vh - 10
-          top = Math.max(10, Math.min(vh - menuHeight - 10, top));
-        }
-
-        setDropdownCoords({ top, right });
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        // Open upwards if there is more room above than below
+        setDropdownDirection(spaceAbove > spaceBelow ? 'up' : 'down');
         setActiveStatusDropdownLeadId(leadId);
       }
     }
@@ -2798,6 +2767,31 @@ const ringback = new RingbackGenerator();
                           <span className="truncate">{STATUS_CONFIG[lead.status]?.label || lead.status}</span>
                           <ChevronDown size={14} className="opacity-70 flex-shrink-0" />
                         </button>
+                        
+                        {activeStatusDropdownLeadId === lead.id && (
+                          <>
+                            <div className="fixed inset-0 z-40 hidden md:block" onClick={() => setActiveStatusDropdownLeadId(null)} />
+                            <div 
+                              className={`hidden md:block absolute right-0 min-w-[200px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-1.5 animate-in fade-in duration-150 ${dropdownDirection === 'up' ? 'bottom-full mb-1.5 slide-in-from-bottom-2' : 'top-full mt-1.5 slide-in-from-top-2'}`}
+                            >
+                              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                                <button
+                                  key={k}
+                                  onClick={() => {
+                                    handleLeadUpdate(lead.id, { status: k });
+                                    setActiveStatusDropdownLeadId(null);
+                                  }}
+                                  className={`w-full text-right px-3.5 py-1 text-xs rounded-lg font-bold font-assistant transition-all flex items-center gap-2
+                                    ${lead.status === k 
+                                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
+                                      : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
+                                >
+                                  <span>{v.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -3849,11 +3843,9 @@ const ringback = new RingbackGenerator();
         }} 
       />
 
-      {/* Status Picker: Mobile Bottom Sheet & Desktop Classic Dropdown */}
+      {/* Mobile Status Picker Bottom Sheet (Mobile ONLY) */}
       {activeStatusDropdownLeadId && (
-        <>
-          {/* Mobile Status Picker Bottom Sheet (Mobile ONLY) */}
-          <div className="md:hidden">
+        <div className="md:hidden">
             {/* Backdrop */}
             <div 
               className="fixed inset-0 z-[9990] bg-black/40 backdrop-blur-[2px] transition-all" 
@@ -3901,48 +3893,6 @@ const ringback = new RingbackGenerator();
               </div>
             </div>
           </div>
-
-          {/* Desktop: Fixed Single-Column Dropdown Menu (Classic look, stays 100% within screen bounds!) */}
-          {dropdownCoords && (
-            <div className="hidden md:block">
-              {/* Invisible Click-outside Backdrop */}
-              <div 
-                className="fixed inset-0 z-[9990] bg-transparent" 
-                onClick={() => {
-                  setActiveStatusDropdownLeadId(null);
-                  setDropdownCoords(null);
-                }} 
-              />
-
-              <div 
-                style={{ top: `${dropdownCoords.top}px`, right: `${dropdownCoords.right}px` }}
-                className="fixed w-[205px] z-[9999] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-1.5 animate-in fade-in zoom-in-95 duration-150 flex flex-col gap-0.5 select-none"
-                dir="rtl"
-              >
-                {Object.entries(STATUS_CONFIG).map(([k, v]) => {
-                  const l = leads.find(x => x.id === activeStatusDropdownLeadId);
-                  const isSelected = l?.status === k;
-                  return (
-                    <button
-                      key={k}
-                      onClick={() => {
-                        handleLeadUpdate(activeStatusDropdownLeadId, { status: k });
-                        setActiveStatusDropdownLeadId(null);
-                        setDropdownCoords(null);
-                      }}
-                      className={`w-full text-right px-3 py-1 text-xs rounded-lg font-bold font-assistant transition-all flex items-center gap-2
-                        ${isSelected 
-                          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
-                    >
-                      <span className="truncate">{v.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </>
       )}
 
       {/* Live Notes Modal */}
