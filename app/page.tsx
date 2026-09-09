@@ -124,6 +124,7 @@ export default function Home() {
   const [activeStatusDropdownLeadId, setActiveStatusDropdownLeadId] = useState<string | null>(null);
   const [dropdownDirection, setDropdownDirection] = useState<'up' | 'down'>('down');
   const [dropdownCoords, setDropdownCoords] = useState<{ top: number; right: number } | null>(null);
+  const [dropdownMaxHeight, setDropdownMaxHeight] = useState<number>(450);
   const [showScriptPanel, setShowScriptPanel] = useState(false);
   const [showMobileScriptPanel, setShowMobileScriptPanel] = useState(false);
   const [showDecisionTree, setShowDecisionTree] = useState(false);
@@ -437,13 +438,11 @@ export default function Home() {
       const rect = e.currentTarget.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const isUp = spaceBelow < 230 && spaceAbove > spaceBelow;
-      const topPos = isUp 
-        ? Math.max(10, rect.top - 230) 
-        : Math.min(window.innerHeight - 240, rect.bottom + 8);
-      const rightPos = Math.max(10, window.innerWidth - rect.right);
+      // Choose direction that has more space available
+      const isUp = spaceBelow < 380 && spaceAbove > spaceBelow;
+      const availableSpace = isUp ? spaceAbove - 16 : spaceBelow - 16;
 
-      setDropdownCoords({ top: topPos, right: rightPos });
+      setDropdownMaxHeight(Math.max(200, Math.floor(availableSpace)));
       setDropdownDirection(isUp ? 'up' : 'down');
       setActiveStatusDropdownLeadId(leadId);
     }
@@ -2759,7 +2758,10 @@ const ringback = new RingbackGenerator();
                         {activeStatusDropdownLeadId === lead.id && (
                           <>
                             <div className="fixed inset-0 z-40 hidden md:block" onClick={() => setActiveStatusDropdownLeadId(null)} />
-                            <div className={`hidden md:block absolute right-0 min-w-[200px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-none overflow-visible p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}>
+                            <div 
+                              style={{ maxHeight: `${dropdownMaxHeight}px` }}
+                              className={`hidden md:block absolute right-0 min-w-[200px] z-[100] bg-white dark:bg-slate-900 border-2 border-indigo-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-y-auto custom-scrollbar p-1.5 animate-in fade-in duration-200 ${dropdownDirection === 'up' ? 'bottom-full mb-2 slide-in-from-bottom-2' : 'top-full mt-2 slide-in-from-top-2'}`}
+                            >
                               {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                                 <button
                                   key={k}
@@ -2767,7 +2769,7 @@ const ringback = new RingbackGenerator();
                                     handleLeadUpdate(lead.id, { status: k });
                                     setActiveStatusDropdownLeadId(null);
                                   }}
-                                  className={`w-full text-right px-4 py-2.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center gap-2.5
+                                  className={`w-full text-right px-3.5 py-1.5 text-xs rounded-xl font-bold font-assistant transition-all flex items-center gap-2
                                     ${lead.status === k 
                                       ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' 
                                       : 'text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:text-indigo-900 dark:hover:text-indigo-200'}`}
