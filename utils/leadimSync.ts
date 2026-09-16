@@ -148,15 +148,6 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
 
         const isStarred = (hasHighTax || hasHighIncome) ? true : undefined;
 
-        const notesList: string[] = [];
-        if (hasHighIncome) {
-          const matchedIncomeText = incomeTdVal || (tds.find(td => td.includes('12,000') || td.includes('12000') || td.includes('מעלה 12') || td.includes('מעל 12')) || 'מעלה 12,000 ש"ח ברוטו');
-          notesList.push(`ההכנסה החודשית של החולה מעבודה/פנסיה: ${matchedIncomeText}`);
-        }
-        if (hasHighTax) {
-          notesList.push(`משלם מעל 1,000 ₪ מס הכנסה בחודש: כן`);
-        }
-
         const newLead = {
           id: uuidv4(),
           clientName: clientName,
@@ -166,7 +157,7 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
           lastContacted: null,
           status: 'חדש',
           followUpDate: '',
-          generalNotes: notesList.join('\n'),
+          generalNotes: '',
           liveCallNotes: '',
           callCount: 0,
           urgency: 'בינונית' as const,

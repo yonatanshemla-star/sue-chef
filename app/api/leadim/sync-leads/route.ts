@@ -36,9 +36,6 @@ function buildNotes(item: any) {
   if (item.receivesAllowance && item.receivesAllowance !== 'בחירה' && item.receivesAllowance !== 'לא') {
     notes.push(`מקבל קצבה מביטוח לאומי: ${item.receivesAllowance}`);
   }
-  if (item.paysHighTax && item.paysHighTax !== 'בחירה' && item.paysHighTax !== 'לא') {
-    notes.push(`משלם מעל 1,000 ₪ מס הכנסה בחודש: ${item.paysHighTax}`);
-  }
   if (item.insuranceDisability && item.insuranceDisability !== 'בחירה' && item.insuranceDisability !== 'לא') {
     notes.push(`פנסיית נכות/אובדן כושר מחברת ביטוח: ${item.insuranceDisability}`);
   }
@@ -47,9 +44,6 @@ function buildNotes(item: any) {
   }
   if (item.monthlyIncome) {
     notes.push(`הכנסה חודשית: ${item.monthlyIncome}`);
-  }
-  if (item.patientMonthlyIncome && item.patientMonthlyIncome !== 'בחירה') {
-    notes.push(`ההכנסה החודשית של החולה מעבודה/פנסיה: ${item.patientMonthlyIncome}`);
   }
   if (item.howToHelp) {
     notes.push(`איך נוכל לעזור: ${item.howToHelp}`);

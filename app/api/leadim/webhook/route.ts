@@ -239,9 +239,6 @@ export async function POST(req: Request) {
 
       if (isOver12k || isOver11999 || hasHighText) {
         isHighIncome = true;
-        notesParts.push(`ההכנסה החודשית של החולה מעבודה/פנסיה: ${salaryStr}`);
-      } else {
-        notesParts.push(`הכנסה חודשית: ${salaryStr}`);
       }
     }
     
@@ -256,8 +253,6 @@ export async function POST(req: Request) {
       
       if (isYes || isOver1000) {
         isHighTax = true;
-        const detail = isOver1000 ? ` (סכום: ₪${Number(numVal).toLocaleString()})` : '';
-        notesParts.push(`משלם מעל 1,000 ₪ מס הכנסה בחודש: כן${detail}`);
       }
     }
 
