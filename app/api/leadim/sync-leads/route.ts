@@ -48,6 +48,9 @@ function buildNotes(item: any) {
   if (item.monthlyIncome) {
     notes.push(`הכנסה חודשית: ${item.monthlyIncome}`);
   }
+  if (item.patientMonthlyIncome && item.patientMonthlyIncome !== 'בחירה') {
+    notes.push(`ההכנסה החודשית של החולה מעבודה/פנסיה: ${item.patientMonthlyIncome}`);
+  }
   if (item.howToHelp) {
     notes.push(`איך נוכל לעזור: ${item.howToHelp}`);
   }
@@ -175,9 +178,26 @@ export async function POST() {
           insuranceDisability: tds[14],
           age: tds[15],
           monthlyIncome: tds[16],
+          patientMonthlyIncome: tds[19],
           howToHelp: tds[17],
           lastNote: tds[23]
         });
+
+        const taxTdVal = tds[12] || '';
+        const patientIncomeTdVal = tds[19] || tds[16] || '';
+        const hasHighTax = taxTdVal.includes('כן') ||
+                           taxTdVal.includes('מעל 1,000') ||
+                           taxTdVal.includes('מעל 1000') ||
+                           rowHtml.includes('משלם מעל 1,000') ||
+                           rowHtml.includes('מעל 1000');
+        const hasHighIncome = patientIncomeTdVal.includes('מעלה 12') ||
+                              patientIncomeTdVal.includes('מעל 12') ||
+                              patientIncomeTdVal.includes('12,000') ||
+                              patientIncomeTdVal.includes('12000') ||
+                              rowHtml.includes('מעלה 12,000') ||
+                              rowHtml.includes('מעל 12,000');
+
+        const isStarred = (hasHighTax || hasHighIncome) ? true : undefined;
 
         const newLead: Lead = {
           id,
@@ -193,7 +213,9 @@ export async function POST() {
           callCount: 0,
           urgency: 'בינונית',
           campaign: tds[4] || '',
-          leadimId
+          leadimId,
+          salary: hasHighIncome ? (patientIncomeTdVal || 'מעלה 12,000 ש"ח ברוטו') : undefined,
+          isStarred: isStarred,
         };
 
         await saveLead(newLead);

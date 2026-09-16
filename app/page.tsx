@@ -1916,7 +1916,7 @@ const ringback = new RingbackGenerator();
     const isNotRelevant = lead.status === 'לא רלוונטי';
     const msgText = isNotRelevant 
       ? "היי, זה יונתן ממשרד עו\"ד HBA, דיברנו קודם. בדקתי, ולצערי לא נוכל לעזור. רק בריאות 🙏"
-      : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פרטים בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר`;
+      : `היי ${firstName}, קוראים לי יונתן אני ממשרד עורכי הדין HBA, השארת אצלנו פנייה בנוגע לזכויות רפואיות וניסיתי לחזור אלייך. אשמח אם נוכל לדבר כשיתאפשר 🙏`;
     const msg = encodeURIComponent(msgText);
 
     const isMobile = typeof window !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768);

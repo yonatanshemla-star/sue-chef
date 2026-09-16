@@ -135,6 +135,28 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
                            rowText.includes('מעל 1000') ||
                            (rowText.includes('מס הכנסה') && (rowText.includes('כן') || rowText.includes('מעל 1,000') || rowText.includes('מעל 1000')));
 
+        const incomeTdVal = tds[19] || tds[16] || '';
+        const hasHighIncome = incomeTdVal.includes('מעלה 12') ||
+                              incomeTdVal.includes('מעל 12') ||
+                              incomeTdVal.includes('12,000') ||
+                              incomeTdVal.includes('12000') ||
+                              rowText.includes('מעלה 12,000') ||
+                              rowText.includes('מעל 12,000') ||
+                              rowText.includes('מעלה 12000') ||
+                              rowText.includes('מעל 12000') ||
+                              tds.some(td => (td.includes('מעלה 12') || td.includes('מעל 12') || td.includes('12,000') || td.includes('12000')) && (td.includes('ברוטו') || td.includes('הכנסה') || td.includes('ש"ח') || td.includes('ש״ח')));
+
+        const isStarred = (hasHighTax || hasHighIncome) ? true : undefined;
+
+        const notesList: string[] = [];
+        if (hasHighIncome) {
+          const matchedIncomeText = incomeTdVal || (tds.find(td => td.includes('12,000') || td.includes('12000') || td.includes('מעלה 12') || td.includes('מעל 12')) || 'מעלה 12,000 ש"ח ברוטו');
+          notesList.push(`ההכנסה החודשית של החולה מעבודה/פנסיה: ${matchedIncomeText}`);
+        }
+        if (hasHighTax) {
+          notesList.push(`משלם מעל 1,000 ₪ מס הכנסה בחודש: כן`);
+        }
+
         const newLead = {
           id: uuidv4(),
           clientName: clientName,
@@ -144,13 +166,14 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
           lastContacted: null,
           status: 'חדש',
           followUpDate: '',
-          generalNotes: '',
+          generalNotes: notesList.join('\n'),
           liveCallNotes: '',
           callCount: 0,
           urgency: 'בינונית' as const,
           campaign: campaign || undefined,
           leadimId: leadimId,
-          isStarred: hasHighTax ? true : undefined,
+          salary: hasHighIncome ? (incomeTdVal || 'מעלה 12,000 ש"ח ברוטו') : undefined,
+          isStarred: isStarred,
         };
 
         await saveLead(newLead as any);

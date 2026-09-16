@@ -50,7 +50,20 @@ const campaignKeys = [
   'channel', 'marketing_channel', 'ad_campaign', 'adset_name', 'ad_name'
 ];
 const supplierKeys = ['lm_supplier_name', 'lm_supplier', 'supplier', 'supplier_name', 'ספק', 'שם ספק'];
-const incomeKeys = ['lm_income', 'lm_salary', 'income', 'salary', 'שכר', 'משכורת', 'הכנסה', 'גובה שכר', 'כמה מרוויח', 'lm_שכר', 'lm_הכנסה'];
+const incomeKeys = [
+  'lm_income', 'lm_salary', 'income', 'salary', 'שכר', 'משכורת', 'הכנסה', 'גובה שכר', 'כמה מרוויח', 'lm_שכר', 'lm_הכנסה',
+  'ההכנסה החודשית של החולה מעבודה/פנסיה',
+  'ההכנסה החודשית של החולה מעבודה / פנסיה',
+  'ההכנסה החודשית של החולה',
+  'הכנסת החולה מעבודה/פנסיה',
+  'הכנסה מעבודה/פנסיה',
+  'הכנסה חודשית מעבודה/פנסיה',
+  'הכנסה חודשית',
+  '289676',
+  'lm_289676',
+  'fld_289676',
+  'field_289676'
+];
 const taxKeys = ['lm_tax', 'tax', 'income_tax', 'monthly_tax', 'tax_payment', 'מס_הכנסה', 'מס הכנסה', 'משלם_מס', 'lm_מס_הכנסה', 'lm_מס הכנסה'];
 
 function findValueByKeys(data: any, keys: string[]): any {
@@ -191,12 +204,44 @@ export async function POST(req: Request) {
       notesParts.push(remarks);
     }
     
-    // Custom logic: check if salary is above 11,999 NIS
-    const incomeVal = findValueByKeys(data, incomeKeys);
+    // Custom logic: check if salary is above 11,999 NIS or answered "מעלה 12,000 ש"ח ברוטו"
+    let incomeVal = findValueByKeys(data, incomeKeys);
+    if (!incomeVal) {
+      for (const [k, v] of Object.entries(data)) {
+        if (typeof k === 'string' && (k.includes('הכנסה') || k.includes('שכר') || k.includes('289676'))) {
+          if (v !== undefined && v !== null && v !== '') {
+            incomeVal = v;
+            break;
+          }
+        }
+      }
+    }
+    if (!incomeVal) {
+      for (const v of Object.values(data)) {
+        if (typeof v === 'string' && (v.includes('מעלה 12,000') || v.includes('מעל 12,000') || v.includes('מעלה 12000') || v.includes('מעל 12000'))) {
+          incomeVal = v;
+          break;
+        }
+      }
+    }
+
+    let isHighIncome = false;
+    let salaryStr = '';
     if (incomeVal) {
-      const parsedIncome = parseInt(incomeVal.toString().replace(/\D/g, ''), 10);
-      if (!isNaN(parsedIncome) && parsedIncome > 11999) {
-        notesParts.push(`הכנסה חודשית: ₪${Number(parsedIncome).toLocaleString()} (מעל 11,999 ₪)`);
+      salaryStr = incomeVal.toString().trim();
+      const parsedIncome = parseInt(salaryStr.replace(/\D/g, ''), 10);
+      const isOver12k = !isNaN(parsedIncome) && parsedIncome >= 12000;
+      const isOver11999 = !isNaN(parsedIncome) && parsedIncome > 11999;
+      const hasHighText = salaryStr.includes('מעלה 12') ||
+                          salaryStr.includes('מעל 12') ||
+                          salaryStr.includes('12,000') ||
+                          salaryStr.includes('12000');
+
+      if (isOver12k || isOver11999 || hasHighText) {
+        isHighIncome = true;
+        notesParts.push(`ההכנסה החודשית של החולה מעבודה/פנסיה: ${salaryStr}`);
+      } else {
+        notesParts.push(`הכנסה חודשית: ${salaryStr}`);
       }
     }
     
@@ -239,6 +284,9 @@ export async function POST(req: Request) {
     const leadimIdKeys = ['lm_lead_id', 'lead_id', 'lm_id', 'leadid', 'id', 'lm_leadid'];
     const leadimId = findValueByKeys(data, leadimIdKeys) || undefined;
 
+    // Star lead if high tax (> 1000 ILS) OR high patient income (>= 12,000 ILS / מעלה 12,000 ש"ח ברוטו)
+    const isStarred = (isHighTax || isHighIncome) ? true : undefined;
+
     // Create a new lead conforming to the internal Lead interface
     const newLead = {
       id: uuidv4(),
@@ -255,7 +303,8 @@ export async function POST(req: Request) {
       urgency: 'בינונית' as const,
       campaign: campaign || undefined,
       leadimId: leadimId ? leadimId.toString() : undefined,
-      isStarred: isHighTax ? true : undefined,
+      salary: salaryStr || undefined,
+      isStarred: isStarred,
     };
 
     // Save lead to database
