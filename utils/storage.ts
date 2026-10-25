@@ -80,6 +80,109 @@ export async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS excluded_leadim_leads (
+      leadim_id TEXT PRIMARY KEY,
+      campaign TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+}
+
+export interface CampaignSettings {
+  excludedCampaigns: string[];
+  customCampaigns: string[];
+}
+
+export async function getCampaignSettings(): Promise<CampaignSettings> {
+  try {
+    await initDB();
+    const { rows } = await sql`SELECT value FROM system_settings WHERE key = 'campaign_settings'`;
+    if (rows && rows.length > 0 && rows[0].value) {
+      const val = rows[0].value as any;
+      return {
+        excludedCampaigns: Array.isArray(val.excludedCampaigns) ? val.excludedCampaigns : [],
+        customCampaigns: Array.isArray(val.customCampaigns) ? val.customCampaigns : [],
+      };
+    }
+  } catch (e) {
+    console.error('getCampaignSettings error:', e);
+  }
+  return { excludedCampaigns: [], customCampaigns: [] };
+}
+
+export async function saveCampaignSettings(settings: Partial<CampaignSettings>): Promise<CampaignSettings> {
+  await initDB();
+  const current = await getCampaignSettings();
+  const updated: CampaignSettings = {
+    excludedCampaigns: settings.excludedCampaigns !== undefined ? settings.excludedCampaigns : current.excludedCampaigns,
+    customCampaigns: settings.customCampaigns !== undefined ? settings.customCampaigns : current.customCampaigns,
+  };
+  await sql`
+    INSERT INTO system_settings (key, value, updated_at)
+    VALUES ('campaign_settings', ${JSON.stringify(updated)}, NOW())
+    ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(updated)}, updated_at = NOW()
+  `;
+  return updated;
+}
+
+export function isCampaignExcluded(campaignName: string | undefined | null, excludedList: string[]): boolean {
+  if (!campaignName || !excludedList || excludedList.length === 0) return false;
+  const target = campaignName.trim().toLowerCase();
+  if (!target) return false;
+  return excludedList.some(item => {
+    const ex = item.trim().toLowerCase();
+    if (!ex) return false;
+    return target === ex || target.includes(ex);
+  });
+}
+
+export async function recordExcludedLeadimId(leadimId: string, campaign?: string): Promise<void> {
+  try {
+    await initDB();
+    await sql`
+      INSERT INTO excluded_leadim_leads (leadim_id, campaign)
+      VALUES (${leadimId}, ${campaign || null})
+      ON CONFLICT (leadim_id) DO NOTHING
+    `;
+  } catch (e) {
+    console.error('recordExcludedLeadimId error:', e);
+  }
+}
+
+export async function getExcludedLeadimIds(): Promise<Set<string>> {
+  try {
+    await initDB();
+    const { rows } = await sql`SELECT leadim_id FROM excluded_leadim_leads`;
+    return new Set(rows.map(r => r.leadim_id).filter(Boolean));
+  } catch (e) {
+    console.error('getExcludedLeadimIds error:', e);
+    return new Set();
+  }
+}
+
+export async function getAllUniqueCampaigns(): Promise<{ campaign: string; count: number }[]> {
+  try {
+    await initDB();
+    const { rows } = await sql`
+      SELECT data->>'campaign' as campaign, count(*) as count
+      FROM leads
+      WHERE data->>'campaign' IS NOT NULL AND data->>'campaign' != ''
+      GROUP BY 1
+      ORDER BY 2 DESC
+    `;
+    return rows.map(r => ({ campaign: r.campaign, count: parseInt(r.count, 10) || 0 }));
+  } catch (e) {
+    console.error('getAllUniqueCampaigns error:', e);
+    return [];
+  }
 }
 
 export async function getLeads(): Promise<Lead[]> {

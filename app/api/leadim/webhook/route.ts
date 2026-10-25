@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getLeads, saveLead, updateLead, Lead } from '@/utils/storage';
+import { 
+  getLeads, 
+  saveLead, 
+  updateLead, 
+  Lead,
+  getCampaignSettings,
+  isCampaignExcluded,
+  recordExcludedLeadimId 
+} from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { sendWhatsAppWelcome } from '@/utils/whatsapp';
 import fs from 'fs';
@@ -278,6 +286,16 @@ export async function POST(req: Request) {
 
     const leadimIdKeys = ['lm_lead_id', 'lead_id', 'lm_id', 'leadid', 'id', 'lm_leadid'];
     const leadimId = findValueByKeys(data, leadimIdKeys) || undefined;
+
+    // Check if campaign is excluded by user settings
+    const campaignSettings = await getCampaignSettings();
+    if (isCampaignExcluded(campaign, campaignSettings.excludedCampaigns)) {
+      logInfo(`Lead ${clientName} (${phone}) skipped: campaign '${campaign}' is excluded by settings.`);
+      if (leadimId) {
+        await recordExcludedLeadimId(leadimId, campaign);
+      }
+      return NextResponse.json({ success: true, message: 'Campaign excluded from auto-sync' });
+    }
 
     // Star lead if high tax (> 1000 ILS) OR high patient income (>= 12,000 ILS / מעלה 12,000 ש"ח ברוטו)
     const isStarred = (isHighTax || isHighIncome) ? true : undefined;

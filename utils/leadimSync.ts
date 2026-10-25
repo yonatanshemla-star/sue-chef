@@ -1,4 +1,13 @@
-import { getLeads, saveLead, updateLead, getDeletedLeadimIdentifiers } from '@/utils/storage';
+import { 
+  getLeads, 
+  saveLead, 
+  updateLead, 
+  getDeletedLeadimIdentifiers,
+  getCampaignSettings,
+  getExcludedLeadimIds,
+  recordExcludedLeadimId,
+  isCampaignExcluded 
+} from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 function parseLeadimDate(dateStr?: string): string {
@@ -54,6 +63,8 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
 
     const dbLeads = await getLeads();
     const deleted = await getDeletedLeadimIdentifiers();
+    const campaignSettings = await getCampaignSettings();
+    const excludedLeadimIds = await getExcludedLeadimIds();
 
     const mainCrmLeads = dbLeads.filter(l => l.source !== 'CSV Campaign' && !l.id?.startsWith('cmp_'));
     const existingLeadimIds = new Set(mainCrmLeads.map(l => l.leadimId).filter(Boolean));
@@ -111,8 +122,8 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         const rowContent = trMatch[2];
         const rowText = rowContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-        // Skip if active lead by leadimId or tombstoned deleted lead
-        if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
+        // Skip if active lead by leadimId or tombstoned deleted lead or previously excluded
+        if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId) || excludedLeadimIds.has(leadimId)) continue;
 
         const tds = Array.from(rowContent.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
 
@@ -120,6 +131,14 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         const createdAt = parseLeadimDate(dateStr);
 
         const campaign = tds[4] || undefined;
+
+        // Skip if campaign is excluded by user settings
+        if (isCampaignExcluded(campaign, campaignSettings.excludedCampaigns)) {
+          await recordExcludedLeadimId(leadimId, campaign);
+          excludedLeadimIds.add(leadimId);
+          pageInsertedCount++;
+          continue;
+        }
         const rawName = tds[6] || '';
         const clientName = (rawName && rawName !== '&nbsp;' && rawName.trim().length > 0) ? rawName.trim() : 'ליד מ-LeadIM';
 

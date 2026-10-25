@@ -204,6 +204,151 @@ export default function Home() {
   const [leadimUsername, setLeadimUsername] = useState<string>('');
   const [leadimPassword, setLeadimPassword] = useState<string>('');
 
+  // Campaign auto-sync & exclusion settings
+  const [campaignSettingsList, setCampaignSettingsList] = useState<{ name: string; count: number; isExcluded: boolean }[]>([]);
+  const [excludedCampaigns, setExcludedCampaigns] = useState<string[]>([]);
+  const [customCampaigns, setCustomCampaigns] = useState<string[]>([]);
+  const [loadingCampaignSettings, setLoadingCampaignSettings] = useState(false);
+  const [newCampaignInput, setNewCampaignInput] = useState('');
+  const [campaignSearchQuery, setCampaignSearchQuery] = useState('');
+  const [savingCampaignSettings, setSavingCampaignSettings] = useState(false);
+
+  const fetchCampaignSettings = useCallback(async () => {
+    setLoadingCampaignSettings(true);
+    try {
+      const res = await fetch('/api/settings/campaigns');
+      const data = await res.json();
+      if (data.success) {
+        setCampaignSettingsList(data.campaigns || []);
+        setExcludedCampaigns(data.excludedCampaigns || []);
+        setCustomCampaigns(data.customCampaigns || []);
+      }
+    } catch (err) {
+      console.error('Failed to load campaign settings:', err);
+    } finally {
+      setLoadingCampaignSettings(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCampaignSettings();
+  }, [fetchCampaignSettings]);
+
+  const filteredCampaigns = useMemo(() => {
+    if (!campaignSearchQuery.trim()) return campaignSettingsList;
+    const q = campaignSearchQuery.trim().toLowerCase();
+    return campaignSettingsList.filter(c => c.name.toLowerCase().includes(q));
+  }, [campaignSettingsList, campaignSearchQuery]);
+
+  const handleToggleCampaign = async (campaignName: string) => {
+    const isCurrentlyExcluded = excludedCampaigns.some(
+      ex => ex.trim().toLowerCase() === campaignName.trim().toLowerCase()
+    );
+    let newExcluded: string[];
+    if (isCurrentlyExcluded) {
+      newExcluded = excludedCampaigns.filter(
+        ex => ex.trim().toLowerCase() !== campaignName.trim().toLowerCase()
+      );
+    } else {
+      newExcluded = [...excludedCampaigns, campaignName.trim()];
+    }
+
+    setExcludedCampaigns(newExcluded);
+    setCampaignSettingsList(prev => prev.map(c => 
+      c.name.trim().toLowerCase() === campaignName.trim().toLowerCase()
+        ? { ...c, isExcluded: !isCurrentlyExcluded }
+        : c
+    ));
+
+    setSavingCampaignSettings(true);
+    try {
+      await fetch('/api/settings/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          excludedCampaigns: newExcluded,
+          customCampaigns: customCampaigns
+        })
+      });
+    } catch (e) {
+      console.error('Failed to save campaign settings:', e);
+    } finally {
+      setSavingCampaignSettings(false);
+    }
+  };
+
+  const handleAddCustomCampaign = async () => {
+    const trimmed = newCampaignInput.trim();
+    if (!trimmed) return;
+
+    const exists = campaignSettingsList.some(c => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      alert(`הקמפיין "${trimmed}" כבר קיים ברשימה!`);
+      setNewCampaignInput('');
+      return;
+    }
+
+    const newCustoms = Array.from(new Set([...customCampaigns, trimmed]));
+    const newExcluded = Array.from(new Set([...excludedCampaigns, trimmed]));
+
+    setCustomCampaigns(newCustoms);
+    setExcludedCampaigns(newExcluded);
+    setCampaignSettingsList(prev => [
+      { name: trimmed, count: 0, isExcluded: true },
+      ...prev
+    ]);
+    setNewCampaignInput('');
+
+    setSavingCampaignSettings(true);
+    try {
+      await fetch('/api/settings/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          excludedCampaigns: newExcluded,
+          customCampaigns: newCustoms
+        })
+      });
+    } catch (e) {
+      console.error('Failed to save custom campaign:', e);
+    } finally {
+      setSavingCampaignSettings(false);
+    }
+  };
+
+  const handleRemoveCustomCampaign = async (campaignName: string) => {
+    const newCustoms = customCampaigns.filter(c => c.toLowerCase() !== campaignName.toLowerCase());
+    const newExcluded = excludedCampaigns.filter(c => c.toLowerCase() !== campaignName.toLowerCase());
+    
+    setCustomCampaigns(newCustoms);
+    setExcludedCampaigns(newExcluded);
+    setCampaignSettingsList(prev => prev.filter(c => c.name.toLowerCase() !== campaignName.toLowerCase() || c.count > 0));
+
+    try {
+      await fetch('/api/settings/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          excludedCampaigns: newExcluded,
+          customCampaigns: newCustoms
+        })
+      });
+    } catch (e) {
+      console.error('Failed to remove custom campaign:', e);
+    }
+  };
+
+  const callNotesTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (liveNotesLead && callNotesTextareaRef.current) {
+      const el = callNotesTextareaRef.current;
+      const len = el.value.length;
+      el.focus();
+      el.setSelectionRange(len, len);
+    }
+  }, [liveNotesLead?.id]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedGil = localStorage.getItem('lawyerGilPhone');
@@ -918,6 +1063,17 @@ export default function Home() {
     }
   };
 
+  const openCallModal = useCallback((lead: Lead) => {
+    let notes = lead.liveCallNotes || '';
+    if (!notes.trim()) {
+      notes = lead.clientName ? `${lead.clientName}\n` : '';
+      if (notes) {
+        handleLeadUpdate(lead.id, { liveCallNotes: notes });
+      }
+    }
+    setLiveNotesLead({ ...lead, liveCallNotes: notes });
+  }, [handleLeadUpdate]);
+
   const finalizeDisqualification = async (reason: string) => {
     if (!pendingDisqualification) return;
     const { id, action, targetStatus } = pendingDisqualification;
@@ -1291,7 +1447,7 @@ const ringback = new RingbackGenerator();
     const matched = matchLeadByPhone(callerFrom, leads);
 
     if (matched) {
-      setLiveNotesLead(matched);
+      openCallModal(matched);
     }
   };
 
@@ -1312,7 +1468,7 @@ const ringback = new RingbackGenerator();
     
     setCallStatus('initiating');
     setCallStatusMessage('מכין חיוג...');
-    setLiveNotesLead(lead);
+    openCallModal(lead);
     
     // Background ping to warm up the Twilio conference bridge serverless function (prevent cold starts)
     fetch('/api/twilio/call/bridge?ping=true').catch(() => {});
@@ -2804,7 +2960,7 @@ const ringback = new RingbackGenerator();
                     </td>
                     <td className="px-6 py-5 text-center">
                        <div className="flex items-center justify-center gap-2">
-                         <button onClick={() => setLiveNotesLead(lead)} className="inline-flex items-center gap-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
+                         <button onClick={() => openCallModal(lead)} className="inline-flex items-center gap-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-white/60 dark:bg-slate-800/60 px-6 py-3 rounded-2xl border border-white dark:border-white/10 transition-all hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 shadow-sm active:scale-95"><Maximize2 className="w-4 h-4" /> פתח תיק</button>
                          <button onClick={() => setHistoryLead(lead)} className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-900/20 px-4 py-3 rounded-2xl border border-amber-200/60 dark:border-amber-700/30 transition-all hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 shadow-sm active:scale-95" title="היסטוריית ליד"><History className="w-4 h-4" /></button>
                        </div>
                        {activeTab === 'archive' && lead.status === 'חתם' && (
@@ -2857,7 +3013,7 @@ const ringback = new RingbackGenerator();
                       }`}
                     >
                       {/* Call Button & Lead Info (Clicking opens Live Notes modal) */}
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0 text-right cursor-pointer" onClick={() => setLiveNotesLead(lead)}>
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0 text-right cursor-pointer" onClick={() => openCallModal(lead)}>
                         <button 
                           onClick={(e) => { e.stopPropagation(); initiateCall(lead); }} 
                           disabled={callStatus !== 'idle' && callStatus !== 'completed' && callStatus !== 'failed' && callStatus !== 'busy' && callStatus !== 'no-answer'}
@@ -2904,7 +3060,7 @@ const ringback = new RingbackGenerator();
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {/* Open File / Live Notes Button */}
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setLiveNotesLead(lead); }} 
+                          onClick={(e) => { e.stopPropagation(); openCallModal(lead); }} 
                           className="p-2 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-xl border border-indigo-100 dark:border-indigo-900/30 active:scale-95 transition-all flex-shrink-0"
                           title="פתח תיק נתונים / שיחה"
                         >
@@ -2938,7 +3094,7 @@ const ringback = new RingbackGenerator();
                             <>
                               <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
                               <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-2xl z-30 overflow-hidden text-right" dir="rtl">
-                                <button onClick={() => { setLiveNotesLead(lead); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-indigo-600 hover:bg-indigo-50"><FileText className="w-4 h-4" /> פתח תיק / שיחה</button>
+                                <button onClick={() => { openCallModal(lead); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-indigo-600 hover:bg-indigo-50"><FileText className="w-4 h-4" /> פתח תיק / שיחה</button>
                                 <button onClick={() => { openWhatsAppMessage(lead); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-emerald-600 hover:bg-emerald-50"><MessageSquare className="w-4 h-4" /> שלח הודעה</button>
                                 <button onClick={() => { copyToClipboard(lead.phone || ''); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-slate-700 dark:text-slate-300 hover:bg-slate-100"><Copy className="w-4 h-4" /> העתק מספר</button>
                                 <button onClick={() => { handleLeadUpdate(lead.id, { isStarred: !lead.isStarred }); setOpenMenuId(null); }} className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 text-amber-500 hover:bg-amber-50"><Star className={`w-4 h-4 ${lead.isStarred ? 'fill-amber-500' : ''}`} /> {lead.isStarred ? 'הסר כוכב' : 'סמן בכוכב'}</button>
@@ -3071,7 +3227,7 @@ const ringback = new RingbackGenerator();
                       </div>
                     
                     <div className="flex gap-2">
-                       <button onClick={() => setLiveNotesLead(lead)} className="flex-1 inline-flex justify-center items-center gap-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/30 px-4 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-indigo-200 dark:border-indigo-800"><Maximize2 className="w-4 h-4" /> פתח תיק נתונים</button>
+                       <button onClick={() => openCallModal(lead)} className="flex-1 inline-flex justify-center items-center gap-2 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/30 px-4 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-indigo-200 dark:border-indigo-800"><Maximize2 className="w-4 h-4" /> פתח תיק נתונים</button>
                        <button onClick={() => setHistoryLead(lead)} className="inline-flex justify-center items-center text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-5 py-3.5 rounded-xl active:scale-95 transition-all outline-none border border-amber-200 dark:border-amber-800"><History className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -3699,6 +3855,159 @@ const ringback = new RingbackGenerator();
                 </div>
               </div>
 
+              {/* Campaign Auto-Sync & Filter Section */}
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 blur-[50px] rounded-full translate-x-10 -translate-y-10" />
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Filter className="w-5 h-5 text-indigo-500" />
+                      <span>סינון קמפיינים לסנכרון אוטומטי</span>
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                      בחר אילו קמפיינים יעלו אוטומטית למערכת מ-Lead.IM ואילו ייחסמו. סימון קמפיין כחסום ימנע מהלידים שלו להיכנס לאתר (לדוגמה: MUZZA).
+                    </p>
+                  </div>
+
+                  {savingCampaignSettings && (
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/30 self-start sm:self-auto animate-pulse">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>שומר שינויים...</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Add Custom Campaign (e.g. MUZZA) */}
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 mb-6">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
+                    הוספת שם קמפיין לרשימה (לדוגמה: MUZZA)
+                  </label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="הקלד שם קמפיין להחרגה / סינון (לדוגמה: MUZZA)..." 
+                      value={newCampaignInput} 
+                      onChange={(e) => setNewCampaignInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomCampaign(); } }}
+                      className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomCampaign}
+                      disabled={!newCampaignInput.trim()}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 flex-shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>הוסף וחסום</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Campaign Search & Stats */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+                  <div className="relative flex-1 max-w-xs">
+                    <input 
+                      type="text"
+                      placeholder="חפש קמפיין ברשימה..."
+                      value={campaignSearchQuery}
+                      onChange={(e) => setCampaignSearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl pr-9 pl-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-900 dark:text-white"
+                    />
+                    <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50 dark:border-emerald-900/30">
+                      {campaignSettingsList.filter(c => !c.isExcluded).length} עולים אוטומטית
+                    </span>
+                    <span className="text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-2.5 py-1 rounded-lg border border-rose-200/50 dark:border-rose-900/30">
+                      {campaignSettingsList.filter(c => c.isExcluded).length} חסומים
+                    </span>
+                  </div>
+                </div>
+
+                {/* Campaigns List */}
+                {loadingCampaignSettings ? (
+                  <div className="flex items-center justify-center py-12 text-slate-400 gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                    <span className="text-sm font-bold">טוען קמפיינים...</span>
+                  </div>
+                ) : filteredCampaigns.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm font-medium bg-slate-50 dark:bg-slate-950/40 rounded-2xl border dark:border-slate-800">
+                    לא נמצאו קמפיינים התואמים לחיפוש
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border dark:border-slate-800 rounded-2xl overflow-hidden max-h-80 overflow-y-auto custom-scrollbar">
+                    {filteredCampaigns.map((camp) => (
+                      <div 
+                        key={camp.name}
+                        className={`p-3.5 flex items-center justify-between gap-3 transition-colors ${
+                          camp.isExcluded 
+                            ? 'bg-rose-50/30 dark:bg-rose-950/10 hover:bg-rose-50/50' 
+                            : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCampaign(camp.name)}
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                              camp.isExcluded 
+                                ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/30' 
+                                : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-indigo-400'
+                            }`}
+                            title={camp.isExcluded ? 'לחץ להפעלת סנכרון' : 'לחץ לחסימת סנכרון'}
+                          >
+                            {camp.isExcluded ? <X className="w-3.5 h-3.5" /> : null}
+                          </button>
+
+                          <div className="min-w-0">
+                            <p className={`text-sm font-bold truncate ${camp.isExcluded ? 'text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
+                              {camp.name}
+                            </p>
+                            <span className="text-[11px] text-slate-400">
+                              {camp.count > 0 ? `${camp.count} לידים במערכת` : 'קמפיין מותאם אישית'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {camp.isExcluded ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCampaign(camp.name)}
+                              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-all border border-rose-200 dark:border-rose-800"
+                            >
+                              ⛔ חסום (לחץ להפעלה)
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCampaign(camp.name)}
+                              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all border border-emerald-200 dark:border-emerald-800"
+                            >
+                              🟢 עולה אוטומטית (לחץ לחסימה)
+                            </button>
+                          )}
+
+                          {camp.count === 0 && customCampaigns.includes(camp.name) && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCustomCampaign(camp.name)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                              title="הסר קמפיין מהרשימה"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Audio & Hardware Settings Section */}
               <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl md:rounded-[32px] p-5 md:p-10 shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
@@ -4075,9 +4384,15 @@ const ringback = new RingbackGenerator();
                          </div>
                        </div>
                        <textarea 
+                         id="live-call-notes-textarea"
+                         ref={callNotesTextareaRef}
                          autoFocus 
                          value={liveNotesLead.liveCallNotes || ''} 
                          onChange={e => handleLeadUpdate(liveNotesLead.id, { liveCallNotes: e.target.value })} 
+                         onFocus={e => {
+                           const val = e.currentTarget.value;
+                           e.currentTarget.setSelectionRange(val.length, val.length);
+                         }}
                          className="flex-1 bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-2xl md:rounded-[32px] p-4 md:p-8 text-lg md:text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white min-h-[160px]" 
                          placeholder="כתוב כאן מה הלקוח אומר..." 
                        />

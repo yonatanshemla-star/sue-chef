@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getLeads, saveLead, Lead } from '@/utils/storage';
+import { 
+  getLeads, 
+  saveLead, 
+  Lead,
+  getCampaignSettings,
+  isCampaignExcluded,
+  recordExcludedLeadimId 
+} from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 function parseHebrewDate(dateStr: string) {
@@ -130,6 +137,7 @@ export async function POST() {
     const currentHtml = await currentRes.text();
 
     const dbLeads = await getLeads();
+    const campaignSettings = await getCampaignSettings();
     const existingLeadimIds = new Set(dbLeads.map(l => l.leadimId).filter(Boolean));
     const existingPhones = new Set(
       dbLeads.map(l => l.phone ? l.phone.replace(/\D/g, '').slice(-9) : '').filter(p => p && p.length >= 7)
@@ -157,6 +165,12 @@ export async function POST() {
       const cleanPhone = phone.replace(/\D/g, '').slice(-9);
 
       if (!existingLeadimIds.has(leadimId)) {
+        const campaign = tds[4] || '';
+        if (isCampaignExcluded(campaign, campaignSettings.excludedCampaigns)) {
+          await recordExcludedLeadimId(leadimId, campaign);
+          continue;
+        }
+
         const id = uuidv4();
         const createdAt = parseHebrewDate(tds[2]);
         const status = normalizeStatus(selectedStatus);
