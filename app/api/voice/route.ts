@@ -130,13 +130,16 @@ export async function POST(req: Request) {
           const dialedTo = rawData['To'] || rawData['to'] || '';
           const isIncomingToGili = dialedTo.includes('537710090') || (process.env.TWILIO_GILI_PHONE_NUMBER && dialedTo.includes(process.env.TWILIO_GILI_PHONE_NUMBER.replace(/\D/g, '')));
           const targetIdentity = isIncomingToGili ? 'lawyer_user' : 'dashboard_user';
+          const giliMobile = process.env.GILI_PHONE_NUMBER || '+972509833303';
 
           twiml += `  <Dial timeout="25" action="/api/twilio/voicemail">\n`;
           twiml += `    <Client>\n`;
           twiml += `      <Identity>${targetIdentity}</Identity>\n`;
           twiml += `      <Parameter name="leadPhone" value="${fromStr}" />\n`;
           twiml += `    </Client>\n`;
-          if (!isIncomingToGili && process.env.MY_PHONE_NUMBER) {
+          if (isIncomingToGili) {
+             twiml += `    <Number callerId="${callerId}">${giliMobile}</Number>\n`;
+          } else if (process.env.MY_PHONE_NUMBER) {
              twiml += `    <Number callerId="${callerId}">${process.env.MY_PHONE_NUMBER}</Number>\n`;
           }
           twiml += `  </Dial>\n`;

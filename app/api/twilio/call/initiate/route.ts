@@ -16,11 +16,16 @@ function normalizeToE164(phone: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { to, agentPhone } = await req.json();
+    const { to, agentPhone, role, callerRole } = await req.json();
+    const isLawyer = role === 'lawyer' || callerRole === 'lawyer';
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const myPhone = normalizeToE164(agentPhone || process.env.MY_PHONE_NUMBER || '');
-    const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+    const giliMobile = process.env.GILI_PHONE_NUMBER || '+972509833303';
+    const giliTwilio = process.env.TWILIO_GILI_PHONE_NUMBER || '+972537710090';
+
+    const myPhone = normalizeToE164(isLawyer ? (agentPhone || giliMobile) : (agentPhone || process.env.MY_PHONE_NUMBER || ''));
+    const twilioPhone = isLawyer ? giliTwilio : (process.env.TWILIO_PHONE_NUMBER || '');
 
     if (!accountSid || !authToken || !myPhone || !twilioPhone) {
       return NextResponse.json({ success: false, error: 'Missing Twilio configuration' }, { status: 500 });
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
     const protocol = host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
     const confId = `conf_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const bridgeUrl = `${baseUrl}/api/twilio/call/bridge?to=${encodeURIComponent(to)}&confId=${confId}`;
+    const bridgeUrl = `${baseUrl}/api/twilio/call/bridge?to=${encodeURIComponent(to)}&confId=${confId}&role=${isLawyer ? 'lawyer' : 'admin'}`;
 
     console.log(`Initiating conference call. Calling ${myPhone}, then conferencing with ${to}`);
     console.log(`Bridge URL: ${bridgeUrl}`);

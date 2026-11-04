@@ -23,9 +23,11 @@ export async function POST(req: NextRequest) {
     }
     const to = searchParams.get('to');
     const confId = searchParams.get('confId');
+    const role = searchParams.get('role');
+    const isLawyer = role === 'lawyer';
     
-    const userMobile = process.env.MY_PHONE_NUMBER;
-    const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+    const userMobile = isLawyer ? (process.env.GILI_PHONE_NUMBER || '+972509833303') : process.env.MY_PHONE_NUMBER;
+    const twilioPhone = isLawyer ? (process.env.TWILIO_GILI_PHONE_NUMBER || '+972537710090') : process.env.TWILIO_PHONE_NUMBER;
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
 

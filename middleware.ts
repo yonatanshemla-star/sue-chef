@@ -61,6 +61,7 @@ export function middleware(request: NextRequest) {
     path.startsWith('/api/auth') ||
     path.startsWith('/api/twilio/token') ||
     path.startsWith('/api/twilio/balance') ||
+    path.startsWith('/api/twilio/call/') ||
     path.startsWith('/api/leadim/sync-status') ||
     path.startsWith('/api/voice') ||
     path === '/login' ||

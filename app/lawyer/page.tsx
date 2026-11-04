@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { 
-  Phone, Clock, RefreshCw, Moon, Sun, DollarSign, PhoneCall, PhoneOff, X, 
+  Phone, Clock, RefreshCw, Moon, Sun, DollarSign, UserPlus, Plus, PhoneCall, PhoneOff, X, 
   Loader2, Search, Calendar, Users, Briefcase, Settings, LogOut, 
   CheckCircle, ChevronDown, ChevronRight, Mic, MicOff, Scale, Archive, ArrowRight,
   Filter, Check, FileText, AlertCircle, Sparkles, MessageSquare, Tag,
@@ -15,8 +15,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: 3 },
   'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-950/50 dark:text-pink-400 dark:border-pink-900', border: 'border-pink-700', importance: 0 },
   'בטיפול': { label: '⚖️ בטיפול', color: 'text-white', bg: 'bg-emerald-600', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900', border: 'border-emerald-700', importance: 1 },
-  'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950/50 dark:text-green-500 dark:border-green-900', border: 'border-green-300 dark:border-green-700', importance: 1 },
-  'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-500 dark:border-emerald-900', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
   'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 9 },
   'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900', border: 'border-blue-300 dark:border-blue-700', importance: 6 },
   'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-900/50 dark:text-gray-400 dark:border-gray-800', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
@@ -73,6 +71,13 @@ export default function LawyerDashboard() {
   const [modalGeneralNotes, setModalGeneralNotes] = useState("");
   const [modalLiveNotes, setModalLiveNotes] = useState("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  // Manual Lead Modal State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newLeadName, setNewLeadName] = useState("");
+  const [newLeadPhone, setNewLeadPhone] = useState("");
+  const [newLeadNotes, setNewLeadNotes] = useState("");
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
 
   // Campaign Settings State
   const [campaignsList, setCampaignsList] = useState<{ name: string; count: number; isExcluded: boolean }[]>([]);
@@ -288,70 +293,92 @@ export default function LawyerDashboard() {
     }
   };
 
-  // Call lead via Twilio WebRTC
+  // Manual Lead Creation
+  const handleCreateLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLeadName.trim()) return;
+    setIsSubmittingLead(true);
+    try {
+      const res = await fetch('/api/lawyer/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: newLeadName.trim(),
+          phone: newLeadPhone.trim(),
+          generalNotes: newLeadNotes.trim(),
+          campaign: 'הזנה ידנית',
+          status: 'חדש'
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.lead) {
+        setLeads(prev => [data.lead, ...prev]);
+        setIsAddModalOpen(false);
+        setNewLeadName("");
+        setNewLeadPhone("");
+        setNewLeadNotes("");
+      }
+    } catch (err) {
+      console.error('Error creating manual lead:', err);
+    } finally {
+      setIsSubmittingLead(false);
+    }
+  };
+
+  // Call lead via Mobile Bridging (Calls Gili's mobile 050-9833303 -> connects to client with caller ID 053-7710090)
   const handleCallLead = async (lead: Lead) => {
     if (!lead.phone) return;
     try {
       setCallStatus('initiating');
-      setCallStatusMessage('מאתחל שיחה...');
+      setCallStatusMessage('מחייג לנייד שלך (050-9833303)...');
       setActiveLead(lead);
 
-      const device = await initTwilioDevice();
-      if (!device) {
-        setCallStatus('completed');
-        setCallStatusMessage('שגיאה בחיבור לשירות השיחות');
-        setTimeout(() => setCallStatus('idle'), 3000);
-        return;
-      }
-
-      setCallStatus('ringing');
-      setCallStatusMessage('מחייג ללקוח...');
-
-      const call = await device.connect({
-        params: {
-          phone: lead.phone,
+      const res = await fetch('/api/twilio/call/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           to: lead.phone,
-          To: lead.phone,
+          agentPhone: '+972509833303',
+          role: 'lawyer',
           callerRole: 'lawyer',
-          role: 'lawyer'
-        }
+        })
       });
 
-      setActiveCall(call);
-      setIsMuted(false);
+      const data = await res.json();
+      if (data.success) {
+        setCallStatus('ringing');
+        setCallStatusMessage('השיחה נשלחה לנייד שלך (050-9833303)! ענה לטלפון כדי להתחבר ללקוח.');
 
-      call.on('accept', () => {
-        setCallStatus('connected');
-        setCallStatusMessage('בשיחה פעילה (קו 053-7710090)');
-      });
-
-      call.on('disconnect', () => {
-        setCallStatus('completed');
-        setCallStatusMessage('השיחה הסתיימה');
-        setActiveCall(null);
-        setRecentCalls(prev => [
-          { id: lead.id, name: lead.clientName, phone: lead.phone || '', duration: callDuration, time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) },
-          ...prev.slice(0, 19)
-        ]);
         handleUpdateLead(lead.id, {
           callCount: (lead.callCount || 0) + 1,
           lastContacted: new Date().toISOString()
         });
-        setTimeout(() => setCallStatus('idle'), 3000);
-      });
 
-      call.on('cancel', () => {
+        setRecentCalls(prev => [
+          { id: lead.id, name: lead.clientName, phone: lead.phone || '', duration: 0, time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) },
+          ...prev.slice(0, 19)
+        ]);
+
+        setTimeout(() => {
+          setCallStatus('idle');
+          setCallStatusMessage(null);
+        }, 8000);
+      } else {
         setCallStatus('completed');
-        setCallStatusMessage('השיחה בוטלה או לא נענתה');
-        setActiveCall(null);
-        setTimeout(() => setCallStatus('idle'), 3000);
-      });
-
+        setCallStatusMessage(data.error || 'החיוג לנייד נכשל');
+        setTimeout(() => {
+          setCallStatus('idle');
+          setCallStatusMessage(null);
+        }, 4000);
+      }
     } catch (err: any) {
       console.error('Call failed:', err);
       setCallStatus('completed');
-      setCallStatusMessage('שגיאה בביצוע השיחה');
-      setTimeout(() => setCallStatus('idle'), 3000);
+      setCallStatusMessage('שגיאה בהעברת השיחה לנייד');
+      setTimeout(() => {
+        setCallStatus('idle');
+        setCallStatusMessage(null);
+      }, 4000);
     }
   };
 
@@ -475,23 +502,21 @@ export default function LawyerDashboard() {
         </div>
       )}
 
-      {/* Active Call Floating Widget */}
-      {(callStatus === 'initiating' || callStatus === 'ringing' || callStatus === 'connected') && (
+      {/* Mobile Bridging Call Floating Banner */}
+      {(callStatus === 'initiating' || callStatus === 'ringing') && (
         <div 
           dir="rtl"
-          className="fixed top-5 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-xl bg-slate-900/95 text-white px-5 py-4 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-emerald-500/40 backdrop-blur-xl animate-in fade-in slide-in-from-top-6 duration-300 flex items-center justify-between gap-4"
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-xl bg-slate-900/95 text-white px-6 py-4 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-emerald-500/40 backdrop-blur-xl animate-in fade-in slide-in-from-top-6 duration-300 flex items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-10 rounded-2xl flex items-center justify-center font-mono font-bold text-xs shadow-inner ${
-              callStatus === 'connected' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-            }`}>
-              {callStatus === 'connected' ? formatDuration(callDuration) : '...'}
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center animate-pulse">
+              <PhoneCall className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${callStatus === 'connected' ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-pulse'}`} />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                 <h4 className="font-bold text-sm text-white leading-tight">
-                  {activeLead?.clientName || 'לקוח בשיחה'}
+                  {activeLead?.clientName || 'לקוח'}
                 </h4>
               </div>
               <p className="text-xs text-emerald-300/80 font-mono mt-0.5" dir="ltr">
@@ -500,26 +525,20 @@ export default function LawyerDashboard() {
             </div>
           </div>
 
-          <div className="text-xs font-bold text-slate-300 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/60 hidden sm:block">
-            {callStatusMessage || 'מחייג...'}
+          <div className="text-xs font-bold text-slate-200 bg-slate-800/90 px-3.5 py-2 rounded-xl border border-slate-700/60">
+            {callStatusMessage || 'מחייג לנייד שלך (050-9833303)...'}
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleToggleMute}
-              className={`p-2.5 rounded-xl transition-all ${isMuted ? 'bg-amber-500/30 text-amber-300' : 'bg-slate-800 text-slate-300 hover:text-white'}`}
-              title={isMuted ? 'בטל השתקה' : 'השתק'}
-            >
-              {isMuted ? <MicOff className="w-5 h-5 text-amber-400" /> : <Mic className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={handleHangup}
-              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-600/30 hover:scale-105 active:scale-95 transition-all"
-            >
-              <PhoneOff className="w-4 h-4" />
-              <span>נתק</span>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setCallStatus('idle');
+              setCallStatusMessage(null);
+            }}
+            className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+            title="סגור הודעה"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       )}
 
@@ -846,7 +865,7 @@ export default function LawyerDashboard() {
           <div className="space-y-4">
             
             {/* Search Bar Row */}
-            <div className="flex items-center gap-3 bg-white/90 dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white/90 dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div className="relative w-full max-w-md">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
@@ -857,6 +876,15 @@ export default function LawyerDashboard() {
                   className="w-full pr-11 pl-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-900 dark:text-white"
                 />
               </div>
+
+              {/* Add Lead Button */}
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={18} />
+                <span>הוספת ליד ידנית</span>
+              </button>
             </div>
 
             {/* Main Table Container (Identical column structure to Yonatan's table) */}
@@ -1107,6 +1135,95 @@ export default function LawyerDashboard() {
                 <span>שמור פתק</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Lead Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[400] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div 
+            dir="rtl"
+            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 animate-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">הוספת ליד חדש למעקב</h3>
+                  <p className="text-xs text-slate-400">הזנה ידנית ישירה לטבלת המעקב</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateLead} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                  שם מלא <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="למשל: ישראל ישראלי"
+                  value={newLeadName}
+                  onChange={e => setNewLeadName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                  מספר טלפון
+                </label>
+                <input
+                  type="tel"
+                  placeholder="למשל: 0501234567"
+                  value={newLeadPhone}
+                  onChange={e => setNewLeadPhone(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 text-right font-mono"
+                  dir="ltr"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                  הערות ראשוניות
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="פרטים על הפנייה, רקע רפואי, נושא השיחה..."
+                  value={newLeadNotes}
+                  onChange={e => setNewLeadNotes(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  ביטול
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingLead || !newLeadName.trim()}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                >
+                  {isSubmittingLead ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                  <span>שמור ליד</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
