@@ -62,6 +62,7 @@ export interface Lead {
   lawyerCallCount?: number;
   lawyerLastContacted?: string | null;
   lawyerDisqualificationReason?: string;
+  assignedToLawyer?: boolean;
 }
 
 export async function initDB() {

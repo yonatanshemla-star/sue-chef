@@ -4,22 +4,33 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { 
   Phone, Clock, RefreshCw, Moon, Sun, PhoneCall, PhoneOff, X, 
   Loader2, Search, Calendar, Users, Briefcase, Settings, LogOut, 
-  CheckCircle, ChevronDown, Mic, MicOff, Scale, Archive, ArrowRight,
-  Filter, Check, FileText, AlertCircle, Sparkles, MessageSquare, Tag
+  CheckCircle, ChevronDown, ChevronRight, Mic, MicOff, Scale, Archive, ArrowRight,
+  Filter, Check, FileText, AlertCircle, Sparkles, MessageSquare, Tag,
+  MoreVertical, Copy, Trash2, Star, Menu, BarChart, Shield
 } from "lucide-react";
 import type { Lead } from "@/utils/storage";
 
-const STATUS_OPTIONS: Record<string, { label: string; badge: string }> = {
-  'חדש': { label: '🆕 חדש', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' },
-  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', badge: 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800' },
-  'מחכה לחתימה': { label: '✍️ מחכה לחתימה', badge: 'bg-yellow-100 text-yellow-900 dark:bg-yellow-950/60 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800' },
-  'לחזור אליו': { label: '📞 לחזור אליו', badge: 'bg-teal-100 text-teal-900 dark:bg-teal-950/60 dark:text-teal-300 border-teal-300 dark:border-teal-800' },
-  'בטיפול': { label: '⚖️ בטיפול', badge: 'bg-lime-100 text-lime-900 dark:bg-lime-950/60 dark:text-lime-300 border-lime-300 dark:border-lime-800' },
-  'לא ענה': { label: '📵 לא ענה', badge: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700' },
-  'חתם': { label: '🏆 חתם', badge: 'bg-emerald-200 text-emerald-950 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-400 dark:border-emerald-600' },
-  'לא רלוונטי': { label: '🔇 לא רלוונטי', badge: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-800' },
-  'אחר': { label: '📝 אחר', badge: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700' },
+// Exact same STATUS_CONFIG matching Yonatan's main dashboard
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; darkBg: string; border: string; importance: number }> = {
+  'רלוונטי - לעקוב': { label: '🟡 רלוונטי - לעקוב', color: 'text-white', bg: 'bg-amber-500', darkBg: 'dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900', border: 'border-amber-600 shadow-lg shadow-amber-500/30', importance: 3 },
+  'מחכה לחתימה': { label: '✍️ מחכה לחתימה', color: 'text-white', bg: 'bg-pink-600', darkBg: 'dark:bg-pink-950/50 dark:text-pink-400 dark:border-pink-900', border: 'border-pink-700', importance: 0 },
+  'בטיפול': { label: '⚖️ בטיפול', color: 'text-white', bg: 'bg-emerald-600', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900', border: 'border-emerald-700', importance: 1 },
+  'גילי צריך לדבר איתו': { label: '💬 גילי צריך לדבר איתו', color: 'text-green-700', bg: 'bg-green-50', darkBg: 'dark:bg-green-950/50 dark:text-green-500 dark:border-green-900', border: 'border-green-300 dark:border-green-700', importance: 1 },
+  'בבדיקה עם גילי': { label: '🔍 בבדיקה עם גילי', color: 'text-emerald-800', bg: 'bg-emerald-100', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-500 dark:border-emerald-900', border: 'border-emerald-400 dark:border-emerald-700', importance: 2 },
+  'ממתין לעדכון': { label: '⏳ ממתין לעדכון', color: 'text-orange-900', bg: 'bg-orange-200', darkBg: 'dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-900', border: 'border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]', importance: 9 },
+  'לחזור אליו': { label: '📞 לחזור אליו', color: 'text-blue-700', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900', border: 'border-blue-300 dark:border-blue-700', importance: 6 },
+  'אחר': { label: '📝 אחר', color: 'text-gray-600', bg: 'bg-gray-100', darkBg: 'dark:bg-gray-900/50 dark:text-gray-400 dark:border-gray-800', border: 'border-gray-300 dark:border-gray-600', importance: 5 },
+  'לא ענה': { label: '📵 לא ענה', color: 'text-gray-100', bg: 'bg-gray-800', darkBg: 'dark:bg-gray-950/50 dark:text-gray-500 dark:border-gray-800', border: 'border-gray-600', importance: 7 },
+  'חדש': { label: '🆕 חדש', color: 'text-white', bg: 'bg-emerald-600', darkBg: 'dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900', border: 'border-emerald-700 shadow-md', importance: 4 },
+  'במעקב': { label: '⭐ במעקב', color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-950/30 dark:text-amber-500 dark:border-amber-900/50', border: 'border-amber-200 dark:border-amber-800', importance: 10 },
+  'חתם': { label: '🏆 חתם', color: 'text-amber-700', bg: 'bg-amber-100', darkBg: 'dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-700', border: 'border-amber-300 dark:border-amber-700', importance: 11 },
+  'נגמר': { label: '❌ נגמר', color: 'text-red-700', bg: 'bg-red-50', darkBg: 'dark:bg-red-950/40 dark:text-red-400 dark:border-red-900', border: 'border-red-300 dark:border-red-700', importance: 12 },
+  'לא רלוונטי': { label: '🔇 לא רלוונטי', color: 'text-white', bg: 'bg-red-600', darkBg: 'dark:bg-red-950/50 dark:text-red-500 dark:border-red-900', border: 'border-red-700 shadow-md', importance: 8 },
 };
+
+function getStatusStyle(status: string) {
+  return STATUS_CONFIG[status] || STATUS_CONFIG['אחר'];
+}
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "-";
@@ -38,11 +49,12 @@ export default function LawyerDashboard() {
   const [mounted, setMounted] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'campaigns'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calls' | 'archive' | 'settings' | 'analytics'>('crm');
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("הכל");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   
   // Twilio WebRTC State
   const [deviceInstance, setDeviceInstance] = useState<any>(null);
@@ -67,11 +79,8 @@ export default function LawyerDashboard() {
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [savingCampaign, setSavingCampaign] = useState<string | null>(null);
 
-  // Audio elements for ringback
-  const ringbackAudioRef = useRef<HTMLAudioElement | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Detect theme & role
   useEffect(() => {
     setMounted(true);
     const isUserAdmin = document.cookie.split(';').some(c => c.trim().startsWith('sue_chef_auth=admin'));
@@ -93,7 +102,7 @@ export default function LawyerDashboard() {
     else document.documentElement.classList.remove('dark');
   }, [darkMode]);
 
-  // Call timer
+  // Call duration timer
   useEffect(() => {
     if (callStatus === 'connected') {
       durationTimerRef.current = setInterval(() => {
@@ -108,7 +117,7 @@ export default function LawyerDashboard() {
     };
   }, [callStatus]);
 
-  // Initialize Twilio Device for WebRTC
+  // Init Twilio Device
   const initTwilioDevice = async () => {
     if (deviceInstance) return deviceInstance;
     try {
@@ -186,14 +195,13 @@ export default function LawyerDashboard() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'campaigns') {
+    if (activeTab === 'settings') {
       fetchCampaignSettings();
     }
   }, [activeTab]);
 
   // Update lead
   const handleUpdateLead = async (id: string, updates: Partial<Lead>) => {
-    // Optimistic UI update
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
     try {
       await fetch('/api/lawyer/update', {
@@ -223,7 +231,6 @@ export default function LawyerDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ excludedCampaigns: newExcluded })
       });
-      // Refresh leads to reflect newly excluded/included campaigns
       fetchLeads();
     } catch (err) {
       console.error('Toggle campaign error:', err);
@@ -278,7 +285,6 @@ export default function LawyerDashboard() {
           { id: lead.id, name: lead.clientName, phone: lead.phone || '', duration: callDuration, time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) },
           ...prev.slice(0, 19)
         ]);
-        // Increment call count
         handleUpdateLead(lead.id, {
           callCount: (lead.callCount || 0) + 1,
           lastContacted: new Date().toISOString()
@@ -302,9 +308,7 @@ export default function LawyerDashboard() {
   };
 
   const handleHangup = () => {
-    if (activeCall) {
-      activeCall.disconnect();
-    }
+    if (activeCall) activeCall.disconnect();
     setCallStatus('completed');
     setTimeout(() => setCallStatus('idle'), 2000);
   };
@@ -339,18 +343,24 @@ export default function LawyerDashboard() {
     window.location.href = '/login';
   };
 
+  const copyToClipboard = (text: string) => {
+    if (navigator?.clipboard) navigator.clipboard.writeText(text);
+  };
+
+  const openWhatsAppMessage = (lead: Lead) => {
+    if (!lead.phone) return;
+    const cleanPhone = lead.phone.replace(/\D/g, '');
+    const intlPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
+    window.open(`https://wa.me/${intlPhone}`, '_blank');
+  };
+
   // Filter leads
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
-      // Archive vs CRM filter
       const isArchived = lead.status === 'לא רלוונטי' || lead.status === 'נגמר';
       if (activeTab === 'archive' && !isArchived) return false;
       if (activeTab === 'crm' && isArchived) return false;
 
-      // Status filter
-      if (statusFilter !== 'הכל' && lead.status !== statusFilter) return false;
-
-      // Search filter
       if (search.trim()) {
         const q = search.toLowerCase();
         const nameMatch = lead.clientName?.toLowerCase().includes(q);
@@ -362,16 +372,7 @@ export default function LawyerDashboard() {
 
       return true;
     });
-  }, [leads, activeTab, statusFilter, search]);
-
-  // Statistics
-  const stats = useMemo(() => {
-    const total = leads.filter(l => l.status !== 'לא רלוונטי' && l.status !== 'נגמר').length;
-    const newCount = leads.filter(l => l.status === 'חדש').length;
-    const inProgress = leads.filter(l => l.status === 'בטיפול' || l.status === 'רלוונטי - לעקוב' || l.status === 'מחכה לחתימה').length;
-    const signedCount = leads.filter(l => l.status === 'חתם' || l.isSigned).length;
-    return { total, newCount, inProgress, signedCount };
-  }, [leads]);
+  }, [leads, activeTab, search]);
 
   if (!mounted) {
     return (
@@ -474,184 +475,210 @@ export default function LawyerDashboard() {
         </div>
       )}
 
-      {/* Main Container */}
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans relative z-10" dir="rtl">
+      {/* Slide-out Drawer Menu (Identical to Yonatan's, without Decision Tree / Switch) */}
+      <aside 
+        className={`fixed top-0 right-0 h-full w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l dark:border-slate-800 z-[150] shadow-2xl transition-transform duration-500 transform ${isDrawerOpen ? 'translate-x-0' : 'translate-x-[100%]'}`}
+        dir="rtl"
+      >
+        <div className="p-8 flex flex-col h-full">
+          <div className="mb-10 flex items-center justify-between">
+            <div className="flex flex-col">
+              <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">תפריט Sue-Chef</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ניהול מתקדם</p>
+            </div>
+            <button onClick={() => setIsDrawerOpen(false)} className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-400 hover:text-red-500 transition-all shadow-sm">
+               <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <nav className="space-y-4">
+            {[
+              { id: 'analytics', label: 'אנליטיקה', icon: BarChart, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' },
+              { id: 'settings', label: 'הגדרות קמפיינים', icon: Settings, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id as any);
+                  setIsDrawerOpen(false);
+                }}
+                className={`w-full flex items-center gap-4 px-6 py-5 rounded-3xl font-bold text-base transition-all duration-200 group hover:scale-[1.02] border border-transparent hover:border-slate-100 dark:hover:border-slate-800 ${
+                  activeTab === item.id 
+                    ? `${item.bg} ${item.color} shadow-[0_10px_30px_rgba(0,0,0,0.05)]` 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center transition-transform duration-200 group-hover:rotate-12`}>
+                   <item.icon className={item.color} size={24} />
+                </div>
+                <span className="flex-1 text-right">{item.label}</span>
+                <ChevronRight className={`w-5 h-5 transition-transform ${activeTab === item.id ? 'translate-x-1' : 'opacity-0'}`} />
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-10 border-t dark:border-slate-800 flex items-center justify-between">
+             <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Version</p>
+                <p className="text-xs font-bold text-emerald-500">v5.9.5-legal</p>
+             </div>
+             <div className="flex gap-2">
+                <button onClick={() => {
+                  const nextVal = !darkMode;
+                  setDarkMode(nextVal);
+                  localStorage.setItem('theme', nextVal ? 'dark' : 'light');
+                }} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-500">
+                  {darkMode ? <Sun size={18}/> : <Moon size={18}/>}
+                </button>
+                <button onClick={() => { fetchLeads(); }} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500">
+                   <RefreshCw size={18} className={loading ? 'animate-spin' : ''}/>
+                </button>
+                <button onClick={handleLogout} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600" title="התנתק מהמערכת">
+                   <LogOut size={16}/>
+                </button>
+             </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans relative z-10" dir="rtl">
         
         {/* Top Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-          
-          {/* Logo & Title */}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white flex-shrink-0">
-              <Scale className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  Sue-Chef
-                </h1>
+            <button 
+              onClick={() => setIsDrawerOpen(true)}
+              className="w-14 h-14 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border dark:border-slate-800 flex items-center justify-center hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 transition-all shadow-sm active:scale-95"
+              title="תפריט Sue-Chef"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="flex flex-col">
+              <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-slate-100 flex items-center gap-3 cursor-default select-none">
+                Sue-Chef 
                 <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30 font-bold tracking-widest uppercase">
-                  Lead Management
-                </span>
-                <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold tracking-widest uppercase">
                   v5.9.5
                 </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium opacity-70">
                 מערכת ניהול לידים מתקדמת
               </p>
             </div>
           </div>
 
-          {/* Action Header Controls */}
-          <div className="flex items-center gap-3 flex-wrap">
-            
+          {/* Top Controls (Twilio Line, Admin Switcher, Theme & Refresh) */}
+          <div className="flex items-center gap-3">
             {/* Active Phone Badge */}
             <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-500/30 dark:border-emerald-500/20 shadow-sm">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <div>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">קו שיחות יוצאות</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">קו שיחות פעיל</p>
                 <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono" dir="ltr">053-7710090</p>
               </div>
             </div>
 
-            {/* Admin Switcher Button (Only shown if admin logged in) */}
+            {/* Admin Switcher Button (Only shown if admin is logged in) */}
             {isAdmin && (
               <a
                 href="/"
-                className="px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-300/50 dark:border-amber-700/50 transition-all flex items-center gap-2 shadow-sm"
+                className="px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-300/50 dark:border-amber-700/50 transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <span>← חזרה לדשבורד הראשי</span>
               </a>
             )}
 
             {/* Dark Mode Toggle */}
-            <button
+            <button 
               onClick={() => {
                 const nextVal = !darkMode;
                 setDarkMode(nextVal);
                 localStorage.setItem('theme', nextVal ? 'dark' : 'light');
-              }}
-              className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow transition-all text-amber-500"
+              }} 
+              className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow transition-all text-amber-500"
               title="החלף מצב תצוגה"
             >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             {/* Refresh */}
-            <button
-              onClick={fetchLeads}
-              className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow transition-all text-emerald-600 dark:text-emerald-400"
+            <button 
+              onClick={fetchLeads} 
+              className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow transition-all text-emerald-600 dark:text-emerald-400"
               title="רענן לידים"
             >
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            </button>
-
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 transition-all"
-              title="התנתק מהמערכת"
-            >
-              <LogOut size={18} />
+              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">סה"כ לידים פעילים</span>
-              <Users className="w-5 h-5 text-emerald-500" />
-            </div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
-          </div>
-
-          <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">לידים חדשים</span>
-              <Sparkles className="w-5 h-5 text-emerald-500" />
-            </div>
-            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.newCount}</p>
-          </div>
-
-          <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-5 border border-amber-200/60 dark:border-amber-900/40 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">בטיפול / מעקב</span>
-              <Clock className="w-5 h-5 text-amber-500" />
-            </div>
-            <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats.inProgress}</p>
-          </div>
-
-          <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-5 border border-lime-200/60 dark:border-lime-900/40 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-lime-700 dark:text-lime-400">חתמו</span>
-              <CheckCircle className="w-5 h-5 text-lime-600" />
-            </div>
-            <p className="text-3xl font-bold text-lime-700 dark:text-lime-400">{stats.signedCount}</p>
+        {/* Center Pill Tabs (Identical to Yonatan's layout) */}
+        <div className="relative flex justify-center items-start mb-8 w-full z-20">
+          <div className="flex flex-wrap gap-2 p-2 w-fit rounded-[28px] bg-emerald-700 dark:bg-slate-900/60 dark:border dark:border-emerald-500/30 shadow-xl shadow-emerald-700/15 dark:shadow-none overflow-hidden backdrop-blur-xl">
+            {([
+              { id: 'crm', label: 'טבלת מעקב', accent: 'text-emerald-700 dark:text-emerald-300' },
+              { id: 'calls', label: 'שיחות אחרונות', accent: 'text-amber-600 dark:text-amber-400' },
+              { id: 'archive', label: 'ארכיון', accent: 'text-rose-600 dark:text-rose-400' }
+            ] as const).map(tab => (
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as any)} 
+                className={`px-8 sm:px-10 py-3.5 rounded-[22px] text-sm font-bold transition-all relative group overflow-hidden ${
+                  activeTab === tab.id 
+                    ? `bg-white dark:bg-slate-800 ${tab.accent} shadow-lg scale-102` 
+                    : 'text-white/75 hover:text-white hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Tab Buttons (Refined Amber & Emerald Theme) */}
-        <div className="flex flex-wrap gap-2 mb-6 p-1.5 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm w-fit backdrop-blur-md">
-          <button
-            onClick={() => setActiveTab('crm')}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 ${
-              activeTab === 'crm'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30 scale-102'
-                : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
-            }`}
-          >
-            <Briefcase size={16} /> טבלת מעקב
-          </button>
-
-          <button
-            onClick={() => setActiveTab('calls')}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 ${
-              activeTab === 'calls'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30 scale-102'
-                : 'text-slate-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400'
-            }`}
-          >
-            <Phone size={16} /> שיחות שבוצעו ({recentCalls.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('campaigns')}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 ${
-              activeTab === 'campaigns'
-                ? 'bg-gradient-to-r from-lime-600 to-emerald-600 text-white shadow-md shadow-lime-600/30 scale-102'
-                : 'text-slate-600 dark:text-slate-400 hover:text-lime-600 dark:hover:text-lime-400'
-            }`}
-          >
-            <Settings size={16} /> הגדרות קמפיינים
-          </button>
-
-          <button
-            onClick={() => setActiveTab('archive')}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 ${
-              activeTab === 'archive'
-                ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md scale-102'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Archive size={16} /> ארכיון
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'campaigns' ? (
-          /* Campaign Exclusion Settings */
-          <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in">
+        {/* Tab View: Analytics */}
+        {activeTab === 'analytics' && (
+          <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in mb-8">
             <div className="flex items-center justify-between mb-6 pb-4 border-b dark:border-slate-800">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-emerald-500" /> סינון קמפיינים מ-lead.im
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  קבע אילו קמפיינים יכנסו לדשבורד שלך. קמפיין שמסומן כ"מוחרג" לא יציג לידים.
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <BarChart className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">אנליטיקה ונתוני מערכת</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">סקירת ביצועים ופילוח לידים נכנסים</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border dark:border-slate-800">
+                <span className="text-xs font-bold text-slate-400">סה"כ לידים במערכת</span>
+                <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">{leads.length}</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">לידים חתומים</span>
+                <p className="text-3xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">{leads.filter(l => l.status === 'חתם').length}</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30">
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">שיחות שבוצעו מהדפדפן</span>
+                <p className="text-3xl font-bold mt-2 text-amber-600 dark:text-amber-400">{recentCalls.length}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab View: Settings (Campaigns) */}
+        {activeTab === 'settings' && (
+          <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in mb-8">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">הגדרות קמפיינים מ-lead.im</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">בחר אילו קמפיינים יכנסו לטבלת המעקב שלך</p>
+                </div>
               </div>
               <button
                 onClick={fetchCampaignSettings}
@@ -664,11 +691,11 @@ export default function LawyerDashboard() {
             {loadingCampaigns ? (
               <div className="py-20 flex flex-col items-center justify-center text-slate-400">
                 <Loader2 className="animate-spin text-emerald-500 mb-3" size={36} />
-                <p className="text-sm font-bold">טוען הגדרות קמפיינים...</p>
+                <p className="text-sm font-bold">טוען קמפיינים...</p>
               </div>
             ) : campaignsList.length === 0 ? (
-              <div className="py-16 text-center text-slate-400">
-                <p className="font-bold">לא נמצאו קמפיינים פעילים במערכת</p>
+              <div className="py-16 text-center text-slate-400 font-bold">
+                לא נמצאו קמפיינים פעילים
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -704,7 +731,7 @@ export default function LawyerDashboard() {
                         {isBusy ? (
                           <Loader2 size={14} className="animate-spin" />
                         ) : isExcluded ? (
-                          <span>מוחרג (לחץ לקבל)</span>
+                          <span>מוחרג (לחץ להפעיל)</span>
                         ) : (
                           <>
                             <Check size={14} /> <span>פעיל</span>
@@ -717,16 +744,18 @@ export default function LawyerDashboard() {
               </div>
             )}
           </div>
-        ) : activeTab === 'calls' ? (
-          /* Recent Calls Tab */
-          <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in">
+        )}
+
+        {/* Tab View: Calls History */}
+        {activeTab === 'calls' && (
+          <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in mb-8">
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <Phone className="w-5 h-5 text-amber-500" /> יומן שיחות אחרונות (קו 053-7710090)
             </h3>
             {recentCalls.length === 0 ? (
               <div className="py-20 text-center text-slate-400">
                 <Phone className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p className="font-bold">טרם בוצעו שיחות בסשן הנוכחי</p>
+                <p className="font-bold text-base">טרם בוצעו שיחות בסשן הנוכחי</p>
                 <p className="text-xs text-slate-400 mt-1">כל שיחה שתחייג מהדפדפן תתועד כאן עם משך השיחה והשעה</p>
               </div>
             ) : (
@@ -751,13 +780,15 @@ export default function LawyerDashboard() {
               </div>
             )}
           </div>
-        ) : (
-          /* CRM Table (Main or Archive) */
+        )}
+
+        {/* Tab View: CRM Leads Table & Archive (Identical to Yonatan's layout & styling) */}
+        {(activeTab === 'crm' || activeTab === 'archive') && (
           <div className="space-y-4">
             
-            {/* Search and Filter Row */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 justify-between bg-white/90 dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="relative w-full sm:w-96">
+            {/* Search Bar Row */}
+            <div className="flex items-center gap-3 bg-white/90 dark:bg-slate-900/90 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="relative w-full max-w-md">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="text"
@@ -767,135 +798,172 @@ export default function LawyerDashboard() {
                   className="w-full pr-11 pl-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-900 dark:text-white"
                 />
               </div>
-
-              {/* Status Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-                {['הכל', 'חדש', 'רלוונטי - לעקוב', 'מחכה לחתימה', 'בטיפול', 'לא ענה', 'חתם'].map(st => (
-                  <button
-                    key={st}
-                    onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                      statusFilter === st
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* Leads Table Container */}
-            <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            {/* Main Table Container (Identical column structure to Yonatan's table) */}
+            <div className="bg-white/95 dark:bg-slate-900/95 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
               {loading ? (
                 <div className="py-32 flex flex-col items-center justify-center text-slate-400">
                   <Loader2 className="animate-spin text-emerald-500 mb-4" size={44} />
-                  <p className="font-bold text-sm">טוען לידים מהמערכת...</p>
+                  <p className="font-bold text-sm">טוען נתוני לידים...</p>
                 </div>
               ) : filteredLeads.length === 0 ? (
                 <div className="py-24 text-center text-slate-400">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p className="font-bold text-base">לא נמצאו לידים תואמים</p>
-                  <p className="text-xs text-slate-400 mt-1">נסה לשנות את מונח החיפוש או את סינון הסטטוס</p>
+                  <p className="font-bold text-base">טבלת המעקב נקייה כרגע</p>
+                  <p className="text-xs text-slate-400 mt-1">לידים חדשים מ-lead.im יכנסו לכאן באופן אוטומטי</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-right text-sm">
-                    <thead>
-                      <tr className="border-b dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 text-xs font-bold">
-                        <th className="py-4 px-6">שם לקוח</th>
-                        <th className="py-4 px-4">טלפון וחיוג</th>
-                        <th className="py-4 px-4">קמפיין</th>
-                        <th className="py-4 px-4">תאריך קליטה</th>
-                        <th className="py-4 px-4">סטטוס</th>
-                        <th className="py-4 px-6 text-center">פתק והערות</th>
+                  <table className="w-full text-right text-sm border-collapse">
+                    <thead className="bg-slate-50/60 dark:bg-slate-950/30 border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="px-8 py-5 font-bold text-[11px] uppercase tracking-wider text-slate-400 min-w-[300px]">
+                          פרטי ליד וטלפון
+                        </th>
+                        <th className="px-2 py-5 font-bold w-12 text-center"></th>
+                        <th className="px-6 py-5 font-bold text-[11px] uppercase tracking-wider text-slate-400 min-w-[180px]">
+                          סטטוס טיפול
+                        </th>
+                        <th className="px-6 py-5 font-bold text-[11px] uppercase tracking-wider text-slate-400 min-w-[220px]">
+                          הערות ופתקים
+                        </th>
+                        <th className="px-6 py-5 font-bold text-[11px] uppercase tracking-wider text-slate-400 text-center">
+                          תאריך קליטה
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y dark:divide-slate-800/60 font-medium">
                       {filteredLeads.map(lead => {
-                        const statusConf = STATUS_OPTIONS[lead.status] || STATUS_OPTIONS['אחר'];
+                        const statusStyle = getStatusStyle(lead.status);
 
                         return (
-                          <tr key={lead.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                            {/* Client Name */}
-                            <td className="py-4 px-6">
-                              <span className="font-bold text-slate-900 dark:text-white text-base">
-                                {lead.clientName}
-                              </span>
-                              {lead.callCount && lead.callCount > 0 ? (
-                                <span className="mr-2 text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full font-mono">
-                                  📞 {lead.callCount}
-                                </span>
-                              ) : null}
+                          <tr key={lead.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
+                            {/* Lead details and big dial button (Identical to Yonatan's) */}
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-5">
+                                <button
+                                  onClick={() => handleCallLead(lead)}
+                                  disabled={callStatus !== 'idle' && callStatus !== 'completed'}
+                                  className={`flex items-center justify-center w-14 h-14 text-white rounded-[20px] shadow-lg transition-all active:scale-90 hover:scale-110 ${
+                                    callStatus !== 'idle' && callStatus !== 'completed'
+                                      ? 'bg-slate-400 dark:bg-slate-800 cursor-not-allowed opacity-50 shadow-none'
+                                      : 'bg-gradient-to-br from-emerald-500 to-teal-700 shadow-emerald-500/20'
+                                  }`}
+                                  title="חייג עכשיו מקו 053-7710090"
+                                >
+                                  <Phone className="w-6 h-6" />
+                                </button>
+
+                                <div className="flex flex-col flex-1 gap-1">
+                                  <span className="font-bold text-xl text-slate-900 dark:text-white">
+                                    {lead.clientName}
+                                  </span>
+                                  <span className="font-mono font-medium text-slate-500 dark:text-slate-400 text-sm" dir="ltr">
+                                    {lead.phone || '-'}
+                                  </span>
+                                  {lead.campaign && (
+                                    <span className="text-[12px] font-bold mt-0.5 inline-block text-slate-700 dark:text-slate-300">
+                                      <span className="text-emerald-600 dark:text-emerald-400">קמפיין: </span>
+                                      {lead.campaign}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </td>
 
-                            {/* Phone & 1-Click Dial */}
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-slate-700 dark:text-slate-300" dir="ltr">
-                                  {lead.phone || '-'}
-                                </span>
-                                {lead.phone && (
-                                  <button
-                                    onClick={() => handleCallLead(lead)}
-                                    title="חייג עכשיו מקו 053-7710090"
-                                    className="p-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 transition-all hover:scale-105 active:scale-95 shadow-sm"
-                                  >
-                                    <Phone size={15} />
-                                  </button>
+                            {/* Action Menu (WhatsApp, Copy, Delete) */}
+                            <td className="px-2 py-5 text-center relative">
+                              <div className="relative">
+                                <button
+                                  onClick={() => setOpenMenuId(openMenuId === lead.id ? null : lead.id)}
+                                  className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-600"
+                                >
+                                  <MoreVertical className="w-5 h-5" />
+                                </button>
+
+                                {openMenuId === lead.id && (
+                                  <>
+                                    <div className="fixed inset-0 z-20" onClick={() => setOpenMenuId(null)} />
+                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+                                      <button
+                                        onClick={() => {
+                                          openWhatsAppMessage(lead);
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-600 transition-colors"
+                                      >
+                                        <MessageSquare className="w-4 h-4" /> שלח וואטסאפ
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          copyToClipboard(lead.phone || '');
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+                                      >
+                                        <Copy className="w-4 h-4" /> העתק מספר
+                                      </button>
+                                      <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                                      <button
+                                        onClick={() => {
+                                          handleUpdateLead(lead.id, { status: 'לא רלוונטי' });
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full text-right px-4 py-3 text-sm font-bold flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 transition-colors"
+                                      >
+                                        <Trash2 className="w-4 h-4" /> העבר לארכיון
+                                      </button>
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             </td>
 
-                            {/* Campaign */}
-                            <td className="py-4 px-4">
-                              {lead.campaign ? (
-                                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border dark:border-slate-700 inline-block">
-                                  {lead.campaign}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-slate-400">-</span>
-                              )}
-                            </td>
-
-                            {/* Date */}
-                            <td className="py-4 px-4 text-xs text-slate-500 dark:text-slate-400">
-                              {formatDate(lead.createdAt)}
-                            </td>
-
-                            {/* Status Selector */}
-                            <td className="py-4 px-4">
+                            {/* Status Selector Dropdown (Exact style from Yonatan's table) */}
+                            <td className="px-6 py-5">
                               <select
                                 value={lead.status}
                                 onChange={e => handleUpdateLead(lead.id, { status: e.target.value })}
-                                className={`text-xs font-bold px-3 py-1.5 rounded-xl border outline-none cursor-pointer transition-all ${statusConf.badge}`}
+                                className={`text-xs font-bold px-4 py-2.5 rounded-2xl border outline-none cursor-pointer transition-all shadow-sm ${statusStyle.bg} ${statusStyle.color} ${statusStyle.darkBg} ${statusStyle.border}`}
                               >
-                                {Object.keys(STATUS_OPTIONS).map(stKey => (
-                                  <option key={stKey} value={stKey} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-                                    {STATUS_OPTIONS[stKey].label}
+                                {Object.keys(STATUS_CONFIG).map(stKey => (
+                                  <option 
+                                    key={stKey} 
+                                    value={stKey} 
+                                    className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold"
+                                  >
+                                    {STATUS_CONFIG[stKey].label}
                                   </option>
                                 ))}
                               </select>
                             </td>
 
-                            {/* Notes Button */}
-                            <td className="py-4 px-6 text-center">
-                              <button
+                            {/* Notes & Comments */}
+                            <td className="px-6 py-5">
+                              <div 
                                 onClick={() => {
                                   setNotesModalLead(lead);
                                   setModalGeneralNotes(lead.generalNotes || "");
                                   setModalLiveNotes(lead.liveCallNotes || "");
                                 }}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 mx-auto ${
-                                  lead.generalNotes || lead.liveCallNotes
-                                    ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
+                                className="cursor-pointer group/note"
                               >
-                                <FileText size={14} />
-                                <span>{lead.generalNotes || lead.liveCallNotes ? 'צפה / ערוך פתק' : 'הוסף פתק'}</span>
-                              </button>
+                                {lead.generalNotes || lead.liveCallNotes ? (
+                                  <div className="p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 text-xs text-slate-700 dark:text-slate-300 font-medium group-hover/note:border-amber-400 transition-colors">
+                                    <p className="line-clamp-2">{lead.generalNotes || lead.liveCallNotes}</p>
+                                  </div>
+                                ) : (
+                                  <div className="py-2 px-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-400 font-bold flex items-center gap-1.5 group-hover/note:bg-slate-100 dark:group-hover/note:bg-slate-800 transition-all">
+                                    <FileText size={14} /> <span>הוסף הערה...</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Date Received */}
+                            <td className="px-6 py-5 text-center text-xs font-mono text-slate-400">
+                              {formatDate(lead.createdAt)}
                             </td>
                           </tr>
                         );
@@ -913,7 +981,6 @@ export default function LawyerDashboard() {
       {notesModalLead && (
         <div className="fixed inset-0 z-[350] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in" dir="rtl">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl p-6 border dark:border-slate-800 shadow-2xl flex flex-col gap-4">
-            
             <div className="flex items-center justify-between pb-3 border-b dark:border-slate-800">
               <div>
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white">

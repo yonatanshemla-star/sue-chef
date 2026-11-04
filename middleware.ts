@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server';
 function isProtectedPath(path: string) {
   const publicPaths = [
     '/login',
+    '/gili',
     '/api/auth/login',
     '/api/leads/webhook',
     '/api/twilio/',
@@ -43,14 +44,18 @@ export function middleware(request: NextRequest) {
 
   // If user is already authenticated and visits the login page
   if (path === '/login' && role) {
-    if (role === 'lawyer') {
-      return NextResponse.redirect(new URL('/lawyer', request.url));
+    const keyParam = request.nextUrl.searchParams.get('key') || request.nextUrl.searchParams.get('pass');
+    // Only redirect if no override key is specified in query string
+    if (!keyParam) {
+      if (role === 'lawyer') {
+        return NextResponse.redirect(new URL('/lawyer', request.url));
+      }
+      return NextResponse.redirect(new URL('/', request.url));
     }
-    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Lawyer trying to access admin pages — redirect to /lawyer
-  if (role === 'lawyer' && !path.startsWith('/lawyer') && !path.startsWith('/api/lawyer') && !path.startsWith('/api/auth') && path !== '/login') {
+  if (role === 'lawyer' && !path.startsWith('/lawyer') && !path.startsWith('/api/lawyer') && !path.startsWith('/api/auth') && path !== '/login' && path !== '/gili') {
     if (path.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -58,8 +63,6 @@ export function middleware(request: NextRequest) {
   }
 
   // Admin trying to access /lawyer page — allow (admin can see everything)
-  // No restriction needed
-
   return NextResponse.next();
 }
 

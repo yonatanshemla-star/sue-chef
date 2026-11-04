@@ -8,15 +8,25 @@ export async function GET() {
       getLawyerCampaignSettings()
     ]);
 
-    // Filter by lawyer's campaign exclusion settings
-    const activeLeads = allLeads.filter(l => !isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns));
+    // Gili starts fresh with an empty clean-slate table.
+    // Only leads arriving from this onboarding timestamp onward will enter Gili's table.
+    const GILI_START_TIME = new Date('2026-11-04T12:15:00.000Z').getTime();
+
+    const activeLeads = allLeads.filter(l => {
+      const leadTime = new Date(l.createdAt).getTime();
+      // Exclude past historical leads unless specifically assigned to lawyer
+      if (leadTime < GILI_START_TIME && !l.assignedToLawyer) {
+        return false;
+      }
+      // Filter by lawyer's campaign exclusion settings
+      return !isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns);
+    });
 
     // Map leads for Gili: if lead has red star / isStarred, strip Yonatan's past history
     const giliLeads = activeLeads.map(l => {
       const isRecurring = Boolean(l.isStarred);
 
       if (isRecurring) {
-        // Red star lead: fresh slate for Gili, Yonatan's notes and call recordings are strictly hidden
         return {
           ...l,
           status: l.lawyerStatus || 'חדש',
@@ -31,11 +41,10 @@ export async function GET() {
           fullTranscription: undefined,
           aiSummary: undefined,
           sentiment: undefined,
-          isStarred: false, // Don't show red star to Gili
+          isStarred: false,
         } as Lead;
       }
 
-      // Standard lead
       return {
         ...l,
         status: l.lawyerStatus || l.status,
