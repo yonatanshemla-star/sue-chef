@@ -54,7 +54,12 @@ export async function POST(req: Request) {
      }
 
      const isOutbound = isFromApp || (isFromSip && /^\+?\d+$/.test(toValue));
-     let callerId = process.env.TWILIO_PHONE_NUMBER || process.env.MY_PHONE_NUMBER || '';
+     const callerRole = rawData['callerRole'] || rawData['role'] || '';
+     const isGiliCall = callerRole === 'lawyer' || callerRole === 'gili';
+
+     let callerId = isGiliCall
+         ? (process.env.TWILIO_GILI_PHONE_NUMBER || '+972537710090')
+         : (process.env.TWILIO_PHONE_NUMBER || process.env.MY_PHONE_NUMBER || '');
      
      if (callerId.startsWith('0') && callerId.length === 10) {
          callerId = '+972' + callerId.substring(1);
@@ -122,12 +127,16 @@ export async function POST(req: Request) {
           }
 
           // Pass lead real phone number to WebRTC client via custom parameter
+          const dialedTo = rawData['To'] || rawData['to'] || '';
+          const isIncomingToGili = dialedTo.includes('537710090') || (process.env.TWILIO_GILI_PHONE_NUMBER && dialedTo.includes(process.env.TWILIO_GILI_PHONE_NUMBER.replace(/\D/g, '')));
+          const targetIdentity = isIncomingToGili ? 'lawyer_user' : 'dashboard_user';
+
           twiml += `  <Dial timeout="25" action="/api/twilio/voicemail">\n`;
           twiml += `    <Client>\n`;
-          twiml += `      <Identity>dashboard_user</Identity>\n`;
+          twiml += `      <Identity>${targetIdentity}</Identity>\n`;
           twiml += `      <Parameter name="leadPhone" value="${fromStr}" />\n`;
           twiml += `    </Client>\n`;
-          if (process.env.MY_PHONE_NUMBER) {
+          if (!isIncomingToGili && process.env.MY_PHONE_NUMBER) {
              twiml += `    <Number callerId="${callerId}">${process.env.MY_PHONE_NUMBER}</Number>\n`;
           }
           twiml += `  </Dial>\n`;

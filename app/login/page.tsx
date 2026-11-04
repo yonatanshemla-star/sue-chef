@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Lock, ArrowLeft, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lock, ArrowLeft, Loader2, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isAutoLogging, setIsAutoLogging] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (passToSubmit: string) => {
     setError("");
     setLoading(true);
 
@@ -17,13 +17,12 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: passToSubmit }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        // Navigate based on role
         if (data.role === 'lawyer') {
           window.location.href = "/lawyer";
         } else {
@@ -32,11 +31,30 @@ export default function LoginPage() {
       } else {
         setError(data.error || "סיסמה שגויה");
       }
-    } catch (err) {
+    } catch {
       setError("שגיאת תקשורת, נסה שוב");
     } finally {
       setLoading(false);
+      setIsAutoLogging(false);
     }
+  };
+
+  // Support direct Magic Link auto-login: /login?key=GILI or /login?pass=...
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const key = params.get("key") || params.get("pass");
+      if (key) {
+        setPassword(key);
+        setIsAutoLogging(true);
+        performLogin(key);
+      }
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(password);
   };
 
   return (
@@ -55,42 +73,51 @@ export default function LoginPage() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Sue-Chef</h1>
-            <p className="text-gray-400 font-medium">הזן סיסמת גישה למערכת</p>
+            <p className="text-gray-400 font-medium">
+              {isAutoLogging ? "מאמת קישור גישה..." : "הזן סיסמת גישה למערכת"}
+            </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="סיסמה..."
-                className="w-full bg-[#151822] border border-gray-800 text-white placeholder-gray-500 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-sans text-lg tracking-widest text-center"
-                autoFocus
-                dir="ltr"
-              />
+          {isAutoLogging ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+              <p className="text-sm font-bold text-indigo-300">מתחבר למערכת באופן אוטומטי...</p>
             </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold rounded-xl p-4 text-center animate-in fade-in slide-in-from-top-2">
-                {error}
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="סיסמה..."
+                  className="w-full bg-[#151822] border border-gray-800 text-white placeholder-gray-500 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-sans text-lg tracking-widest text-center"
+                  autoFocus
+                  dir="ltr"
+                />
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading || !password}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-l from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-2xl px-6 py-4 font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  כניסה <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                </>
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold rounded-xl p-4 text-center animate-in fade-in slide-in-from-top-2">
+                  {error}
+                </div>
               )}
-            </button>
-          </form>
+
+              <button
+                type="submit"
+                disabled={loading || !password}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-l from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-2xl px-6 py-4 font-bold text-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    כניסה <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
         </div>
         
         <p className="text-center text-gray-600 text-sm mt-8 font-medium space-x-2 flex items-center justify-center gap-2">

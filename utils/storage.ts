@@ -55,6 +55,13 @@ export interface Lead {
   campaignRepliedAt?: string;
   leadimId?: string;
   aiTasks?: AITask[];
+  lawyerStatus?: string;
+  lawyerGeneralNotes?: string;
+  lawyerLiveCallNotes?: string;
+  lawyerFollowUpDate?: string;
+  lawyerCallCount?: number;
+  lawyerLastContacted?: string | null;
+  lawyerDisqualificationReason?: string;
 }
 
 export async function initDB() {
@@ -116,6 +123,38 @@ export async function getCampaignSettings(): Promise<CampaignSettings> {
     console.error('getCampaignSettings error:', e);
   }
   return { excludedCampaigns: [], customCampaigns: [] };
+}
+
+export async function getLawyerCampaignSettings(): Promise<CampaignSettings> {
+  try {
+    await initDB();
+    const { rows } = await sql`SELECT value FROM system_settings WHERE key = 'campaign_settings_lawyer'`;
+    if (rows && rows.length > 0 && rows[0].value) {
+      const val = rows[0].value as any;
+      return {
+        excludedCampaigns: Array.isArray(val.excludedCampaigns) ? val.excludedCampaigns : [],
+        customCampaigns: Array.isArray(val.customCampaigns) ? val.customCampaigns : [],
+      };
+    }
+  } catch (e) {
+    console.error('getLawyerCampaignSettings error:', e);
+  }
+  return { excludedCampaigns: [], customCampaigns: [] };
+}
+
+export async function saveLawyerCampaignSettings(settings: Partial<CampaignSettings>): Promise<CampaignSettings> {
+  await initDB();
+  const current = await getLawyerCampaignSettings();
+  const updated: CampaignSettings = {
+    excludedCampaigns: settings.excludedCampaigns !== undefined ? settings.excludedCampaigns : current.excludedCampaigns,
+    customCampaigns: settings.customCampaigns !== undefined ? settings.customCampaigns : current.customCampaigns,
+  };
+  await sql`
+    INSERT INTO system_settings (key, value, updated_at)
+    VALUES ('campaign_settings_lawyer', ${JSON.stringify(updated)}, NOW())
+    ON CONFLICT (key) DO UPDATE SET value = ${JSON.stringify(updated)}, updated_at = NOW()
+  `;
+  return updated;
 }
 
 export async function saveCampaignSettings(settings: Partial<CampaignSettings>): Promise<CampaignSettings> {

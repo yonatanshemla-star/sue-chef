@@ -49,6 +49,12 @@ export async function GET(req: NextRequest) {
     cty: 'twilio-fpa;v=1',
   };
 
+  const searchParams = req.nextUrl.searchParams;
+  const roleParam = searchParams.get('role');
+  const authCookie = req.cookies.get('sue_chef_auth')?.value;
+  const isLawyer = roleParam === 'lawyer' || authCookie === 'lawyer';
+  const identity = isLawyer ? 'lawyer_user' : 'dashboard_user';
+
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     jti: `${apiKey}-${now}`,
@@ -57,7 +63,8 @@ export async function GET(req: NextRequest) {
     exp: now + 3600,
     nbf: now,
     grants: {
-      identity: 'dashboard_user',
+      identity,
+      role: isLawyer ? 'lawyer' : 'admin',
       voice: {
         outgoing: {
           application_sid: twimlAppSid,
