@@ -154,9 +154,14 @@ export default function LawyerDashboard() {
     }
   };
 
-  // Fetch leads
-  const fetchLeads = async () => {
-    setLoading(true);
+  // Fetch leads - Silent background refresh so table never disappears
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const fetchLeads = async (isBackground = false) => {
+    if (!isBackground && leads.length === 0) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const res = await fetch('/api/lawyer/leads');
       const data = await res.json();
@@ -168,6 +173,7 @@ export default function LawyerDashboard() {
       console.error('Fetch leads error:', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -189,8 +195,10 @@ export default function LawyerDashboard() {
   };
 
   useEffect(() => {
-    fetchLeads();
-    const interval = setInterval(fetchLeads, 45000);
+    fetchLeads(false);
+    const interval = setInterval(() => {
+      fetchLeads(true);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -530,8 +538,8 @@ export default function LawyerDashboard() {
                 }} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-500">
                   {darkMode ? <Sun size={18}/> : <Moon size={18}/>}
                 </button>
-                <button onClick={() => { fetchLeads(); }} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500">
-                   <RefreshCw size={18} className={loading ? 'animate-spin' : ''}/>
+                <button onClick={() => fetchLeads(true)} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500">
+                   <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''}/>
                 </button>
                 <button onClick={handleLogout} className="w-10 h-10 border dark:border-slate-800 rounded-xl flex items-center justify-center transition-all hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600" title="התנתק מהמערכת">
                    <LogOut size={16}/>
@@ -603,11 +611,11 @@ export default function LawyerDashboard() {
 
             {/* Refresh */}
             <button 
-              onClick={fetchLeads} 
+              onClick={() => fetchLeads(true)} 
               className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-sm hover:shadow transition-all text-emerald-600 dark:text-emerald-400"
               title="רענן לידים"
             >
-              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
@@ -802,7 +810,7 @@ export default function LawyerDashboard() {
 
             {/* Main Table Container (Identical column structure to Yonatan's table) */}
             <div className="bg-white/95 dark:bg-slate-900/95 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-              {loading ? (
+              {loading && leads.length === 0 ? (
                 <div className="py-32 flex flex-col items-center justify-center text-slate-400">
                   <Loader2 className="animate-spin text-emerald-500 mb-4" size={44} />
                   <p className="font-bold text-sm">טוען נתוני לידים...</p>

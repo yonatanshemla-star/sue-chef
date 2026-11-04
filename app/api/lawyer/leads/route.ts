@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getLeads, getLawyerCampaignSettings, isCampaignExcluded, Lead } from '@/utils/storage';
 
+function parseLeadTimestamp(createdAt: string | undefined | null): number {
+  if (!createdAt) return 0;
+  // If DD/MM/YYYY or D/M/YYYY
+  const ddmmyyyy = createdAt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    return new Date(Date.UTC(year, month, day)).getTime();
+  }
+  const t = new Date(createdAt).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 export async function GET() {
   try {
     const [allLeads, campaignSettings] = await Promise.all([
@@ -8,12 +22,13 @@ export async function GET() {
       getLawyerCampaignSettings()
     ]);
 
-    // Gili starts fresh with an empty clean-slate table.
-    // Only leads arriving from this onboarding timestamp onward will enter Gili's table.
-    const GILI_START_TIME = new Date('2026-11-04T12:15:00.000Z').getTime();
+    // Gili starts fresh with a 100% clean-slate empty table.
+    // Any historical leads before November 4, 2026 12:00 UTC are excluded,
+    // so only newly arriving leads from lead.im will enter Gili's table.
+    const GILI_START_TIME = new Date('2026-11-04T12:00:00.000Z').getTime();
 
     const activeLeads = allLeads.filter(l => {
-      const leadTime = new Date(l.createdAt).getTime();
+      const leadTime = parseLeadTimestamp(l.createdAt);
       // Exclude past historical leads unless specifically assigned to lawyer
       if (leadTime < GILI_START_TIME && !l.assignedToLawyer) {
         return false;
@@ -22,37 +37,24 @@ export async function GET() {
       return !isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns);
     });
 
-    // Map leads for Gili: if lead has red star / isStarred, strip Yonatan's past history
+    // Map leads for Gili:
+    // Strictly isolate notes - Gili NEVER sees Yonatan's internal notes or call history.
     const giliLeads = activeLeads.map(l => {
-      const isRecurring = Boolean(l.isStarred);
-
-      if (isRecurring) {
-        return {
-          ...l,
-          status: l.lawyerStatus || 'חדש',
-          generalNotes: l.lawyerGeneralNotes || '',
-          liveCallNotes: l.lawyerLiveCallNotes || '',
-          followUpDate: l.lawyerFollowUpDate || '',
-          callCount: l.lawyerCallCount || 0,
-          lastContacted: l.lawyerLastContacted || null,
-          disqualificationReason: l.lawyerDisqualificationReason || '',
-          recordingUrl: undefined,
-          transcription: undefined,
-          fullTranscription: undefined,
-          aiSummary: undefined,
-          sentiment: undefined,
-          isStarred: false,
-        } as Lead;
-      }
-
       return {
         ...l,
-        status: l.lawyerStatus || l.status,
-        generalNotes: l.lawyerGeneralNotes !== undefined ? l.lawyerGeneralNotes : l.generalNotes,
-        liveCallNotes: l.lawyerLiveCallNotes !== undefined ? l.lawyerLiveCallNotes : l.liveCallNotes,
-        followUpDate: l.lawyerFollowUpDate || l.followUpDate,
-        callCount: l.lawyerCallCount !== undefined ? l.lawyerCallCount : l.callCount,
-        lastContacted: l.lawyerLastContacted !== undefined ? l.lawyerLastContacted : l.lastContacted,
+        status: l.lawyerStatus || 'חדש',
+        generalNotes: l.lawyerGeneralNotes || '',
+        liveCallNotes: l.lawyerLiveCallNotes || '',
+        followUpDate: l.lawyerFollowUpDate || '',
+        callCount: l.lawyerCallCount || 0,
+        lastContacted: l.lawyerLastContacted || null,
+        disqualificationReason: l.lawyerDisqualificationReason || '',
+        recordingUrl: undefined,
+        transcription: undefined,
+        fullTranscription: undefined,
+        aiSummary: undefined,
+        sentiment: undefined,
+        isStarred: false,
       } as Lead;
     });
 
