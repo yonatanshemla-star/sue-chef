@@ -4,8 +4,11 @@ import type { NextRequest } from 'next/server';
 function isProtectedPath(path: string) {
   const publicPaths = [
     '/login',
+    '/logout',
     '/gili',
-    '/api/auth/login',
+    '/yonatan',
+    '/admin',
+    '/api/auth/',
     '/api/leads/webhook',
     '/api/twilio/',
     '/api/voice',
@@ -65,6 +68,9 @@ export function middleware(request: NextRequest) {
     path.startsWith('/api/leadim/sync-status') ||
     path.startsWith('/api/voice') ||
     path === '/login' ||
+    path === '/logout' ||
+    path === '/yonatan' ||
+    path === '/admin' ||
     path === '/gili';
 
   if (role === 'lawyer' && !isLawyerAllowed) {
