@@ -30,7 +30,12 @@ export async function POST(req: Request) {
     }
 
     // Update Gili / lawyer-specific fields
-    if (status !== undefined) lead.lawyerStatus = status;
+    if (status !== undefined) {
+      lead.lawyerStatus = status;
+      if (lead.assignedToLawyer) {
+        lead.status = status;
+      }
+    }
     if (generalNotes !== undefined) lead.lawyerGeneralNotes = generalNotes;
     if (liveCallNotes !== undefined) lead.lawyerLiveCallNotes = liveCallNotes;
     if (followUpDate !== undefined) lead.lawyerFollowUpDate = followUpDate;

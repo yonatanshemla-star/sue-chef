@@ -55,7 +55,18 @@ export function middleware(request: NextRequest) {
   }
 
   // Lawyer trying to access admin pages — redirect to /lawyer
-  if (role === 'lawyer' && !path.startsWith('/lawyer') && !path.startsWith('/api/lawyer') && !path.startsWith('/api/auth') && path !== '/login' && path !== '/gili') {
+  const isLawyerAllowed = 
+    path.startsWith('/lawyer') ||
+    path.startsWith('/api/lawyer') ||
+    path.startsWith('/api/auth') ||
+    path.startsWith('/api/twilio/token') ||
+    path.startsWith('/api/twilio/balance') ||
+    path.startsWith('/api/leadim/sync-status') ||
+    path.startsWith('/api/voice') ||
+    path === '/login' ||
+    path === '/gili';
+
+  if (role === 'lawyer' && !isLawyerAllowed) {
     if (path.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLeads } from '@/utils/storage';
+import { getLeads, getCampaignSettings, isCampaignExcluded } from '@/utils/storage';
 import { syncNewLeadsFromLeadim } from '@/utils/leadimSync';
 
 export async function GET() {
@@ -7,11 +7,17 @@ export async function GET() {
     // Auto-sync any newly arrived leads directly from Lead.IM
     await syncNewLeadsFromLeadim().catch(err => console.error('LeadIM auto-sync error:', err));
 
-    const leads = await getLeads();
+    const [leads, campaignSettings] = await Promise.all([
+      getLeads(),
+      getCampaignSettings()
+    ]);
     
-    // Filter out campaign leads so main CRM table remains separate
+    // Filter out campaign leads and excluded campaigns so main CRM table remains clean
     const mainCrmLeads = leads.filter(
-      l => !l.id?.startsWith('cmp_') && l.source !== 'CSV Campaign' && l.campaignTag !== 'קמפיין פולואפ 2026'
+      l => !l.id?.startsWith('cmp_') &&
+           l.source !== 'CSV Campaign' &&
+           l.campaignTag !== 'קמפיין פולואפ 2026' &&
+           !isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)
     );
 
     // Sort leads by newest first

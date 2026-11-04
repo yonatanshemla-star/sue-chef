@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { 
-  Phone, Clock, RefreshCw, Moon, Sun, PhoneCall, PhoneOff, X, 
+  Phone, Clock, RefreshCw, Moon, Sun, DollarSign, PhoneCall, PhoneOff, X, 
   Loader2, Search, Calendar, Users, Briefcase, Settings, LogOut, 
   CheckCircle, ChevronDown, ChevronRight, Mic, MicOff, Scale, Archive, ArrowRight,
   Filter, Check, FileText, AlertCircle, Sparkles, MessageSquare, Tag,
@@ -49,6 +49,7 @@ export default function LawyerDashboard() {
   const [mounted, setMounted] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [twilioBalance, setTwilioBalance] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,10 +195,24 @@ export default function LawyerDashboard() {
     }
   };
 
+  const fetchTwilioBalance = async () => {
+    try {
+      const res = await fetch('/api/twilio/balance');
+      const data = await res.json();
+      if (data.success && data.balance) {
+        setTwilioBalance(data.balance);
+      }
+    } catch (e) {
+      console.warn('Twilio balance fetch error:', e);
+    }
+  };
+
   useEffect(() => {
     fetchLeads(false);
+    fetchTwilioBalance();
     const interval = setInterval(() => {
       fetchLeads(true);
+      fetchTwilioBalance();
     }, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -210,7 +225,32 @@ export default function LawyerDashboard() {
 
   // Update lead
   const handleUpdateLead = async (id: string, updates: Partial<Lead>) => {
+    const currentLead = leads.find(l => l.id === id);
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+
+    // If status changed, asynchronously trigger Lead.IM status sync in background
+    if (updates.status) {
+      fetch('/api/leadim/sync-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: id,
+          phone: currentLead?.phone,
+          clientName: currentLead?.clientName,
+          leadimId: currentLead?.leadimId,
+          status: updates.status,
+          disqualificationReason: updates.disqualificationReason || currentLead?.disqualificationReason,
+        }),
+      })
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.success && data.leadimId && currentLead && !currentLead.leadimId) {
+          setLeads(prev => prev.map(l => l.id === id ? { ...l, leadimId: data.leadimId } : l));
+        }
+      })
+      .catch(err => console.warn('LeadIM status sync trigger error:', err));
+    }
+
     try {
       await fetch('/api/lawyer/update', {
         method: 'POST',
@@ -583,6 +623,17 @@ export default function LawyerDashboard() {
               <div>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">קו שיחות פעיל</p>
                 <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono" dir="ltr">053-7710090</p>
+              </div>
+            </div>
+
+            {/* Twilio Balance Badge */}
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-500/30 dark:border-emerald-500/20 shadow-sm">
+              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <DollarSign className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">יתרת טוויליו</p>
+                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono" dir="ltr">{twilioBalance || "..."}</p>
               </div>
             </div>
 

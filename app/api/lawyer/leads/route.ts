@@ -42,7 +42,7 @@ export async function GET() {
     const giliLeads = activeLeads.map(l => {
       return {
         ...l,
-        status: l.lawyerStatus || 'חדש',
+        status: l.lawyerStatus || l.status || 'חדש',
         generalNotes: l.lawyerGeneralNotes || '',
         liveCallNotes: l.lawyerLiveCallNotes || '',
         followUpDate: l.lawyerFollowUpDate || '',
