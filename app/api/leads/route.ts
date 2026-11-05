@@ -12,13 +12,21 @@ export async function GET() {
       getCampaignSettings()
     ]);
     
-    // Filter out campaign leads and excluded campaigns so main CRM table remains clean
-    const mainCrmLeads = leads.filter(
-      l => !l.id?.startsWith('cmp_') &&
-           l.source !== 'CSV Campaign' &&
-           l.campaignTag !== 'קמפיין פולואפ 2026' &&
-           !isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)
-    );
+    // Filter out campaign leads, excluded campaigns, and leads created by lawyer
+    const mainCrmLeads = leads.filter(l => {
+      if (l.id?.startsWith('cmp_') || l.source === 'CSV Campaign' || l.campaignTag === 'קמפיין פולואפ 2026') {
+        return false;
+      }
+      // Strictly exclude lawyer's manual leads and lawyer-assigned manual leads from admin CRM
+      if (l.id?.startsWith('manual_') || l.createdRole === 'lawyer' || l.lawyerOnly || (l.assignedToLawyer && l.source === 'Manual')) {
+        return false;
+      }
+      // Exclude campaigns excluded by admin settings (e.g. MUZZA)
+      if (isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)) {
+        return false;
+      }
+      return true;
+    });
 
     // Sort leads by newest first
     const sortedLeads = mainCrmLeads.sort((a, b) => {

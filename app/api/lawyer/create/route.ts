@@ -19,6 +19,8 @@ export async function POST(req: Request) {
       status: status || 'חדש',
       lawyerStatus: status || 'חדש',
       assignedToLawyer: true,
+      createdRole: 'lawyer',
+      lawyerOnly: true,
       createdAt: new Date().toISOString(),
       lastContacted: null,
       followUpDate: '',

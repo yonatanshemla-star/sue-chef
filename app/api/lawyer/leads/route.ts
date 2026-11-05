@@ -28,6 +28,16 @@ export async function GET() {
     const GILI_START_TIME = new Date('2026-11-04T12:00:00.000Z').getTime();
 
     const activeLeads = allLeads.filter(l => {
+      // If created by lawyer, ALWAYS show to lawyer
+      if (l.createdRole === 'lawyer' || l.id?.startsWith('manual_') || l.lawyerOnly) {
+        return true;
+      }
+
+      // If created by admin or marked adminOnly, NEVER show to lawyer
+      if (l.adminOnly || l.createdRole === 'admin' || (l.source === 'Manual' && !l.assignedToLawyer)) {
+        return false;
+      }
+
       const leadTime = parseLeadTimestamp(l.createdAt);
       // Exclude past historical leads unless specifically assigned to lawyer
       if (leadTime < GILI_START_TIME && !l.assignedToLawyer) {

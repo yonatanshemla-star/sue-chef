@@ -63,6 +63,9 @@ export interface Lead {
   lawyerLastContacted?: string | null;
   lawyerDisqualificationReason?: string;
   assignedToLawyer?: boolean;
+  createdRole?: 'admin' | 'lawyer';
+  lawyerOnly?: boolean;
+  adminOnly?: boolean;
 }
 
 export async function initDB() {

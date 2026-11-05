@@ -1733,7 +1733,8 @@ const ringback = new RingbackGenerator();
   const addNewLead = async () => {
     const newLead: Lead = {
       id: crypto.randomUUID(), clientName: "", source: "Manual", createdAt: new Date().toISOString(),
-      lastContacted: null, status: "חדש", followUpDate: "", generalNotes: "", liveCallNotes: "", urgency: "בינונית", callCount: 0
+      lastContacted: null, status: "חדש", followUpDate: "", generalNotes: "", liveCallNotes: "", urgency: "בינונית", callCount: 0,
+      createdRole: 'admin', adminOnly: true
     };
     setLeads(prev => [newLead, ...prev]);
     try { await fetch('/api/leads/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newLead) }); } catch(e) { console.error(e); }
