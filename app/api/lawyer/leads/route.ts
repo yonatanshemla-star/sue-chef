@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getLeads, getLawyerCampaignSettings, isCampaignExcluded, Lead } from '@/utils/storage';
+import { syncNewLeadsFromLeadim } from '@/utils/leadimSync';
 
 function parseLeadTimestamp(createdAt: string | undefined | null): number {
   if (!createdAt) return 0;
@@ -17,6 +18,9 @@ function parseLeadTimestamp(createdAt: string | undefined | null): number {
 
 export async function GET() {
   try {
+    // Non-blocking auto-sync of newest leads directly from Lead.IM
+    await syncNewLeadsFromLeadim().catch(err => console.error('LeadIM auto-sync error in lawyer route:', err));
+
     const [allLeads, campaignSettings] = await Promise.all([
       getLeads(),
       getLawyerCampaignSettings()
@@ -33,8 +37,8 @@ export async function GET() {
         return true;
       }
 
-      // If created by admin or marked adminOnly, NEVER show to lawyer
-      if (l.adminOnly || l.createdRole === 'admin' || (l.source === 'Manual' && !l.assignedToLawyer)) {
+      // If manual lead created by admin or marked adminOnly, NEVER show to lawyer
+      if ((l.adminOnly || l.createdRole === 'admin' || l.source === 'Manual') && !l.assignedToLawyer && l.source === 'Manual') {
         return false;
       }
 

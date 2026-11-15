@@ -21,8 +21,8 @@ export async function GET() {
       if (l.id?.startsWith('manual_') || l.createdRole === 'lawyer' || l.lawyerOnly || (l.assignedToLawyer && l.source === 'Manual')) {
         return false;
       }
-      // Exclude campaigns excluded by admin settings (e.g. MUZZA), unless explicitly imported as adminOnly
-      if (!l.adminOnly && isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)) {
+      // Exclude campaigns excluded by admin settings (e.g. MUZZA)
+      if (isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)) {
         return false;
       }
       return true;

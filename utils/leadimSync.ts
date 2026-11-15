@@ -2,11 +2,7 @@ import {
   getLeads, 
   saveLead, 
   updateLead, 
-  getDeletedLeadimIdentifiers,
-  getCampaignSettings,
-  getExcludedLeadimIds,
-  recordExcludedLeadimId,
-  isCampaignExcluded 
+  getDeletedLeadimIdentifiers 
 } from '@/utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -63,8 +59,6 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
 
     const dbLeads = await getLeads();
     const deleted = await getDeletedLeadimIdentifiers();
-    const campaignSettings = await getCampaignSettings();
-    const excludedLeadimIds = await getExcludedLeadimIds();
 
     const mainCrmLeads = dbLeads.filter(l => l.source !== 'CSV Campaign' && !l.id?.startsWith('cmp_'));
     const existingLeadimIds = new Set(mainCrmLeads.map(l => l.leadimId).filter(Boolean));
@@ -81,17 +75,15 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     let currentVs = currentHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || viewstate;
     let currentVsg = currentHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || viewstategen;
 
-    // 3. First set date range to 01/01/2020 00:00 to unlock all historical leads
+    // 3. Set date range to all leads
     const drangeParams = new URLSearchParams();
     drangeParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
     drangeParams.append('__EVENTARGUMENT', '');
     drangeParams.append('__CMD', 'lm_sidebar_contSidebar_sideMenu_dv_ct_dvFilters_fs_lblCRange_crange_change_drange');
-    drangeParams.append('__ARG', '');
+    drangeParams.append('__ARG', 'allleads');
     drangeParams.append('__VIEWSTATE', currentVs);
     drangeParams.append('__VIEWSTATEGENERATOR', currentVsg);
     drangeParams.append('lm$mpi$scms_csm_txt', 'passed');
-    drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$lblCRange$crange$dvWrap$dvMenu$clndrFrom$txtDate', '01/01/2020 00:00');
-    drangeParams.append('lm$sidebar$contSidebar$sideMenu$dv$ct$dvFilters$fs$ddlFilterStatuses', '');
 
     const drangeRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
       method: 'POST',
@@ -104,6 +96,30 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
     });
 
     currentHtml = await drangeRes.text();
+    currentVs = currentHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || currentVs;
+    currentVsg = currentHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || currentVsg;
+
+    // 4. Set page size to 100 leads per page
+    const ippParams = new URLSearchParams();
+    ippParams.append('__EVENTTARGET', 'lm$mpi$scms_csm');
+    ippParams.append('__EVENTARGUMENT', '');
+    ippParams.append('__CMD', 'lm_toolbar_contToolbar_pgrPager_cmd');
+    ippParams.append('__ARG', 'ipp100');
+    ippParams.append('__VIEWSTATE', currentVs);
+    ippParams.append('__VIEWSTATEGENERATOR', currentVsg);
+    ippParams.append('lm$mpi$scms_csm_txt', 'passed');
+
+    const ippRes = await fetch(`https://sys.lead.im/a/${accountId}/leads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': allCookies,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: ippParams.toString(),
+    });
+
+    currentHtml = await ippRes.text();
     currentVs = currentHtml.match(/id="__VIEWSTATE"\s+value="([^"]+)"/)?.[1] || currentVs;
     currentVsg = currentHtml.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]+)"/)?.[1] || currentVsg;
 
@@ -122,8 +138,8 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         const rowContent = trMatch[2];
         const rowText = rowContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-        // Skip if active lead by leadimId or tombstoned deleted lead or previously excluded
-        if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId) || excludedLeadimIds.has(leadimId)) continue;
+        // Skip if active lead by leadimId or tombstoned deleted lead
+        if (existingLeadimIds.has(leadimId) || deleted.leadimIds.has(leadimId)) continue;
 
         const tds = Array.from(rowContent.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
 
@@ -131,14 +147,6 @@ export async function syncNewLeadsFromLeadim(): Promise<number> {
         const createdAt = parseLeadimDate(dateStr);
 
         const campaign = tds[4] || undefined;
-
-        // Skip if campaign is excluded by user settings
-        if (isCampaignExcluded(campaign, campaignSettings.excludedCampaigns)) {
-          await recordExcludedLeadimId(leadimId, campaign);
-          excludedLeadimIds.add(leadimId);
-          pageInsertedCount++;
-          continue;
-        }
         const rawName = tds[6] || '';
         const clientName = (rawName && rawName !== '&nbsp;' && rawName.trim().length > 0) ? rawName.trim() : 'ליד מ-LeadIM';
 
