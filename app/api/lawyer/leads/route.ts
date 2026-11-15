@@ -37,8 +37,8 @@ export async function GET() {
         return true;
       }
 
-      // If manual lead created by admin or marked adminOnly, NEVER show to lawyer
-      if ((l.adminOnly || l.createdRole === 'admin' || l.source === 'Manual') && !l.assignedToLawyer && l.source === 'Manual') {
+      // If marked adminOnly or created by admin, NEVER show to lawyer
+      if (l.adminOnly || l.createdRole === 'admin' || (l.source === 'Manual' && !l.assignedToLawyer)) {
         return false;
       }
 
