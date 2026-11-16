@@ -1,20 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getLeads, getLawyerCampaignSettings, isCampaignExcluded, Lead } from '@/utils/storage';
+import { 
+  getLeads, 
+  getLawyerCampaignSettings, 
+  isCampaignExcluded, 
+  getCampaignAllowedCutoff, 
+  parseLeadTimestamp, 
+  Lead 
+} from '@/utils/storage';
 import { syncNewLeadsFromLeadim } from '@/utils/leadimSync';
-
-function parseLeadTimestamp(createdAt: string | undefined | null): number {
-  if (!createdAt) return 0;
-  // If DD/MM/YYYY or D/M/YYYY
-  const ddmmyyyy = createdAt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (ddmmyyyy) {
-    const day = parseInt(ddmmyyyy[1], 10);
-    const month = parseInt(ddmmyyyy[2], 10) - 1;
-    const year = parseInt(ddmmyyyy[3], 10);
-    return new Date(Date.UTC(year, month, day)).getTime();
-  }
-  const t = new Date(createdAt).getTime();
-  return isNaN(t) ? 0 : t;
-}
 
 export async function GET() {
   try {
@@ -48,7 +41,17 @@ export async function GET() {
         return false;
       }
       // Filter by lawyer's campaign exclusion settings
-      return !isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns);
+      if (isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)) {
+        return false;
+      }
+      // If campaign was unblocked, exclude leads created before unblock
+      const cutoffTime = getCampaignAllowedCutoff(l.campaign, campaignSettings.campaignAllowedFrom);
+      if (cutoffTime !== null && !l.assignedToLawyer) {
+        if (leadTime < cutoffTime) {
+          return false;
+        }
+      }
+      return true;
     });
 
     // Map leads for Gili:

@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getLeads, getCampaignSettings, isCampaignExcluded } from '@/utils/storage';
+import { 
+  getLeads, 
+  getCampaignSettings, 
+  isCampaignExcluded,
+  getCampaignAllowedCutoff,
+  parseLeadTimestamp
+} from '@/utils/storage';
 import { syncNewLeadsFromLeadim } from '@/utils/leadimSync';
 
 export async function GET() {
@@ -21,16 +27,28 @@ export async function GET() {
       if (l.id?.startsWith('manual_') || l.createdRole === 'lawyer' || l.lawyerOnly || (l.assignedToLawyer && l.source === 'Manual')) {
         return false;
       }
-      // Exclude campaigns excluded by admin settings (e.g. MUZZA), unless explicitly imported as adminOnly
-      if (!l.adminOnly && isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)) {
+      // If explicitly marked adminOnly, always show (e.g. intentionally imported leads)
+      if (l.adminOnly) {
+        return true;
+      }
+      // Exclude campaigns excluded by admin settings (e.g. MUZZA)
+      if (isCampaignExcluded(l.campaign, campaignSettings.excludedCampaigns)) {
         return false;
+      }
+      // If campaign was unblocked, exclude historical leads from before the unblock timestamp
+      const cutoffTime = getCampaignAllowedCutoff(l.campaign, campaignSettings.campaignAllowedFrom);
+      if (cutoffTime !== null) {
+        const leadTime = parseLeadTimestamp(l.createdAt);
+        if (leadTime < cutoffTime) {
+          return false;
+        }
       }
       return true;
     });
 
     // Sort leads by newest first
     const sortedLeads = mainCrmLeads.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return parseLeadTimestamp(b.createdAt) - parseLeadTimestamp(a.createdAt);
     });
 
     return NextResponse.json({ success: true, leads: sortedLeads });

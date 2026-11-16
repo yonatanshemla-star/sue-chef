@@ -110,6 +110,37 @@ export async function initDB() {
 export interface CampaignSettings {
   excludedCampaigns: string[];
   customCampaigns: string[];
+  campaignAllowedFrom?: Record<string, string>;
+}
+
+export function parseLeadTimestamp(createdAt: string | undefined | null): number {
+  if (!createdAt) return 0;
+  const ddmmyyyy = createdAt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    const hours = ddmmyyyy[4] ? parseInt(ddmmyyyy[4], 10) : 0;
+    const minutes = ddmmyyyy[5] ? parseInt(ddmmyyyy[5], 10) : 0;
+    return new Date(Date.UTC(year, month, day, hours, minutes)).getTime();
+  }
+  const t = new Date(createdAt).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
+export function getCampaignAllowedCutoff(campaignName: string | undefined | null, allowedFromMap?: Record<string, string>): number | null {
+  if (!campaignName || !allowedFromMap || Object.keys(allowedFromMap).length === 0) return null;
+  const target = campaignName.trim().toLowerCase();
+  if (!target) return null;
+
+  for (const [key, cutoffIso] of Object.entries(allowedFromMap)) {
+    const k = key.trim().toLowerCase();
+    if (k && (target === k || target.includes(k) || k.includes(target))) {
+      const t = new Date(cutoffIso).getTime();
+      if (!isNaN(t)) return t;
+    }
+  }
+  return null;
 }
 
 export async function getCampaignSettings(): Promise<CampaignSettings> {
@@ -121,12 +152,13 @@ export async function getCampaignSettings(): Promise<CampaignSettings> {
       return {
         excludedCampaigns: Array.isArray(val.excludedCampaigns) ? val.excludedCampaigns : [],
         customCampaigns: Array.isArray(val.customCampaigns) ? val.customCampaigns : [],
+        campaignAllowedFrom: val.campaignAllowedFrom && typeof val.campaignAllowedFrom === 'object' ? val.campaignAllowedFrom : {},
       };
     }
   } catch (e) {
     console.error('getCampaignSettings error:', e);
   }
-  return { excludedCampaigns: [], customCampaigns: [] };
+  return { excludedCampaigns: [], customCampaigns: [], campaignAllowedFrom: {} };
 }
 
 export async function getLawyerCampaignSettings(): Promise<CampaignSettings> {
@@ -138,20 +170,49 @@ export async function getLawyerCampaignSettings(): Promise<CampaignSettings> {
       return {
         excludedCampaigns: Array.isArray(val.excludedCampaigns) ? val.excludedCampaigns : [],
         customCampaigns: Array.isArray(val.customCampaigns) ? val.customCampaigns : [],
+        campaignAllowedFrom: val.campaignAllowedFrom && typeof val.campaignAllowedFrom === 'object' ? val.campaignAllowedFrom : {},
       };
     }
   } catch (e) {
     console.error('getLawyerCampaignSettings error:', e);
   }
-  return { excludedCampaigns: [], customCampaigns: [] };
+  return { excludedCampaigns: [], customCampaigns: [], campaignAllowedFrom: {} };
 }
 
 export async function saveLawyerCampaignSettings(settings: Partial<CampaignSettings>): Promise<CampaignSettings> {
   await initDB();
   const current = await getLawyerCampaignSettings();
+  const newExcluded = settings.excludedCampaigns !== undefined ? settings.excludedCampaigns : current.excludedCampaigns;
+  const newCustom = settings.customCampaigns !== undefined ? settings.customCampaigns : current.customCampaigns;
+
+  const currentExcludedLower = new Set((current.excludedCampaigns || []).map(c => c.trim().toLowerCase()));
+  const newExcludedLower = new Set(newExcluded.map(c => c.trim().toLowerCase()));
+  const updatedAllowedFrom: Record<string, string> = { ...(current.campaignAllowedFrom || {}) };
+
+  // If a campaign was previously excluded and is now NOT excluded (unblocked):
+  for (const prev of current.excludedCampaigns || []) {
+    const prevKey = prev.trim().toLowerCase();
+    if (!newExcludedLower.has(prevKey)) {
+      updatedAllowedFrom[prevKey] = new Date().toISOString();
+    }
+  }
+
+  // If a campaign is newly added to excluded (re-blocked):
+  for (const curr of newExcluded) {
+    const currKey = curr.trim().toLowerCase();
+    if (!currentExcludedLower.has(currKey)) {
+      delete updatedAllowedFrom[currKey];
+    }
+  }
+
+  if (settings.campaignAllowedFrom) {
+    Object.assign(updatedAllowedFrom, settings.campaignAllowedFrom);
+  }
+
   const updated: CampaignSettings = {
-    excludedCampaigns: settings.excludedCampaigns !== undefined ? settings.excludedCampaigns : current.excludedCampaigns,
-    customCampaigns: settings.customCampaigns !== undefined ? settings.customCampaigns : current.customCampaigns,
+    excludedCampaigns: newExcluded,
+    customCampaigns: newCustom,
+    campaignAllowedFrom: updatedAllowedFrom,
   };
   await sql`
     INSERT INTO system_settings (key, value, updated_at)
@@ -164,9 +225,37 @@ export async function saveLawyerCampaignSettings(settings: Partial<CampaignSetti
 export async function saveCampaignSettings(settings: Partial<CampaignSettings>): Promise<CampaignSettings> {
   await initDB();
   const current = await getCampaignSettings();
+  const newExcluded = settings.excludedCampaigns !== undefined ? settings.excludedCampaigns : current.excludedCampaigns;
+  const newCustom = settings.customCampaigns !== undefined ? settings.customCampaigns : current.customCampaigns;
+
+  const currentExcludedLower = new Set((current.excludedCampaigns || []).map(c => c.trim().toLowerCase()));
+  const newExcludedLower = new Set(newExcluded.map(c => c.trim().toLowerCase()));
+  const updatedAllowedFrom: Record<string, string> = { ...(current.campaignAllowedFrom || {}) };
+
+  // If a campaign was previously excluded and is now NOT excluded (unblocked):
+  for (const prev of current.excludedCampaigns || []) {
+    const prevKey = prev.trim().toLowerCase();
+    if (!newExcludedLower.has(prevKey)) {
+      updatedAllowedFrom[prevKey] = new Date().toISOString();
+    }
+  }
+
+  // If a campaign is newly added to excluded (re-blocked):
+  for (const curr of newExcluded) {
+    const currKey = curr.trim().toLowerCase();
+    if (!currentExcludedLower.has(currKey)) {
+      delete updatedAllowedFrom[currKey];
+    }
+  }
+
+  if (settings.campaignAllowedFrom) {
+    Object.assign(updatedAllowedFrom, settings.campaignAllowedFrom);
+  }
+
   const updated: CampaignSettings = {
-    excludedCampaigns: settings.excludedCampaigns !== undefined ? settings.excludedCampaigns : current.excludedCampaigns,
-    customCampaigns: settings.customCampaigns !== undefined ? settings.customCampaigns : current.customCampaigns,
+    excludedCampaigns: newExcluded,
+    customCampaigns: newCustom,
+    campaignAllowedFrom: updatedAllowedFrom,
   };
   await sql`
     INSERT INTO system_settings (key, value, updated_at)

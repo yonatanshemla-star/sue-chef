@@ -34,6 +34,7 @@ export async function GET() {
       success: true,
       excludedCampaigns: settings.excludedCampaigns,
       customCampaigns: settings.customCampaigns,
+      campaignAllowedFrom: settings.campaignAllowedFrom || {},
       campaigns,
     });
   } catch (error: any) {
@@ -45,17 +46,19 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { excludedCampaigns, customCampaigns } = body;
+    const { excludedCampaigns, customCampaigns, campaignAllowedFrom } = body;
 
     const updated = await saveLawyerCampaignSettings({
       excludedCampaigns: Array.isArray(excludedCampaigns) ? excludedCampaigns : undefined,
       customCampaigns: Array.isArray(customCampaigns) ? customCampaigns : undefined,
+      campaignAllowedFrom: campaignAllowedFrom && typeof campaignAllowedFrom === 'object' ? campaignAllowedFrom : undefined,
     });
 
     return NextResponse.json({
       success: true,
       excludedCampaigns: updated.excludedCampaigns,
       customCampaigns: updated.customCampaigns,
+      campaignAllowedFrom: updated.campaignAllowedFrom || {},
     });
   } catch (error: any) {
     console.error('Failed to save lawyer campaign settings:', error);
