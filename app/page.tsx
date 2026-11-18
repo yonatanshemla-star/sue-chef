@@ -4234,17 +4234,14 @@ const ringback = new RingbackGenerator();
       {/* Live Notes Modal */}
       {liveNotesLead && (
         <div 
-          style={{
-            height: visualViewportHeight ? `${visualViewportHeight}px` : undefined,
-          }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/80 backdrop-blur-xl transition-all overflow-hidden"
+          className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 md:bg-slate-900/80 md:backdrop-blur-xl flex flex-col justify-start md:items-center md:justify-center p-0 md:p-4 overflow-hidden"
         >
           <div 
             style={{
-              height: visualViewportHeight ? `${visualViewportHeight}px` : undefined,
+              height: visualViewportHeight ? `${visualViewportHeight}px` : '100%',
               maxHeight: visualViewportHeight ? `${visualViewportHeight}px` : undefined,
             }}
-            className="bg-white dark:bg-slate-900 w-full h-[100dvh] max-h-[100dvh] md:max-w-[95vw] md:h-[95vh] md:max-h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800"
+            className="bg-white dark:bg-slate-900 w-full h-full md:max-w-[95vw] md:h-[95vh] md:max-h-[95vh] rounded-none md:rounded-[48px] shadow-2xl flex flex-col overflow-hidden border-none md:border dark:border-slate-800"
           >
             {/* Header - Top Row */}
             <div className="p-2 md:p-4 border-b dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10 gap-1.5 md:gap-3 flex-shrink-0" dir="rtl">
@@ -4360,7 +4357,7 @@ const ringback = new RingbackGenerator();
                ) : (
                  <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
                     {/* RIGHT SIDE: Notes Area */}
-                    <div className={`flex-1 md:flex-[2] flex flex-col p-2.5 md:p-5 border-b md:border-b-0 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-0 h-full ${showMobileScriptPanel ? 'hidden md:flex' : 'flex'}`}>
+                    <div className={`flex-1 md:flex-[2] flex flex-col p-2.5 md:p-5 md:border-l dark:border-slate-800 bg-white dark:bg-slate-900 relative min-h-0 h-full ${showMobileScriptPanel ? 'hidden md:flex' : 'flex'}`}>
                        <div className="flex justify-between items-center mb-1.5 md:mb-3 gap-1.5 flex-wrap flex-shrink-0">
                          {/* Desktop label / Mobile Dial Mode Selector */}
                          <div className="flex items-center gap-2">
@@ -4628,7 +4625,7 @@ const ringback = new RingbackGenerator();
             </div>
 
             {/* Footer - Compact */}
-            <div className="p-2.5 md:p-4 border-t dark:border-slate-800 bg-white dark:bg-slate-900 z-10 flex justify-between items-center px-3 md:px-8 flex-shrink-0" dir="rtl">
+            <div className="p-2 md:p-4 border-t dark:border-slate-800 bg-white dark:bg-slate-900 z-10 flex items-center justify-between gap-2 px-3 md:px-8 flex-shrink-0" dir="rtl">
                <div className="flex items-center gap-2 md:gap-6">
                  <div className="hidden sm:flex items-center gap-3 uppercase font-bold text-[9px] tracking-widest text-slate-300 pointer-events-none">
                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
@@ -4636,15 +4633,15 @@ const ringback = new RingbackGenerator();
                  </div>
                  <button 
                    onClick={() => setIsNegligenceActive(!isNegligenceActive)}
-                   className={`px-3 py-1.5 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl border font-bold text-xs transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 shadow-sm
+                   className={`h-11 px-3.5 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl border font-bold text-xs md:text-sm transition-all flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 shadow-sm
                      ${isNegligenceActive 
                        ? 'bg-red-500 text-white border-red-600 shadow-red-500/20 hover:bg-red-600' 
                        : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}
                  >
-                   <ClipboardList size={14} /> <span className="hidden xs:inline sm:inline">במקרה של </span><span>רשלנות</span>
+                   <ClipboardList size={16} /> <span className="hidden xs:inline">במקרה של </span><span>רשלנות</span>
                  </button>
                </div>
-               <button onClick={handleCloseLiveNotes} className="px-5 py-2 md:px-16 md:py-3.5 rounded-xl md:rounded-2xl bg-indigo-600 text-white font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 md:gap-3 font-assistant text-sm md:text-xl group overflow-hidden relative shadow-indigo-500/20">
+               <button onClick={handleCloseLiveNotes} className="h-11 flex-1 sm:flex-initial max-w-[220px] px-4 md:px-16 rounded-xl md:rounded-2xl bg-indigo-600 text-white font-bold shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 md:gap-3 font-assistant text-sm md:text-xl group overflow-hidden relative shadow-indigo-500/20">
                  <span className="relative z-10 flex items-center gap-2 md:gap-3 font-bold"><Check className="w-4 h-4 md:w-6 md:h-6" /> סיום ועדכון</span>
                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-700 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                </button>
@@ -4874,21 +4871,23 @@ const ringback = new RingbackGenerator();
         </div>
       )}
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t dark:border-white/5 pb-safe z-50 flex justify-around p-2 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        {([{id: 'crm', label: 'מעקב', icon: ClipboardList}, {id: 'calls', label: 'שיחות', icon: PhoneCall}, {id: 'archive', label: 'ארכיון', icon: Archive}] as const).map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as 'crm'|'calls'|'archive')} className={`flex flex-col items-center gap-1 p-2 w-20 rounded-2xl transition-all ${isActive ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
-            <Icon size={20} className={isActive ? 'animate-bounce' : ''} />
-            <span className="text-[10px] font-bold">{tab.label}</span>
-          </button>
-        )})}
-      </div>
+      {/* Mobile Bottom Navigation (Hidden during active live call notes modal) */}
+      {!liveNotesLead && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t dark:border-white/5 pb-safe z-50 flex justify-around p-2 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+          {([{id: 'crm', label: 'מעקב', icon: ClipboardList}, {id: 'calls', label: 'שיחות', icon: PhoneCall}, {id: 'archive', label: 'ארכיון', icon: Archive}] as const).map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as 'crm'|'calls'|'archive')} className={`flex flex-col items-center gap-1 p-2 w-20 rounded-2xl transition-all ${isActive ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+              <Icon size={20} className={isActive ? 'animate-bounce' : ''} />
+              <span className="text-[10px] font-bold">{tab.label}</span>
+            </button>
+          )})}
+        </div>
+      )}
 
       {/* Scroll to Top Button */}
-      {showScrollTop && (
+      {showScrollTop && !liveNotesLead && (
         <button
           onClick={scrollToTop}
           className="fixed bottom-24 md:bottom-8 left-6 z-50 p-4 rounded-full bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 hover:scale-110 active:scale-95 transition-all duration-300 animate-in fade-in zoom-in group border border-white/20"
