@@ -354,7 +354,9 @@ export default function Home() {
     if (typeof window === 'undefined') return;
     const updateViewportHeight = () => {
       if (window.innerWidth < 768 && window.visualViewport) {
-        setVisualViewportHeight(Math.round(window.visualViewport.height));
+        const vv = window.visualViewport;
+        const total = Math.min(window.innerHeight, Math.round(vv.height + (vv.offsetTop || 0)));
+        setVisualViewportHeight(total);
       } else {
         setVisualViewportHeight(null);
       }
@@ -4427,6 +4429,17 @@ const ringback = new RingbackGenerator();
                          onFocus={e => {
                            const val = e.currentTarget.value;
                            e.currentTarget.setSelectionRange(val.length, val.length);
+                           if (typeof window !== 'undefined' && window.visualViewport) {
+                             const updateHeight = () => {
+                               const vv = window.visualViewport;
+                               if (vv && window.innerWidth < 768) {
+                                 const total = Math.min(window.innerHeight, Math.round(vv.height + (vv.offsetTop || 0)));
+                                 setVisualViewportHeight(total);
+                               }
+                             };
+                             setTimeout(updateHeight, 150);
+                             setTimeout(updateHeight, 350);
+                           }
                          }}
                          className="flex-1 w-full bg-slate-50/50 dark:bg-slate-800/20 border-2 border-slate-100 dark:border-slate-800/80 rounded-xl md:rounded-[32px] p-3 md:p-8 text-base md:text-xl font-bold placeholder:text-slate-200 leading-relaxed font-assistant resize-none outline-none focus:border-indigo-500/30 transition-all shadow-inner custom-scrollbar text-slate-900 dark:text-white min-h-0" 
                          placeholder="כתוב כאן מה הלקוח אומר..." 
