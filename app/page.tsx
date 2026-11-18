@@ -355,7 +355,13 @@ export default function Home() {
     const updateViewportHeight = () => {
       if (window.innerWidth < 768 && window.visualViewport) {
         const vv = window.visualViewport;
-        const total = Math.min(window.innerHeight, Math.round(vv.height + (vv.offsetTop || 0)));
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isKeyboardOpen = vv.height < (window.innerHeight || 800) * 0.75;
+        // In iOS Safari, the browser chrome (44px toolbar + ~34px home indicator safe area)
+        // is subtracted from visualViewport.height by WebKit even though the keyboard covers/replaces it.
+        const extraHeight = (isIOS && isKeyboardOpen) ? 80 : 0;
+        const total = Math.min(window.innerHeight, Math.round(vv.height + (vv.offsetTop || 0) + extraHeight));
         setVisualViewportHeight(total);
       } else {
         setVisualViewportHeight(null);
@@ -4433,7 +4439,11 @@ const ringback = new RingbackGenerator();
                              const updateHeight = () => {
                                const vv = window.visualViewport;
                                if (vv && window.innerWidth < 768) {
-                                 const total = Math.min(window.innerHeight, Math.round(vv.height + (vv.offsetTop || 0)));
+                                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                                               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                                 const isKeyboardOpen = vv.height < (window.innerHeight || 800) * 0.75;
+                                 const extraHeight = (isIOS && isKeyboardOpen) ? 80 : 0;
+                                 const total = Math.min(window.innerHeight, Math.round(vv.height + (vv.offsetTop || 0) + extraHeight));
                                  setVisualViewportHeight(total);
                                }
                              };
