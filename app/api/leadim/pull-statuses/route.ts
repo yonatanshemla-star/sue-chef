@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getLeads, updateLead, Lead } from '@/utils/storage';
+import { getLeads, updateLead, deleteLead, Lead } from '@/utils/storage';
 
 type LeadimAction =
-  | { type: 'delete'; reason: string }
+  | { type: 'delete'; reason: string; sameStatusList: string[] }
   | { type: 'update'; targetStatus: string; allowedExisting?: string[] }
   | { type: 'ignore' };
 
@@ -13,6 +13,10 @@ const FOLLOW_UP_GROUP = [
   'מחכה לחתימה',
   'אחר',
 ];
+
+const SIGNED_STATUSES = ['חתם'];
+const DISQUALIFIED_STATUSES = ['לא רלוונטי', 'נגמר', 'מספר שגוי'];
+const FOLLOWUP_DELETE_STATUSES = ['במעקב', 'רלוונטי - לעקוב'];
 
 function extractSelectedStatus(rowHtml: string, fallbackText?: string): { statusId: string; statusText: string } {
   const optionRegex = /<option\b([^>]*)>([\s\S]*?)<\/option>/gi;
@@ -32,24 +36,45 @@ function extractSelectedStatus(rowHtml: string, fallbackText?: string): { status
 function classifyLeadimStatus(statusId: string, statusText: string): LeadimAction {
   const text = statusText.trim();
 
-  // Auto-disqualify and delete: חתם, לא רלוונטי (או פסול/נגמר), במעקב
-  if (statusId === '223856' || text.includes('חתם')) {
-    return { type: 'delete', reason: text || 'חתם' };
-  }
-  if (
-    statusId === '223857' ||
-    text.includes('לא רלוונטי') ||
-    text.includes('פסול') ||
-    text.includes('נגמר') ||
-    text.includes('בוטל')
-  ) {
-    return { type: 'delete', reason: text || 'לא רלוונטי' };
-  }
-  if (statusId === '245310' || text.includes('מעקב')) {
-    return { type: 'delete', reason: text || 'במעקב' };
+  // Explicit "רלוונטי" (without "לא" and without "במעקב") must NEVER be deleted
+  if (text === 'רלוונטי') {
+    return { type: 'ignore' };
   }
 
-  // Sync non-deleted statuses
+  // 1. Signed / Closed deal -> delete for admin ONLY if admin status is NOT already 'חתם'
+  if (statusId === '223856' || text.includes('חתם') || text.includes('נסגרה עסקה')) {
+    return {
+      type: 'delete',
+      reason: text || 'נסגרה עסקה',
+      sameStatusList: SIGNED_STATUSES,
+    };
+  }
+
+  // 2. Disqualified / Not relevant -> delete for admin ONLY if admin status is NOT already disqualified
+  if (
+    text.includes('לא רלוונטי') ||
+    text.includes('נפסל') ||
+    text.includes('נגמר') ||
+    text.includes('בוטל') ||
+    statusId === '223857'
+  ) {
+    return {
+      type: 'delete',
+      reason: text || 'נפסל - לא רלוונטי',
+      sameStatusList: DISQUALIFIED_STATUSES,
+    };
+  }
+
+  // 3. In follow-up ("במעקב") -> delete for admin ONLY if admin status is NOT already 'במעקב' / 'רלוונטי - לעקוב'
+  if (text.includes('במעקב') || text.includes('לעקוב')) {
+    return {
+      type: 'delete',
+      reason: text || 'במעקב',
+      sameStatusList: FOLLOWUP_DELETE_STATUSES,
+    };
+  }
+
+  // 4. Sync non-deleted statuses
   if (statusId === '223854' || text.includes('לא ענה')) {
     return { type: 'update', targetStatus: 'לא ענה' };
   }
@@ -59,9 +84,6 @@ function classifyLeadimStatus(statusId: string, statusText: string): LeadimActio
       targetStatus: 'לחזור אליו',
       allowedExisting: FOLLOW_UP_GROUP,
     };
-  }
-  if (statusId === '1' || text === 'חדש') {
-    return { type: 'ignore' };
   }
 
   return { type: 'ignore' };
@@ -180,7 +202,8 @@ export async function POST() {
         !l.id?.startsWith('cmp_') &&
         !l.id?.startsWith('manual_') &&
         l.createdRole !== 'lawyer' &&
-        !l.lawyerOnly
+        !l.lawyerOnly &&
+        !l.deletedByAdmin
     );
 
     const byLeadimId = new Map<string, Lead>();
@@ -229,16 +252,22 @@ export async function POST() {
       const action = classifyLeadimStatus(statusId, statusText);
 
       if (action.type === 'delete') {
-        // Hide from Admin CRM only (lawyerOnly: true) so Gili's lawyer dashboard is untouched
-        await updateLead({
-          ...dbLead,
-          leadimId: dbLead.leadimId || leadimId,
-          lawyerOnly: true,
-        });
-        deletedCount++;
-        deletedNames.push(`${dbLead.clientName} (${action.reason})`);
-        byLeadimId.delete(leadimId);
-        if (normPhone) byPhone.delete(normPhone);
+        // Only delete if admin's local status is DIFFERENT from Lead.IM status
+        if (action.sameStatusList.includes(dbLead.status)) {
+          unchangedCount++;
+          continue;
+        }
+
+        if (!dbLead.leadimId) {
+          await updateLead({ ...dbLead, leadimId });
+        }
+        const ok = await deleteLead(dbLead.id, 'admin');
+        if (ok) {
+          deletedCount++;
+          deletedNames.push(`${dbLead.clientName} (${action.reason})`);
+          byLeadimId.delete(leadimId);
+          if (normPhone) byPhone.delete(normPhone);
+        }
       } else if (action.type === 'update') {
         const alreadyInGroup =
           dbLead.status === action.targetStatus ||

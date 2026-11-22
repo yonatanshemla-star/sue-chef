@@ -29,12 +29,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    // Update Gili / lawyer-specific fields
+    // Update Gili / lawyer-specific fields only (never overwrite admin's lead.status)
     if (status !== undefined) {
       lead.lawyerStatus = status;
-      if (lead.assignedToLawyer) {
-        lead.status = status;
-      }
     }
     if (generalNotes !== undefined) lead.lawyerGeneralNotes = generalNotes;
     if (liveCallNotes !== undefined) lead.lawyerLiveCallNotes = liveCallNotes;
