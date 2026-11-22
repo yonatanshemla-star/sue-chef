@@ -402,6 +402,33 @@ export default function Home() {
   };
 
   const [isSyncingRetro, setIsSyncingRetro] = useState<boolean>(false);
+  const [isPullingLeadimStatuses, setIsPullingLeadimStatuses] = useState<boolean>(false);
+
+  const handlePullLeadimStatuses = async () => {
+    setIsPullingLeadimStatuses(true);
+    try {
+      const res = await fetch('/api/leadim/pull-statuses', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        await fetchLeads();
+        const parts: string[] = [
+          `נסרקו ${data.scannedCount} לידים אחרונים מ-Lead.IM.`,
+          `נמחקו (חתם / לא רלוונטי / במעקב): ${data.deletedCount}`,
+          `עודכנו סטטוסים: ${data.updatedCount}`,
+        ];
+        if (Array.isArray(data.deletedNames) && data.deletedNames.length > 0) {
+          parts.push(`\nנמחקו:\n- ${data.deletedNames.slice(0, 15).join('\n- ')}`);
+        }
+        alert(parts.join('\n'));
+      } else {
+        alert(data.error || 'שגיאה בסנכרון סטטוסים מ-Lead.IM');
+      }
+    } catch (e: any) {
+      alert('שגיאת תקשורת בסנכרון סטטוסים מ-Lead.IM');
+    } finally {
+      setIsPullingLeadimStatuses(false);
+    }
+  };
 
   const handleRetroactiveSync = async () => {
     setIsSyncingRetro(true);
@@ -2551,6 +2578,15 @@ const ringback = new RingbackGenerator();
                 <Sun className={`theme-toggle-icon absolute inset-0 w-6 h-6 text-yellow-500 transition-all duration-500 transform ${darkMode ? 'rotate-[360deg] scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
                 <Moon className={`theme-toggle-icon absolute inset-0 w-6 h-6 text-indigo-400 transition-all duration-500 transform ${darkMode ? 'rotate-0 scale-100 opacity-100' : '-rotate-[360deg] scale-0 opacity-0'}`} />
               </div>
+            </button>
+            <button
+              onClick={handlePullLeadimStatuses}
+              disabled={isPullingLeadimStatuses}
+              title="סנכרן סטטוסים מ-Lead.IM (מוחק אוטומטית חתם / לא רלוונטי / במעקב)"
+              className={`px-4 py-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 flex items-center gap-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 disabled:opacity-50 ${cardClass}`}
+            >
+              <ArrowUpDown className={`w-5 h-5 ${isPullingLeadimStatuses ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isPullingLeadimStatuses ? 'מסנכרן...' : 'סנכרן מ-Lead.IM'}</span>
             </button>
             <button onClick={() => { fetchTwilioData(); fetchLeads(); }} className={`p-4 transition-all active:scale-95 group hover:bg-white dark:hover:bg-gray-800 ${cardClass}`}>
               <RefreshCw className={`w-6 h-6 ${(loadingLeads || loadingCalls) ? 'animate-spin text-indigo-500' : 'text-gray-600'}`} />

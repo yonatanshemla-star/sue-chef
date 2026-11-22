@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Missing lead ID' }, { status: 400 });
     }
 
-    const deleted = await deleteLead(id);
+    const deleted = await deleteLead(id, 'admin');
     
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });

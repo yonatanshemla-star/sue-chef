@@ -66,6 +66,8 @@ export interface Lead {
   createdRole?: 'admin' | 'lawyer';
   lawyerOnly?: boolean;
   adminOnly?: boolean;
+  deletedByAdmin?: boolean;
+  deletedByLawyer?: boolean;
 }
 
 export async function initDB() {
@@ -367,26 +369,38 @@ export async function updateLead(updatedLead: Lead): Promise<void> {
   `;
 }
 
-export async function deleteLead(id: string): Promise<boolean> {
+export async function deleteLead(id: string, role: 'admin' | 'lawyer' = 'admin'): Promise<boolean> {
   await initDB();
-  try {
-    const { rows } = await sql`SELECT data FROM leads WHERE id = ${id}`;
-    if (rows && rows.length > 0) {
-      const lead = rows[0].data as Lead;
-      const leadimId = lead.leadimId || null;
-      if (leadimId) {
-        await sql`
-          INSERT INTO deleted_leads (id, leadim_id)
-          VALUES (${id}, ${leadimId})
-          ON CONFLICT (id) DO NOTHING
-        `;
-      }
-    }
-  } catch (e) {
-    console.error('Error recording deleted_leads tombstone:', e);
+  const { rows } = await sql`SELECT data FROM leads WHERE id = ${id}`;
+  if (!rows || rows.length === 0) {
+    return false;
   }
-  const result = await sql`DELETE FROM leads WHERE id = ${id}`;
-  return (result.rowCount ?? 0) > 0;
+
+  const lead = rows[0].data as Lead;
+
+  // CSV campaign leads or isolated manual leads can be safely deleted physically
+  const isIsolatedAdminLead = id.startsWith('cmp_') || (lead.source === 'Manual' && !lead.assignedToLawyer && !lead.lawyerOnly);
+  const isIsolatedLawyerLead = lead.lawyerOnly || (id.startsWith('manual_') && !lead.adminOnly);
+
+  if (role === 'admin') {
+    if (isIsolatedAdminLead) {
+      const result = await sql`DELETE FROM leads WHERE id = ${id}`;
+      return (result.rowCount ?? 0) > 0;
+    }
+    // Soft-delete only for admin so Gili's dashboard is NEVER affected
+    lead.deletedByAdmin = true;
+    await sql`UPDATE leads SET data = ${JSON.stringify(lead)} WHERE id = ${id}`;
+    return true;
+  } else {
+    if (isIsolatedLawyerLead) {
+      const result = await sql`DELETE FROM leads WHERE id = ${id}`;
+      return (result.rowCount ?? 0) > 0;
+    }
+    // Soft-delete only for lawyer so admin's dashboard is NEVER affected
+    lead.deletedByLawyer = true;
+    await sql`UPDATE leads SET data = ${JSON.stringify(lead)} WHERE id = ${id}`;
+    return true;
+  }
 }
 
 export async function getDeletedLeadimIdentifiers(): Promise<{ leadimIds: Set<string>; phones: Set<string> }> {

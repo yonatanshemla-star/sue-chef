@@ -25,6 +25,9 @@ export async function GET() {
     const GILI_START_TIME = new Date('2026-11-04T12:00:00.000Z').getTime();
 
     const activeLeads = allLeads.filter(l => {
+      if (l.deletedByLawyer) {
+        return false;
+      }
       // If created by lawyer, ALWAYS show to lawyer
       if (l.createdRole === 'lawyer' || l.id?.startsWith('manual_') || l.lawyerOnly) {
         return true;

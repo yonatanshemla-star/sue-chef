@@ -20,6 +20,9 @@ export async function GET() {
     
     // Filter out campaign leads, excluded campaigns, and leads created by lawyer
     const mainCrmLeads = leads.filter(l => {
+      if (l.deletedByAdmin) {
+        return false;
+      }
       if (l.id?.startsWith('cmp_') || l.source === 'CSV Campaign' || l.campaignTag === 'קמפיין פולואפ 2026') {
         return false;
       }
